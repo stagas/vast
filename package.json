@@ -1,0 +1,31 @@
+{
+  "author": "stagas",
+  "version": "1.0.0",
+  "description": "",
+  "license": "AGPLv3",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "vite",
+    "test": "echo ok",
+    "asbuild:debug": "asc src/as/assembly/index.ts --target debug",
+    "asbuild:release": "asc src/as/assembly/index.ts --target release",
+    "asbuild": "npm run asbuild:debug && npm run asbuild:release"
+  },
+  "devDependencies": {
+    "ambient-dts": "github:stagas/ambient-dts",
+    "assemblyscript": "^0.27.22",
+    "autoprefixer": "^10.4.17",
+    "daisyui": "^4.6.0",
+    "open-in-editor": "^2.2.0",
+    "postcss": "^8.4.33",
+    "postcss-load-config": "^5.0.2",
+    "vite": "^5.0.12",
+    "vite-plugin-externalize-dependencies": "^0.11.0",
+    "vite-plugin-node-polyfills": "^0.19.0"
+  },
+  "dependencies": {
+    "signal-jsx": "github:stagas/signal-jsx",
+    "tailwindcss": "^3.4.1"
+  }
+}
