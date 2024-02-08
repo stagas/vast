@@ -94,6 +94,20 @@ function PrintUrlsPlugin(): Plugin {
   }
 }
 
+const hexLoader: Plugin = {
+  name: 'hex-loader',
+  transform(code, id) {
+    const [path, query] = id.split('?')
+    if (query != 'raw-hex')
+      return null
+
+    const data = fs.readFileSync(path)
+    const hex = data.toString('hex')
+
+    return `export default '${hex}';`
+  }
+}
+
 const editor = openInEditor.configure({
   editor: 'code',
   dotfiles: 'allow',
@@ -101,11 +115,14 @@ const editor = openInEditor.configure({
 
 const homedir = os.homedir()
 
+const IS_TEST = process.env.NODE_ENV === 'test'
+
 // https://vitejs.dev/config/
 export default defineConfig({
   clearScreen: false,
   test: {
-    globals: true
+    globals: true,
+    environment: 'jsdom'
   },
   server: {
     host: 'devito.test',
@@ -128,6 +145,7 @@ export default defineConfig({
     }
   },
   plugins: [
+    hexLoader,
     tsconfigPaths(),
     externalize({
       externals: [
@@ -135,7 +153,7 @@ export default defineConfig({
         (moduleName) => moduleName.startsWith('node:')
       ],
     }),
-    nodePolyfills({
+    !IS_TEST && nodePolyfills({
       exclude: ['fs']
     }),
     assemblyScriptPlugin({
@@ -143,7 +161,7 @@ export default defineConfig({
       srcMatch: 'as/assembly',
       srcEntryFile: 'as/assembly/index.ts'
     }),
-    {
+    !IS_TEST && {
       name: 'open-in-editor',
       configureServer(server) {
         server.middlewares.use(async (req, res, next) => {
@@ -176,6 +194,6 @@ export default defineConfig({
         })
       },
     },
-    PrintUrlsPlugin(),
+    !IS_TEST && PrintUrlsPlugin(),
   ],
 })

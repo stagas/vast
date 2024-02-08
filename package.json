@@ -14,10 +14,14 @@
     "asbuild": "npm run asbuild:debug && npm run asbuild:release"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^3.1.8",
+    "@vitest/browser": "^1.2.2",
     "ambient-dts": "github:stagas/ambient-dts",
     "assemblyscript": "^0.27.22",
     "autoprefixer": "^10.4.17",
     "daisyui": "^4.6.0",
+    "happy-dom": "^13.3.8",
+    "jsdom": "^24.0.0",
     "open-in-editor": "^2.2.0",
     "postcss": "^8.4.33",
     "postcss-load-config": "^5.0.2",
@@ -25,10 +29,13 @@
     "vite-plugin-externalize-dependencies": "^0.11.0",
     "vite-plugin-node-polyfills": "^0.19.0",
     "vite-tsconfig-paths": "^4.3.1",
-    "vitest": "^1.2.2"
+    "vitest": "^1.2.2",
+    "webdriverio": "^8.31.0"
   },
   "dependencies": {
+    "gl-util": "github:stagas/gl-util",
     "signal-jsx": "github:stagas/signal-jsx",
+    "std": "github:stagas/std",
     "tailwindcss": "^3.4.1",
     "utils": "github:stagas/utils"
   }

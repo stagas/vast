@@ -1,0 +1,33 @@
+export const MAX_INSTANCES = 100000
+
+export enum BOOLS {
+  NULL = 0,
+  CIRCLE = 0b00000001,
+  TRIANGLE = 0b00000010,
+  LINE_SEGMENT = 0b00000100,
+  LEFT_LINE_CAP = 0b00001000,
+  RIGHT_LINE_CAP = 0b00010000,
+  OUTLINED = 0b00100000,
+  TEXTURED = 0b01000000,
+  PIXELATED = 0b10000000
+}
+
+// BLEND MODE
+export const BLEND_MODE_COMBINE = 0x00
+export const BLEND_MODE_ADD = 0x01
+
+// LINE JOIN
+export const LINE_JOIN_START_BIT = 8
+
+export const LINE_JOIN_NOT_APPLICABLE = 0
+export const LINE_JOIN_BEVEL = 1
+export const LINE_JOIN_MITER = 2
+export const LINE_JOIN_ROUND = 3
+
+// LINE CAP
+export const LINE_CAP_START_BIT = 10
+
+export const LINE_CAP_NOT_APPLICABLE = 0
+export const LINE_CAP_FLAT = 1
+export const LINE_CAP_SQUARE = 2
+export const LINE_CAP_ROUND = 3

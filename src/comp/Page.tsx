@@ -1,5 +1,5 @@
 /** @jsxImportSource signal-jsx */
-import { add, doit } from 'assembly'
+import wasm from 'assembly'
 import { $ } from 'signal-jsx'
 import { alloc } from '../util/alloc.ts'
 
@@ -9,10 +9,10 @@ export function Page() {
   window.onpointerdown = () => info.clicked++
   // setInterval(() => info.clicked++)
   return <div>From AssemblyScript malista:
-    {add(1, 10)}
+    {wasm.add(1, 10)}
     {() => (
       info.clicked,
-      doit(f32s.byteOffset),
+      wasm.doit(f32s.byteOffset),
       f32s.join(' '))}
   </div>
 }

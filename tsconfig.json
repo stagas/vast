@@ -1,6 +1,7 @@
 {
   "include": [
-    "src"
+    "src",
+    "test"
   ],
   "compilerOptions": {
     "rootDir": ".",
@@ -36,7 +37,9 @@
     "allowJs": true,
     "strict": true,
     "paths": {
-      "assembly": ["./as/build/assembly"]
+      "assembly": [
+        "./as/bindings"
+      ]
     }
   }
 }

@@ -1,4 +1,4 @@
-import { __new, __pin, __unpin, memory } from 'assembly'
+import wasm from 'assembly'
 
 const typedArrayConstructors = [
   Uint8Array,
@@ -16,14 +16,14 @@ const typedArrayConstructors = [
 type TypedArrayConstructor = typeof typedArrayConstructors[0]
 
 const reg = new FinalizationRegistry((ptr$: number) => {
-  __unpin(ptr$)
+  wasm.__unpin(ptr$)
   console.log('freed', ptr$)
 })
 
 export function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   const bytes = length * ctor.BYTES_PER_ELEMENT
-  const ptr$ = __pin(__new(bytes, 1))
-  const arr = new ctor(memory.buffer, ptr$, length)
+  const ptr$ = wasm.__pin(wasm.__new(bytes, 1))
+  const arr = new ctor(wasm.memory.buffer, ptr$, length)
   reg.register(arr, ptr$)
   return arr as InstanceType<T>
 }

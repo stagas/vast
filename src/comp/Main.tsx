@@ -3,6 +3,7 @@ import { state } from '../state.ts'
 import { MainMenu } from './MainMenu.tsx'
 import { Page } from './Page.tsx'
 import { ThemePicker } from './ThemePicker.tsx'
+import { WebGL } from './WebGL.tsx'
 
 export function Main() {
   return <main data-theme={() => state.theme} class="bg-base-100 h-full w-full">
@@ -15,7 +16,8 @@ export function Main() {
     </nav>
 
     <article>
-      <Page />
+      {/* <Page /> */}
+      <WebGL />
     </article>
   </main>
 }

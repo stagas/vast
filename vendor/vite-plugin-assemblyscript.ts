@@ -52,7 +52,7 @@ export default function assemblyScriptPlugin(
       if (file.startsWith(matchPath)) {
         if (timestamp === handledTimestamp) return
         handledTimestamp = timestamp
-        await compile(entryFile, 'debug')
+        await compile(entryFile, 'release')
       }
     },
     async buildStart() {
