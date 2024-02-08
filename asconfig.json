@@ -1,14 +1,14 @@
 {
   "targets": {
     "debug": {
-      "outFile": "./src/as/build/assembly.wasm",
-      "textFile": "./src/as/build/assembly.wat",
+      "outFile": "./as/build/assembly.wasm",
+      "textFile": "./as/build/assembly.wat",
       "sourceMap": true,
       "debug": true
     },
     "release": {
-      "outFile": "./src/as/build/assembly.wasm",
-      "textFile": "./src/as/build/assembly.wat",
+      "outFile": "./as/build/assembly.wasm",
+      "textFile": "./as/build/assembly.wat",
       "sourceMap": true,
       "optimizeLevel": 3,
       "shrinkLevel": 0,
@@ -17,6 +17,8 @@
     }
   },
   "options": {
-    "bindings": "esm"
+    "bindings": "esm",
+    "runtime": "incremental",
+    "exportRuntime": true
   }
 }

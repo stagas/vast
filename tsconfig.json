@@ -34,6 +34,9 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "allowJs": true,
-    "strict": true
+    "strict": true,
+    "paths": {
+      "assembly": ["./as/build/assembly"]
+    }
   }
 }

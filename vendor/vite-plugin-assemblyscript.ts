@@ -1,34 +1,36 @@
 // https://github.com/ed-25519/vite-plugin-assemblyscript-asc/blob/main/src/index.ts
-import type { Plugin } from "vite"
-import { spawnSync } from "child_process"
-import { lstatSync, existsSync } from "fs"
-import { resolve, sep } from "path"
+import asc from 'assemblyscript/dist/asc'
+import { join, resolve, sep } from 'path'
+import type { Plugin } from 'vite'
 
 interface AssemblyScriptPluginOptions {
+  projectRoot: string
   srcMatch: string
   srcEntryFile: string
-  projectRoot: string
-  configFile: string
 }
 
 const defaultOptions: AssemblyScriptPluginOptions = {
-  srcMatch: "assembly",
-  srcEntryFile: "assembly/index.ts",
-  projectRoot: "src/as",
-  configFile: "asconfig.json",
+  projectRoot: '.',
+  srcMatch: 'as/assembly',
+  srcEntryFile: 'as/assembly/index.ts',
 }
 
-const spawnAscCmd = (baseScriptCmd: string, mode: "debug" | "release") => {
-  console.log("[AssemblyScript] Compiling...")
-  console.time("Done")
+async function compile(entryFile: string, mode: 'debug' | 'release') {
+  console.log('[asc] compiling...')
 
-  spawnSync(`${baseScriptCmd} ${mode}`, {
-    shell: true,
-    cwd: process.cwd(),
-    env: process.env,
-    stdio: "inherit",
-  })
-  console.timeEnd("Done")
+  const { error, stdout, stderr, stats } = await asc.main([
+    entryFile,
+    '--target', mode
+  ], {})
+
+  if (error) {
+    console.log('Compilation failed: ' + error.message)
+    console.log(stderr.toString())
+  }
+  else {
+    console.log(stdout.toString())
+    console.log(stats.toString())
+  }
 }
 
 export default function assemblyScriptPlugin(
@@ -39,41 +41,22 @@ export default function assemblyScriptPlugin(
     ...userOptions,
   }
 
-  const ascBinPathRoot = `${options.projectRoot}${sep}node_modules${sep}.bin${sep}asc`
+  const entryFile = join(options.projectRoot, options.srcEntryFile)
+  const matchPath = resolve(join(options.projectRoot, options.srcMatch))
 
-  if (!existsSync(options.projectRoot)) {
-    throw new Error(
-      `[vite-plugin-assemblyscript] projectRoot: ${options.projectRoot} does not exist`
-    )
-  }
-
-  if (!lstatSync(options.projectRoot).isDirectory()) {
-    throw new Error(
-      `[vite-plugin-assemblyscript] projectRoot: ${options.projectRoot} is not a folder`
-    )
-  }
-
-  const entryFilePath = `${options.projectRoot}${sep}${options.srcEntryFile}`
-
-  if (!existsSync(entryFilePath)) {
-    throw new Error(
-      `[vite-plugin-assemblyscript] srcEntryFile: ${options.srcEntryFile} does not exist`
-    )
-  }
-
-  const baseScriptCmd = `${ascBinPathRoot} ${entryFilePath} --config ${options.projectRoot}${sep}${options.configFile} --target`
+  let handledTimestamp: any
 
   return {
-    name: "vite-plugin-assemblyscript-asc",
-    handleHotUpdate({ file }) {
-      if (
-        file.startsWith(resolve(options.projectRoot, options.srcMatch))
-      ) {
-        spawnAscCmd(baseScriptCmd, "debug")
+    name: 'vite-plugin-assemblyscript-asc',
+    async handleHotUpdate({ file, timestamp }) {
+      if (file.startsWith(matchPath)) {
+        if (timestamp === handledTimestamp) return
+        handledTimestamp = timestamp
+        await compile(entryFile, 'debug')
       }
     },
-    buildStart() {
-      spawnAscCmd(baseScriptCmd, "release")
+    async buildStart() {
+      await compile(entryFile, 'release')
     },
   }
 }

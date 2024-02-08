@@ -5,9 +5,53 @@ import path from 'path'
 import { defineConfig } from 'vite'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import assemblyScriptPlugin from "./vendor/vite-plugin-assemblyscript"
-import externalize from "vite-plugin-externalize-dependencies";
+import externalize from "vite-plugin-externalize-dependencies"
+import tsconfigPaths from 'vite-tsconfig-paths'
 
 import type { HmrContext, Plugin } from 'vite'
+
+interface DebounceOptions {
+  first?: boolean
+  last?: boolean
+}
+export function debounce<T extends (...args: any[]) => any>(ms: number, fn: T, options?: DebounceOptions): T {
+  let resolving = false
+
+  let timeToResolve: number
+  let now: number
+  let delta: number
+  let callThis: any
+  let callArgs: any
+
+  function resolver() {
+    now = performance.now()
+    delta = timeToResolve - now
+    if (delta > 5) {
+      setTimeout(resolver, delta)
+    }
+    else if (callArgs) {
+      fn.apply(callThis, callArgs)
+      resolving = false
+    }
+  }
+
+  function wrapper(this: any, ...args: any[]) {
+    callThis = this
+    callArgs = args
+    timeToResolve = performance.now() + ms
+    if (resolving) return
+    if (options?.first) {
+      fn.apply(callThis, callArgs)
+      if (!options.last) {
+        callArgs = void 0
+      }
+    }
+    resolving = true
+    setTimeout(resolver, ms)
+  }
+
+  return wrapper as T
+}
 
 function PrintUrlsPlugin(): Plugin {
   let hmrContext: HmrContext
@@ -18,6 +62,8 @@ function PrintUrlsPlugin(): Plugin {
       hmrContext = ctx
     },
     configureServer({ watcher, printUrls, config }) {
+      printUrls = debounce(2000, printUrls)
+
       watcher.on('all', (_, file) => {
         printUrls()
 
@@ -78,6 +124,7 @@ export default defineConfig({
     }
   },
   plugins: [
+    tsconfigPaths(),
     externalize({
       externals: [
         'node:fs/promises',
@@ -89,8 +136,8 @@ export default defineConfig({
     }),
     assemblyScriptPlugin({
       projectRoot: '.',
-      srcMatch: 'src/as/assembly',
-      srcEntryFile: 'src/as/assembly/index.ts'
+      srcMatch: 'as/assembly',
+      srcEntryFile: 'as/assembly/index.ts'
     }),
     {
       name: 'open-in-editor',
