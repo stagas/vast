@@ -3,7 +3,7 @@ import { state } from '../state.ts'
 
 export function MainMenu() {
   return <div class="dropdown bg-none h-full">
-    <button tabindex="0" role="button" class="m-0 p-3 hover:text-white hover:bg-base-100 focus:ring-1 focus:ring-accent">
+    <button tabindex="0" role="button" class="m-0 p-3 hover:text-base-content hover:bg-base-100 focus:ring-1 focus:ring-accent">
       <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
         height="16"
         viewBox="0 -1 17 15">

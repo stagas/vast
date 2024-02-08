@@ -5,7 +5,7 @@ import { state } from '../state.ts'
 
 export function ThemePicker() {
   return <div class="dropdown bg-none h-full">
-    <button tabindex="0" role="button" class="m-0 p-3 hover:text-white hover:bg-base-100 focus:ring-1 focus:ring-accent text-primary">
+    <button tabindex="0" role="button" class="m-0 p-3 hover:bg-base-100 focus:ring-1 focus:ring-accent text-primary hover:text-primary">
       <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
         fill="none"
         height="18"

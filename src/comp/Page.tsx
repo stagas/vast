@@ -1,7 +1,7 @@
 /** @jsxImportSource signal-jsx */
 import { add, doit } from 'assembly'
-import { alloc } from '../util/alloc.ts'
 import { $ } from 'signal-jsx'
+import { alloc } from '../util/alloc.ts'
 
 export function Page() {
   const f32s = alloc(Float32Array, 32)

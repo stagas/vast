@@ -5,7 +5,7 @@ import { Main } from './comp/Main.tsx'
 
 export const start = mount('#container', target => {
   return fx(() => {
-    target.replaceChildren(<div><Main /></div>)
+    target.replaceChildren(<Main />)
     return cleanup
   })
 })

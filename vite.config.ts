@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import openInEditor from 'open-in-editor'
 import fs from 'fs'
 import os from 'os'
@@ -103,6 +104,9 @@ const homedir = os.homedir()
 // https://vitejs.dev/config/
 export default defineConfig({
   clearScreen: false,
+  test: {
+    globals: true
+  },
   server: {
     host: 'devito.test',
     fs: {
