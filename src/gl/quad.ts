@@ -1,6 +1,6 @@
 import { GL } from 'gl-util'
-import { fx } from 'signal-jsx'
-import { once } from 'utils'
+import { Signal } from 'signal-jsx'
+import { MeshInfo } from '../mesh-info.ts'
 
 const vertex = /*glsl*/`
 #version 300 es
@@ -26,57 +26,55 @@ uniform sampler2D u_texture;
 out vec4 fragColor;
 
 void main() {
-  fragColor = texture(u_texture, v_texCoord);
+  vec4 c = texture(u_texture, v_texCoord);
+  fragColor = vec4(0.2, 0.2, c.b, 1.0);
 }
 `
 
-let quadCommon: ReturnType<typeof QuadCommon> | null
+function QuadInfo(GL: GL) {
+  using $ = Signal()
 
-function QuadCommon(GL: GL) {
   const { gl } = GL
 
-  const shaders = GL.createShaders({ vertex, fragment })
-  const program = GL.createProgram(shaders)
-  const vao = GL.createVertexArray()
-
-  const attribs = GL.addVertexAttribs({
-    a_position: [gl.ARRAY_BUFFER, (index, target) => {
-      const srcData = new Float32Array([
-        -1.0, -1.0,
-        1.0, -1.0,
-        -1.0, 1.0,
-        1.0, 1.0,
-      ])
-      gl.bufferData(target, srcData, gl.STATIC_DRAW)
-      gl.vertexAttribPointer(index, 2, gl.FLOAT, false, 0, 0)
-    }],
+  const info = MeshInfo(GL, {
+    vertex,
+    fragment,
+    vao: {
+      a_position: [gl.ARRAY_BUFFER, (index, target, usage) => {
+        const data = new Float32Array([
+          -1.0, -1.0,
+          1.0, -1.0,
+          -1.0, 1.0,
+          1.0, 1.0,
+        ])
+        gl.bufferData(target, data, usage)
+        gl.vertexAttribPointer(index, 2, gl.FLOAT, false, 0, 0)
+        return data
+      }],
+    }
   })
 
-  const {
-    u_texture,
-  } = GL.uniforms
-
-  fx(() => () => {
-    GL.deleteShaders(shaders)
-    gl.deleteProgram(program)
-    gl.deleteVertexArray(vao)
-    GL.deleteAttribs(attribs)
-    quadCommon = null
+  $.fx(() => () => {
+    quad = null
   })
 
-  return { program, vao, u_texture }
+  return info
 }
+
+let quad: ReturnType<typeof QuadInfo> | null
 
 export type Quad = ReturnType<typeof Quad>
 
 export function Quad(GL: GL) {
+  using $ = Signal()
+
   const { gl } = GL
 
-  quadCommon ??= QuadCommon(GL)
+  quad = QuadInfo(GL)
 
-  const { program, vao, u_texture } = quadCommon
+  const { use } = quad
 
-  const texture = GL.createTexture(gl.TEXTURE_2D, u_texture, {
+  const texture = GL.createTexture(gl.TEXTURE_2D, quad.uniforms.u_texture, {
     [gl.TEXTURE_MIN_FILTER]: gl.LINEAR,
     [gl.TEXTURE_MAG_FILTER]: gl.LINEAR,
     [gl.TEXTURE_WRAP_S]: gl.CLAMP_TO_EDGE,
@@ -86,16 +84,14 @@ export function Quad(GL: GL) {
   const textures = [texture]
 
   function draw() {
-    GL.use(program, vao)
+    use()
     GL.activateTextures(textures)
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
   }
 
-  const dispose = once(() => {
+  $.fx(() => () => {
     GL.deleteTextures(textures)
   })
 
-  fx(() => dispose)
-
-  return { draw, texture, dispose }
+  return { draw, texture }
 }

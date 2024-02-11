@@ -1,13 +1,10 @@
-/** @jsxImportSource signal-jsx */
-import { cleanup, fx, hmr, mount } from 'signal-jsx'
-import { replaceState, state } from './state.ts'
+import { cleanup, hmr, mount } from 'signal-jsx'
 import { Main } from './comp/Main.tsx'
+import { replaceState, state } from './state.ts'
 
 export const start = mount('#container', target => {
-  return fx(() => {
-    target.replaceChildren(<Main />)
-    return cleanup
-  })
+  target.replaceChildren(<Main /> as Element)
+  return cleanup
 })
 
 if (import.meta.hot) {

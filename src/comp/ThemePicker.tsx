@@ -1,4 +1,3 @@
-/** @jsxImportSource signal-jsx */
 import { Theme } from 'daisyui'
 import themes from 'daisyui/src/theming/themes'
 import { state } from '../state.ts'
@@ -9,7 +8,7 @@ export function ThemePicker() {
       <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
         fill="none"
         height="18"
-        viewBox="0 0 18 15">
+        viewBox="-1 1 18 14">
         <circle stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25" cx="8" cy="8" r="6" />
       </svg>
     </button>

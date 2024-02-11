@@ -10,6 +10,7 @@
       "outFile": "./as/build/assembly.wasm",
       "textFile": "./as/build/assembly.wat",
       "sourceMap": true,
+      "debug": false,
       "optimizeLevel": 3,
       "shrinkLevel": 0,
       "converge": true,
@@ -17,6 +18,11 @@
     }
   },
   "options": {
+    "enable": [
+      "simd",
+      "relaxed-simd",
+      "threads"
+    ],
     "initialMemory": 10000,
     "maximumMemory": 10000,
     "bindings": "raw",

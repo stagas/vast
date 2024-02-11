@@ -20,11 +20,13 @@ async function compile(entryFile: string, mode: 'debug' | 'release') {
 
   const { error, stdout, stderr, stats } = await asc.main([
     entryFile,
-    '--target', mode
+    '--target', mode,
+    '--transform', './vendor/unroll.js',
   ], {})
 
   if (error) {
     console.log('Compilation failed: ' + error.message)
+    console.log(stdout.toString())
     console.log(stderr.toString())
   }
   else {

@@ -8,8 +8,12 @@
 
 .btn {
   @apply rounded-none;
+  @apply border-none bg-transparent hover:bg-base-100 m-0 h-auto min-h-full;
 }
 
+.dropdown-content {
+  @apply border-b-2 border-black;
+}
 .dropdown-content li a {
   @apply rounded-none;
 }

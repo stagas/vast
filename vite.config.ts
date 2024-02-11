@@ -122,7 +122,11 @@ export default defineConfig({
   clearScreen: false,
   test: {
     globals: true,
-    environment: 'jsdom'
+    environment: 'jsdom',
+    includeSource: ['src/**/*.{js,jsx,ts,tsx}'],
+  },
+  define: {
+    'import.meta.vitest': 'undefined',
   },
   server: {
     host: 'devito.test',
@@ -137,11 +141,14 @@ export default defineConfig({
     }
   },
   esbuild: {
-    jsx: 'automatic'
+    jsx: 'automatic',
+    target: 'es2022',
+    include: /\.(m?[jt]s|[jt]sx)$/,
+    exclude: []
   },
   build: {
     rollupOptions: {
-      treeshake: { propertyReadSideEffects: 'always' }
+      treeshake: { propertyReadSideEffects: 'always' },
     }
   },
   plugins: [
@@ -153,9 +160,9 @@ export default defineConfig({
         (moduleName) => moduleName.startsWith('node:')
       ],
     }),
-    !IS_TEST && nodePolyfills({
-      exclude: ['fs']
-    }),
+    // !IS_TEST && nodePolyfills({
+    //   exclude: ['fs']
+    // }),
     assemblyScriptPlugin({
       projectRoot: '.',
       srcMatch: 'as/assembly',

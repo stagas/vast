@@ -1,4 +1,3 @@
-/** @jsxImportSource signal-jsx */
 import { state } from '../state.ts'
 
 export function MainMenu() {
