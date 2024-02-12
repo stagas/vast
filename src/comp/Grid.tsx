@@ -17,8 +17,8 @@ export function Grid() {
   const ROWS = 8
   const data = new Float32Array(
     Array.from({ length: ROWS }, (_, y) =>
-      Array.from({ length: 40 }, (_, x) =>
-        [x, y, 1, 1]
+      Array.from({ length: 20 }, (_, x) =>
+        [x, y, 1, 1, 0xdd0000 + 0x111111 * Math.random() * 0.5, 1.0]
       ).flat()
     ).flat()
   )
@@ -38,7 +38,7 @@ export function Grid() {
     matrix.dest.d = h / ROWS
   })
 
-  const mat3fv = WasmMatrix(matrix)
+  const mat2d = WasmMatrix(matrix)
 
   // const boxes = Boxes(webgl.GL, surface.world, data)
   // webgl.add($, boxes)
@@ -46,8 +46,11 @@ export function Grid() {
   const quad = Quad(webgl.GL)
   webgl.add($, quad)
 
-  const sketch = Sketch(webgl.GL, view)
+  const sketch = Sketch(webgl.GL, view, mat2d)
   webgl.add($, sketch)
+  sketch.boxes.set(data)
+  sketch.boxes.count = data.length / 6
+  console.log(sketch.boxes.count)
 
   return surface.canvas
 }
@@ -55,12 +58,14 @@ export function Grid() {
 function WasmMatrix(matrix: LerpMatrix) {
   using $ = Signal()
 
-  const mat3fv = wasm.alloc(Float32Array, 9)
+  const mat2d = wasm.alloc(Float32Array, 6)
   $.fx(() => {
     const { a, d, e, f } = matrix
     $()
-    mat3fv.set(matrix.values)
+    mat2d.set(matrix.values)
+    mat2d[4] *= window.devicePixelRatio
+    mat2d[5] *= window.devicePixelRatio
   })
 
-  return mat3fv
+  return mat2d
 }

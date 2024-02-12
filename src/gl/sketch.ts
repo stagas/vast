@@ -3,13 +3,12 @@ import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { MeshInfo } from '../mesh-info.ts'
-import { VertOpts, VertRange } from '../../as/assembly/sketch-shared.ts'
+import { Box, MAX_INSTANCES, VertOpts, VertRange } from '../../as/assembly/sketch-shared.ts'
 import { defineStruct } from 'utils'
+import { LerpMatrix } from '../util/lerp-matrix.ts'
 
 // 4 float bytes per instance, so we fit into 1 page
 // (which might be better? TODO: bench)
-const MAX_BYTES = 65536
-const MAX_INSTANCES = MAX_BYTES >> 1 >> 3
 
 const hasVertOpts = (...bits: number[]) => /*glsl*/
   `(int(a_opts) & (${bits.join(' | ')})) != 0`
@@ -23,6 +22,7 @@ in float a_opts;
 in vec4 a_vert;
 in vec2 a_color;
 
+uniform float u_pr;
 uniform vec2 u_screen;
 
 out vec2 v_color;
@@ -33,7 +33,7 @@ void main() {
     floor(a_quad / 2.0)
   );
 
-  vec2 pos = a_vert.xy + a_vert.zw * quad;
+  vec2 pos = (a_vert.xy + a_vert.zw * quad) * u_pr;
   pos /= u_screen * 0.5;
   pos -= 1.0;
   pos.y *= -1.0;
@@ -108,59 +108,90 @@ function SketchInfo(GL: GL, view: Rect) {
     a_color,
   } = info.attribs
 
+  const sketch$ = wasm.createSketch(
+    range.ptr,
+    a_opts.ptr,
+    a_vert.ptr,
+    a_color.ptr,
+  )
+
+  const boxes = Object.assign(wasm.alloc(Float32Array, MAX_INSTANCES * 6), { count: 0 })
+  const box = defineStruct({
+    x: 'f32',
+    y: 'f32',
+    w: 'f32',
+    h: 'f32',
+    color: 'i32',
+    alpha: 'f32',
+  })(wasm.memory.buffer, boxes.byteOffset) satisfies Box
+
+  function drawBoxes(mat2d: Float32Array, width: number, height: number, begin: number, count: number) {
+    return wasm.drawBoxes(
+      sketch$,
+      mat2d.byteOffset,
+      width,
+      height,
+      boxes.byteOffset + begin * box.byteLength,
+      count,
+    )
+  }
+console.log(MAX_INSTANCES)
   function write() {
     GL.writeAttribRange(a_opts, range)
     GL.writeAttribRange(a_vert, range)
     GL.writeAttribRange(a_color, range)
   }
 
+  $.fx(() => {
+    const { pr, w_pr, h_pr } = view
+    $()
+    info.use()
+    gl.uniform1f(info.uniforms.u_pr, pr)
+    gl.uniform2f(info.uniforms.u_screen, w_pr, h_pr)
+  })
+
   $.fx(() => () => {
     sketch = null
   })
 
-  $.fx(() => {
-    const { w, h } = view
-    $()
-    info.use()
-    gl.uniform2f(info.uniforms.u_screen, w, h)
-  })
-
-  return { info, range, write }
+  return {
+    info, range, write,
+    boxes, box, drawBoxes
+  }
 }
 
 let sketch: ReturnType<typeof SketchInfo> | null
 
 export type Sketch = ReturnType<typeof Sketch>
 
-export function Sketch(GL: GL, view: Rect) {
+export function Sketch(GL: GL, view: Rect, mat2d: Float32Array) {
   using $ = Signal()
 
   sketch ??= SketchInfo(GL, view)
 
   const { gl } = GL
-  const { info, range, write } = sketch
+  const { info, range, write, boxes, box, drawBoxes } = sketch
   const { use } = info
 
-  const {
-    a_opts,
-    a_vert,
-    a_color,
-  } = info.attribs
+  // box.byteOffset = boxes.byteOffset
+  // box.w = 10
+  // box.h = 1
+  // box.color = 200 << 16 | 100
+  // box.alpha = 1.0
 
   function draw() {
     use()
 
-    wasm.sketch(
-      range.ptr,
-      a_opts.ptr,
-      a_vert.ptr,
-      a_color.ptr,
-    )
+    range.begin = 0
+    range.end = 0
+    range.count = 0
+
+    const index = drawBoxes(mat2d, view.width, view.height, 0, boxes.count)
 
     write()
 
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, range.count)
   }
 
-  return { draw }
+  return { draw, boxes, box }
 }
