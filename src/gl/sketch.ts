@@ -3,10 +3,11 @@ import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { defineStruct } from 'utils'
-import { Box, INSTANCE_LENGTH, MAX_GL_INSTANCES, MAX_SHAPES, VertOpts, VertRange } from '../../as/assembly/sketch-shared.ts'
+import { Box, SHAPE_LENGTH, Line, MAX_GL_INSTANCES, MAX_SHAPES, VertOpts, VertRange, Wave, ShapeKind } from '../../as/assembly/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
+import { WasmMatrix } from '../util/wasm-matrix.ts'
 
-const DEBUG = true
+const DEBUG = false
 
 // 4 float bytes per instance, so we fit into 1 page
 // (which might be better? TODO: bench)
@@ -111,19 +112,38 @@ function SketchInfo(GL: GL, view: Rect) {
     a_color,
   } = info.attribs
 
-  const sketch$ = wasm.createSketch(
-    range.ptr,
-    a_opts.ptr,
-    a_vert.ptr,
-    a_color.ptr,
-  )
-
   const Box = defineStruct({
+    kind: 'i32',
     x: 'f32',
     y: 'f32',
     w: 'f32',
     h: 'f32',
     lw: 'f32',
+    ptr: 'f32',
+    color: 'i32',
+    alpha: 'f32',
+  })
+
+  const Line = defineStruct({
+    kind: 'i32',
+    ax: 'f32',
+    ay: 'f32',
+    bx: 'f32',
+    by: 'f32',
+    lw: 'f32',
+    ptr: 'f32',
+    color: 'i32',
+    alpha: 'f32',
+  })
+
+  const Wave = defineStruct({
+    kind: 'i32',
+    x: 'f32',
+    y: 'f32',
+    w: 'f32',
+    h: 'f32',
+    lw: 'f32',
+    ptr: 'f32',
     color: 'i32',
     alpha: 'f32',
   })
@@ -136,18 +156,28 @@ function SketchInfo(GL: GL, view: Rect) {
     wasm.alloc(Float32Array, shapesLength),
     { count: 0 }
   )
-  const box = Box(wasm.memory.buffer, shapes.byteOffset) satisfies Box
+
+  const box = Box(wasm.memory.buffer, shapes.ptr) satisfies Box
+  const line = Line(wasm.memory.buffer, shapes.ptr) satisfies Line
+  const wave = Wave(wasm.memory.buffer, shapes.ptr) satisfies Wave
+
+  const sketch$ = wasm.createSketch(
+    range.ptr,
+    shapes.ptr,
+    a_opts.ptr,
+    a_vert.ptr,
+    a_color.ptr,
+  )
 
   function draw(
-    mat2d: Float32Array,
+    mat2d: WasmMatrix,
     view: { width: number, height: number },
     begin: number,
     end: number
   ) {
     return wasm.draw(
       sketch$,
-      mat2d.byteOffset,
-      shapes.byteOffset,
+      mat2d.ptr,
       view.width,
       view.height,
       begin,
@@ -162,12 +192,12 @@ function SketchInfo(GL: GL, view: Rect) {
     DEBUG && console.log('[sketch] write gl begin:', range.begin, 'end:', range.end, 'count:', range.count)
   }
 
-  function write(opts: VertOpts, data: Float32Array) {
-    const count = data.length / INSTANCE_LENGTH
+  function write(data: Float32Array) {
+    const count = data.length / SHAPE_LENGTH
     const begin = shapes.count
     const end = (shapes.count += count)
     shapes.set(data, begin)
-    info.attribs.a_opts.data.fill(opts, begin, end)
+    // info.attribs.a_opts.data.fill(opts, begin, end)
     DEBUG && console.log('[sketch] write instances begin:', begin, 'end:', end, 'count:', count)
   }
 
@@ -188,6 +218,8 @@ function SketchInfo(GL: GL, view: Rect) {
     shapes,
     shape: {
       box,
+      line,
+      wave,
     },
     draw
   }
@@ -197,7 +229,7 @@ let sketch: ReturnType<typeof SketchInfo> | null
 
 export type Sketch = ReturnType<typeof Sketch>
 
-export function Sketch(GL: GL, view: Rect, mat2d: Float32Array) {
+export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
   using $ = Signal()
 
   sketch ??= SketchInfo(GL, view)

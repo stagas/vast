@@ -26,17 +26,17 @@ const wasm = await instantiate(mod, {
   }
 })
 
-const reg = new FinalizationRegistry((ptr$: number) => {
-  wasm.__unpin(ptr$)
-  DEBUG && console.log('free', ptr$)
+const reg = new FinalizationRegistry((ptr: number) => {
+  wasm.__unpin(ptr)
+  DEBUG && console.log('free', ptr)
 })
 
 function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   const bytes = length * ctor.BYTES_PER_ELEMENT
-  const ptr$ = wasm.__pin(wasm.__new(bytes, 1))
-  const arr = new ctor(wasm.memory.buffer, ptr$, length)
-  reg.register(arr, ptr$)
-  return arr as TypedArray<T>
+  const ptr = wasm.__pin(wasm.__new(bytes, 1))
+  const arr = new ctor(wasm.memory.buffer, ptr, length)
+  reg.register(arr, ptr)
+  return Object.assign(arr as TypedArray<T>, { ptr })
 }
 
 export default Object.assign(wasm, { alloc })

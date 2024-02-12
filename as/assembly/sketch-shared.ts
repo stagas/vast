@@ -5,30 +5,52 @@ export const MAX_GL_INSTANCES = MAX_BYTES >> 1 >> 3
 export const MAX_SHAPES = 16384
 
 export enum VertOpts {
-  Box = 0b0001
+  Box /* */ = 0b001,
+  Line /**/ = 0b010,
 }
 
-// Note: must match count of Box, Line 32bit elements.
-export const INSTANCE_LENGTH = 7
+export enum ShapeKind {
+  Box = 1,
+  Line,
+  Wave,
+}
 
-// Note: Box, Line must have equal 32bit size.
+// Note: All shapes must have equal 32bit size.
+// and this must match count of shapes 32bit elements.
+export const SHAPE_LENGTH = 9
+
 export class Box {
+  kind: i32 = ShapeKind.Box
   x: f32 = 0
   y: f32 = 0
   w: f32 = 0
   h: f32 = 0
   lw: f32 = 1 // unused
+  ptr: f32 = 0 // unused
   color: f32 = 255
   alpha: f32 = 1.0
 }
 
-// Note: Box, Line must have equal 32bit size.
 export class Line {
+  kind: i32 = ShapeKind.Line
   ax: f32 = 0
   ay: f32 = 0
   bx: f32 = 0
   by: f32 = 0
   lw: f32 = 1
+  ptr: f32 = 0 // unused
+  color: f32 = 255
+  alpha: f32 = 1.0
+}
+
+export class Wave {
+  kind: i32 = ShapeKind.Wave
+  x: f32 = 0
+  y: f32 = 0
+  w: f32 = 0
+  h: f32 = 0
+  lw: f32 = 1
+  ptr: f32 = 0
   color: f32 = 255
   alpha: f32 = 1.0
 }
@@ -52,16 +74,19 @@ export class VertRange {
 
 export class Sketch {
   range: VertRange
+  shapes: Floats
   a_opts: Floats
   a_vert: Floats
   a_color: Floats
   constructor(
     public range$: usize,
+    public shapes$: usize,
     public a_opts$: usize,
     public a_vert$: usize,
     public a_color$: usize,
   ) {
     this.range = changetype<VertRange>(range$)
+    this.shapes = changetype<Floats>(shapes$)
     this.a_opts = changetype<Floats>(a_opts$)
     this.a_vert = changetype<Floats>(a_vert$)
     this.a_color = changetype<Floats>(a_color$)

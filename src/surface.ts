@@ -1,31 +1,16 @@
-import wasm from 'assembly'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { clamp, dom } from 'utils'
 import { Canvas } from './comp/Canvas.tsx'
+import { Sketch } from './gl/sketch.ts'
+import { WasmMatrix } from './util/wasm-matrix.ts'
 import { WebGL } from './webgl.ts'
 import { World } from './world/world.ts'
-import { Sketch } from './gl/sketch.ts'
-import { LerpMatrix } from './util/lerp-matrix.ts'
 
 const DEBUG = false
 
 interface MouseTarget {
   handleMouse(): void
-}
-
-function WasmMatrix(view: Rect, matrix: LerpMatrix) {
-  using $ = Signal()
-
-  const mat2d = wasm.alloc(Float32Array, 6)
-  $.fx(() => {
-    const { a, d, e, f } = matrix
-    const { pr } = view
-    $()
-    mat2d.set(matrix.values)
-  })
-
-  return mat2d
 }
 
 export type Surface = ReturnType<typeof Surface>
