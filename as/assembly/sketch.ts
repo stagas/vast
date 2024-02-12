@@ -14,7 +14,6 @@ export function createSketch(
   ))
 }
 
-
 export function createVertRange(): usize {
   return changetype<usize>(new VertRange)
 }

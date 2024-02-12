@@ -15,9 +15,9 @@ export function World(view: Rect) {
 
   anim.ticks.add(matrix.tick)
   $.fx(() => {
-    const { a, d, e, f } = matrix
+    const { a, b, c, d, e, f } = matrix
     {
-      const { a, d, e, f } = matrix.dest
+      const { a, b, c, d, e, f } = matrix.dest
     }
     $()
     anim.info.epoch++

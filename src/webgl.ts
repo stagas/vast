@@ -3,6 +3,7 @@ import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { state } from './state.ts'
 import { World } from './world/world.ts'
+import { MAX_INSTANCES } from '../as/assembly/sketch-shared.ts'
 
 const DEBUG = true
 
@@ -22,8 +23,8 @@ export function WebGL(world: World, canvas: HTMLCanvasElement) {
   const { view } = world
 
   const GL = initGL(canvas, {
-    antialias: true,
-    alpha: true,
+    antialias: false,
+    alpha: false,
     preserveDrawingBuffer: true
   })
 

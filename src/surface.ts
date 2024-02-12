@@ -5,7 +5,7 @@ import { Canvas } from './comp/Canvas.tsx'
 import { WebGL } from './webgl.ts'
 import { World } from './world/world.ts'
 
-const DEBUG = false //true
+const DEBUG = false
 
 interface MouseTarget {
   handleMouse(): void
@@ -37,12 +37,13 @@ export function Surface(view: Rect) {
   $.fx(() => dom.on(window, 'resize', $.fn(() => {
     view.w = window.innerWidth
     view.h = window.innerHeight - 44
-    view.pr = window.devicePixelRatio
+    matrix.pr =
+      view.pr = window.devicePixelRatio
   }), { unsafeInitial: true }))
 
   $.fx(() => dom.on(window, 'mousemove', $.fn((e: MouseEvent): void => {
     info.isHovering = true
-    mouse.pos.setFromEvent(e)
+    mouse.pos.setFromEvent(e, canvas)
     handleMouse()
   })))
 
@@ -54,43 +55,56 @@ export function Surface(view: Rect) {
 
   $.fx(() => dom.on(window, 'mousedown', $.fn((e: MouseEvent): void => {
     info.isHovering = true
-    mouse.pos.setFromEvent(e)
+    mouse.pos.setFromEvent(e, canvas)
     mouse.isDown = true
     mouse.button = e.button
     handleMouse()
   })))
 
   $.fx(() => dom.on(window, 'mouseup', $.fn((e: MouseEvent): void => {
-    mouse.pos.setFromEvent(e)
+    mouse.pos.setFromEvent(e, canvas)
     mouse.isDown = false
     mouse.button = 0
     handleMouse()
   })))
 
-  $.fx(() => dom.on(window, 'wheel', $.fn((e: WheelEvent): void => {
-    info.isHovering = true
+  function handleWheelScaleY(e: WheelEvent) {
+    const { x, y } = mouse.screenPos
 
-    mouse.pos.setFromEvent(e)
+    const d = matrix.dest.m.d
+    const delta = -e.deltaY * 0.0035
+    const delta_d = (d + (delta * d ** 0.9)) / d
+
+    DEBUG && console.log('[surface] wheelDelta d:', d, delta, delta_d)
+
+    matrix.dest.m.translateSelf(x, y).scaleSelf(1, delta_d)
+    matrix.dest.m.d = clamp(0.01, 2000, matrix.dest.m.d)
+    matrix.dest.m.translateSelf(-x, -y)
+    matrix.dest.sync()
+  }
+
+  function handleWheelScaleX(e: WheelEvent) {
     const { x, y } = mouse.screenPos
 
     const a = matrix.dest.m.a
     const delta = -e.deltaY * 0.0035
-    const d = (a + (delta * a ** 0.9)) / a
+    const delta_a = (a + (delta * a ** 0.9)) / a
 
-    matrix.dest.m.translateSelf(x, y).scaleSelf(d, 1)
+    DEBUG && console.log('[surface] wheelDelta a:', a, delta, delta_a)
+
+    matrix.dest.m.translateSelf(x, y).scaleSelf(delta_a, 1)
     matrix.dest.m.a = clamp(0.01, 2000, matrix.dest.m.a)
     matrix.dest.m.translateSelf(-x, -y)
     matrix.dest.sync()
 
-    DEBUG && console.log('[matrix]', 'a:', matrix.dest.m.a)
-  }), { passive: true }))
+    DEBUG && console.log('[surface] matrix.dest.a:', matrix.dest.m.a)
+  }
 
-  // fx(() => {
-  //   const { h } = view
-  //   $()
-  //   //   matrix.dest.a = 200
-  //   matrix.d = matrix.dest.d = h / rows.length
-  // })
+  $.fx(() => dom.on(window, 'wheel', $.fn((e: WheelEvent): void => {
+    info.isHovering = true
+    mouse.pos.setFromEvent(e, canvas)
+    handleWheelScaleX(e)
+  }), { passive: true }))
 
   return { world, canvas, webgl, info, mouseTargets }
 }

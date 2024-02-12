@@ -1,15 +1,15 @@
 import { logf } from '../env'
-import { Box, MAX_INSTANCES, Matrix, Sketch, VertOpts } from '../sketch-shared'
+import { Box, INSTANCE_LENGTH, MAX_INSTANCES, Matrix, Sketch, VertOpts } from '../sketch-shared'
 
 export function drawBoxes(
   sketch$: usize,
   matrix$: usize,
-
+  boxes$: usize,
   width: f32,
   height: f32,
 
-  boxes$: usize,
-  count: i32,
+  begin: i32,
+  end: i32,
 ): i32 {
   const sketch = changetype<Sketch>(sketch$)
   const a_opts = sketch.a_opts
@@ -38,8 +38,8 @@ export function drawBoxes(
 
   const x_gap: f32 = ma > 5 ? 1 : ma > .5 ? ma / 5 : 0
 
-  for (let i = 0; i < count; i++) {
-    box$ = boxes$ + ((i * 6) << 2)
+  for (let i = begin; i < end; i++) {
+    box$ = boxes$ + ((i * INSTANCE_LENGTH) << 2)
     box = changetype<Box>(box$)
 
     x = box.x * ma + me
@@ -65,7 +65,7 @@ export function drawBoxes(
     ptr++
     rangeCount++
 
-    if (rangeCount === MAX_INSTANCES) {
+    if (rangeCount === MAX_INSTANCES && (i + 1 < end)) {
       range.end = ptr
       range.count = rangeCount
       return i + 1
@@ -74,7 +74,7 @@ export function drawBoxes(
 
   range.end = ptr
   range.count = rangeCount
-  return 0
+  return -1
 }
 
 // @ts-ignore

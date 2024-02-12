@@ -2,10 +2,11 @@ import wasm from 'assembly'
 import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
-import { MeshInfo } from '../mesh-info.ts'
-import { Box, MAX_INSTANCES, VertOpts, VertRange } from '../../as/assembly/sketch-shared.ts'
 import { defineStruct } from 'utils'
-import { LerpMatrix } from '../util/lerp-matrix.ts'
+import { Box, MAX_BOXES, MAX_INSTANCES, VertOpts, VertRange } from '../../as/assembly/sketch-shared.ts'
+import { MeshInfo } from '../mesh-info.ts'
+
+const DEBUG = false
 
 // 4 float bytes per instance, so we fit into 1 page
 // (which might be better? TODO: bench)
@@ -73,6 +74,8 @@ function SketchInfo(GL: GL, view: Rect) {
 
   const { gl, attrib } = GL
 
+  console.log('[sketch] MAX_INSTANCES:', MAX_INSTANCES)
+
   const info = MeshInfo(GL, {
     vertex,
     fragment,
@@ -115,27 +118,40 @@ function SketchInfo(GL: GL, view: Rect) {
     a_color.ptr,
   )
 
-  const boxes = Object.assign(wasm.alloc(Float32Array, MAX_INSTANCES * 6), { count: 0 })
-  const box = defineStruct({
+  const Box = defineStruct({
     x: 'f32',
     y: 'f32',
     w: 'f32',
     h: 'f32',
+    lw: 'f32',
     color: 'i32',
     alpha: 'f32',
-  })(wasm.memory.buffer, boxes.byteOffset) satisfies Box
+  })
+  const boxesLength = MAX_BOXES * (Box.byteLength >> 2)
+  DEBUG && console.log('[sketch]', 'MAX_BOXES:', MAX_BOXES, 'bytes:', boxesLength)
+  const boxes = Object.assign(
+    wasm.alloc(Float32Array, boxesLength),
+    { count: 0 }
+  )
+  const box = Box(wasm.memory.buffer, boxes.byteOffset) satisfies Box
 
-  function drawBoxes(mat2d: Float32Array, width: number, height: number, begin: number, count: number) {
+  function drawBoxes(
+    mat2d: Float32Array,
+    view: { width: number, height: number },
+    begin: number,
+    end: number
+  ) {
     return wasm.drawBoxes(
       sketch$,
       mat2d.byteOffset,
-      width,
-      height,
-      boxes.byteOffset + begin * box.byteLength,
-      count,
+      boxes.byteOffset,
+      view.width,
+      view.height,
+      begin,
+      end,
     )
   }
-console.log(MAX_INSTANCES)
+
   function write() {
     GL.writeAttribRange(a_opts, range)
     GL.writeAttribRange(a_vert, range)
@@ -173,24 +189,33 @@ export function Sketch(GL: GL, view: Rect, mat2d: Float32Array) {
   const { info, range, write, boxes, box, drawBoxes } = sketch
   const { use } = info
 
-  // box.byteOffset = boxes.byteOffset
-  // box.w = 10
-  // box.h = 1
-  // box.color = 200 << 16 | 100
-  // box.alpha = 1.0
-
   function draw() {
     use()
 
-    range.begin = 0
-    range.end = 0
-    range.count = 0
+    range.begin =
+      range.end =
+      range.count = 0
 
-    const index = drawBoxes(mat2d, view.width, view.height, 0, boxes.count)
+    let index = 0
 
-    write()
+    while (index = drawBoxes(
+      mat2d,
+      view,
+      index,
+      boxes.count
+    )) {
+      DEBUG && console.log('[sketch] drawBoxes', index, index >= 0 ? boxes.count - index : '---')
 
-    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, range.count)
+      write()
+
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, range.count)
+
+      if (index === -1) break
+
+      range.begin =
+        range.end =
+        range.count = 0
+    }
   }
 
   return { draw, boxes, box }

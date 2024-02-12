@@ -1,13 +1,35 @@
 import { Floats } from './util'
 
-export const MAX_BYTES = 65536 * 16 // 16 pages
+export const MAX_BYTES = 65536 // 1 page
 export const MAX_INSTANCES = MAX_BYTES >> 1 >> 3
 
+export const MAX_BOXES = 16384
+
+export enum VertOpts {
+  Quad = 0b0001
+}
+
+// Note: must match count of Box, Line 32bit elements.
+export const INSTANCE_LENGTH = 7
+
+// Note: Box, Line must have equal 32bit size.
 export class Box {
   x: f32 = 0
   y: f32 = 0
   w: f32 = 0
   h: f32 = 0
+  lw: f32 = 1 // unused
+  color: f32 = 255
+  alpha: f32 = 1.0
+}
+
+// Note: Box, Line must have equal 32bit size.
+export class Line {
+  ax: f32 = 0
+  ay: f32 = 0
+  bx: f32 = 0
+  by: f32 = 0
+  lw: f32 = 1
   color: f32 = 255
   alpha: f32 = 1.0
 }
@@ -20,10 +42,6 @@ export class Matrix {
   d: f32 = 0
   e: f32 = 0
   f: f32 = 0
-}
-
-export enum VertOpts {
-  Quad = 0b0001
 }
 
 @unmanaged
