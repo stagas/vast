@@ -1,15 +1,34 @@
+import wasm from 'assembly'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { clamp, dom } from 'utils'
 import { Canvas } from './comp/Canvas.tsx'
 import { WebGL } from './webgl.ts'
 import { World } from './world/world.ts'
+import { Sketch } from './gl/sketch.ts'
+import { LerpMatrix } from './util/lerp-matrix.ts'
 
 const DEBUG = false
 
 interface MouseTarget {
   handleMouse(): void
 }
+
+function WasmMatrix(view: Rect, matrix: LerpMatrix) {
+  using $ = Signal()
+
+  const mat2d = wasm.alloc(Float32Array, 6)
+  $.fx(() => {
+    const { a, d, e, f } = matrix
+    const { pr } = view
+    $()
+    mat2d.set(matrix.values)
+  })
+
+  return mat2d
+}
+
+export type Surface = ReturnType<typeof Surface>
 
 export function Surface(view: Rect) {
   using $ = Signal()
@@ -21,6 +40,9 @@ export function Surface(view: Rect) {
   canvas.style.imageRendering = 'pixelated'
 
   const webgl = WebGL(world, canvas)
+  const mat2d = WasmMatrix(view, matrix)
+  const sketch = Sketch(webgl.GL, view, mat2d)
+  webgl.add($, sketch)
 
   const info = $({
     isHovering: false,
@@ -33,6 +55,10 @@ export function Surface(view: Rect) {
       t.handleMouse()
     }
   }
+
+  $.fx(() => dom.on(canvas, 'contextmenu', $.fn((e: MouseEvent): void => {
+    e.preventDefault()
+  })))
 
   $.fx(() => dom.on(window, 'resize', $.fn(() => {
     view.w = window.innerWidth
@@ -106,5 +132,5 @@ export function Surface(view: Rect) {
     handleWheelScaleX(e)
   }), { passive: true }))
 
-  return { world, canvas, webgl, info, mouseTargets }
+  return { info, world, view, matrix, canvas, webgl, sketch, mouseTargets }
 }

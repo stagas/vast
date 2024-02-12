@@ -1,12 +1,11 @@
 import { Floats } from './util'
 
 export const MAX_BYTES = 65536 // 1 page
-export const MAX_INSTANCES = MAX_BYTES >> 1 >> 3
-
-export const MAX_BOXES = 16384
+export const MAX_GL_INSTANCES = MAX_BYTES >> 1 >> 3
+export const MAX_SHAPES = 16384
 
 export enum VertOpts {
-  Quad = 0b0001
+  Box = 0b0001
 }
 
 // Note: must match count of Box, Line 32bit elements.

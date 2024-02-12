@@ -3,10 +3,10 @@ import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { defineStruct } from 'utils'
-import { Box, MAX_BOXES, MAX_INSTANCES, VertOpts, VertRange } from '../../as/assembly/sketch-shared.ts'
+import { Box, INSTANCE_LENGTH, MAX_GL_INSTANCES, MAX_SHAPES, VertOpts, VertRange } from '../../as/assembly/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
 
-const DEBUG = false
+const DEBUG = true
 
 // 4 float bytes per instance, so we fit into 1 page
 // (which might be better? TODO: bench)
@@ -39,7 +39,7 @@ void main() {
   pos -= 1.0;
   pos.y *= -1.0;
 
-  if (${hasVertOpts(VertOpts.Quad)}) {
+  if (${hasVertOpts(VertOpts.Box)}) {
     // pos.y += .1;
   }
 
@@ -74,7 +74,7 @@ function SketchInfo(GL: GL, view: Rect) {
 
   const { gl, attrib } = GL
 
-  console.log('[sketch] MAX_INSTANCES:', MAX_INSTANCES)
+  console.log('[sketch] MAX_GL_INSTANCES:', MAX_GL_INSTANCES)
 
   const info = MeshInfo(GL, {
     vertex,
@@ -84,15 +84,15 @@ function SketchInfo(GL: GL, view: Rect) {
         gl.ARRAY_BUFFER, attrib(1, new Float32Array([0, 1, 2, 3]))
       ],
       a_opts: [
-        gl.ARRAY_BUFFER, attrib(1, wasm.alloc(Float32Array, MAX_INSTANCES), 1),
+        gl.ARRAY_BUFFER, attrib(1, wasm.alloc(Float32Array, MAX_GL_INSTANCES), 1),
         gl.DYNAMIC_DRAW
       ],
       a_vert: [
-        gl.ARRAY_BUFFER, attrib(4, wasm.alloc(Float32Array, MAX_INSTANCES * 4), 1),
+        gl.ARRAY_BUFFER, attrib(4, wasm.alloc(Float32Array, MAX_GL_INSTANCES * 4), 1),
         gl.DYNAMIC_DRAW
       ],
       a_color: [
-        gl.ARRAY_BUFFER, attrib(2, wasm.alloc(Float32Array, MAX_INSTANCES * 2), 1),
+        gl.ARRAY_BUFFER, attrib(2, wasm.alloc(Float32Array, MAX_GL_INSTANCES * 2), 1),
         gl.DYNAMIC_DRAW
       ],
     }
@@ -127,24 +127,27 @@ function SketchInfo(GL: GL, view: Rect) {
     color: 'i32',
     alpha: 'f32',
   })
-  const boxesLength = MAX_BOXES * (Box.byteLength >> 2)
-  DEBUG && console.log('[sketch]', 'MAX_BOXES:', MAX_BOXES, 'bytes:', boxesLength)
-  const boxes = Object.assign(
-    wasm.alloc(Float32Array, boxesLength),
+
+  const shapesLength = MAX_SHAPES * (Box.byteLength >> 2)
+
+  DEBUG && console.log('[sketch]', 'MAX_SHAPES:', MAX_SHAPES, 'bytes:', shapesLength)
+
+  const shapes = Object.assign(
+    wasm.alloc(Float32Array, shapesLength),
     { count: 0 }
   )
-  const box = Box(wasm.memory.buffer, boxes.byteOffset) satisfies Box
+  const box = Box(wasm.memory.buffer, shapes.byteOffset) satisfies Box
 
-  function drawBoxes(
+  function draw(
     mat2d: Float32Array,
     view: { width: number, height: number },
     begin: number,
     end: number
   ) {
-    return wasm.drawBoxes(
+    return wasm.draw(
       sketch$,
       mat2d.byteOffset,
-      boxes.byteOffset,
+      shapes.byteOffset,
       view.width,
       view.height,
       begin,
@@ -152,10 +155,20 @@ function SketchInfo(GL: GL, view: Rect) {
     )
   }
 
-  function write() {
+  function writeGL() {
     GL.writeAttribRange(a_opts, range)
     GL.writeAttribRange(a_vert, range)
     GL.writeAttribRange(a_color, range)
+    DEBUG && console.log('[sketch] write gl begin:', range.begin, 'end:', range.end, 'count:', range.count)
+  }
+
+  function write(opts: VertOpts, data: Float32Array) {
+    const count = data.length / INSTANCE_LENGTH
+    const begin = shapes.count
+    const end = (shapes.count += count)
+    shapes.set(data, begin)
+    info.attribs.a_opts.data.fill(opts, begin, end)
+    DEBUG && console.log('[sketch] write instances begin:', begin, 'end:', end, 'count:', count)
   }
 
   $.fx(() => {
@@ -171,8 +184,12 @@ function SketchInfo(GL: GL, view: Rect) {
   })
 
   return {
-    info, range, write,
-    boxes, box, drawBoxes
+    info, range, write, writeGL,
+    shapes,
+    shape: {
+      box,
+    },
+    draw
   }
 }
 
@@ -186,7 +203,7 @@ export function Sketch(GL: GL, view: Rect, mat2d: Float32Array) {
   sketch ??= SketchInfo(GL, view)
 
   const { gl } = GL
-  const { info, range, write, boxes, box, drawBoxes } = sketch
+  const { info, range, write, writeGL, shapes, shape, draw: sketchDraw } = sketch
   const { use } = info
 
   function draw() {
@@ -198,15 +215,15 @@ export function Sketch(GL: GL, view: Rect, mat2d: Float32Array) {
 
     let index = 0
 
-    while (index = drawBoxes(
+    while (index = sketchDraw(
       mat2d,
       view,
       index,
-      boxes.count
+      shapes.count
     )) {
-      DEBUG && console.log('[sketch] drawBoxes', index, index >= 0 ? boxes.count - index : '---')
+      DEBUG && console.log('[sketch] draw', index, index >= 0 ? shapes.count - index : '---')
 
-      write()
+      writeGL()
 
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, range.count)
 
@@ -218,5 +235,5 @@ export function Sketch(GL: GL, view: Rect, mat2d: Float32Array) {
     }
   }
 
-  return { draw, boxes, box }
+  return { draw, shape, info, write }
 }

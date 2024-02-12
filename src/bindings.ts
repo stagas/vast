@@ -1,9 +1,6 @@
 import { TypedArray, TypedArrayConstructor } from 'gl-util'
 import { instantiate } from '../as/build/assembly.js'
 
-// @ts-ignore
-globalThis.unmanaged = () => {}
-
 const DEBUG = false
 
 let mod: WebAssembly.Module

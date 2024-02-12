@@ -5,6 +5,10 @@
   </head>
   <body style="background:#222">
     <div id="container"></div>
+    <script type="module">
+    // KEEP: required for AssemblyScript interop.
+    globalThis.unmanaged = () => {}
+    </script>
     <script src="./src/index.ts" type="module"></script>
   </body>
 </html>

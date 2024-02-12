@@ -3,7 +3,7 @@ import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { state } from './state.ts'
 import { World } from './world/world.ts'
-import { MAX_INSTANCES } from '../as/assembly/sketch-shared.ts'
+import { MAX_GL_INSTANCES } from '../as/assembly/sketch-shared.ts'
 
 const DEBUG = true
 

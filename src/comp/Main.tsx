@@ -1,9 +1,11 @@
 import { Signal } from 'signal-jsx'
 import { state } from '../state.ts'
 import { Bench, BenchResults } from './Bench.tsx'
-import { Grid } from './Grid.tsx'
+import { Grid } from '../draws/grid.ts'
 import { MainMenu } from './MainMenu.tsx'
 import { ThemePicker } from './ThemePicker.tsx'
+import { Surface } from '../surface.ts'
+import { Rect } from 'std'
 
 const DEBUG = true
 
@@ -23,7 +25,9 @@ export function Main() {
     }
   }, { times: 100_000, raf: true })
 
-  let grid: Element
+  let surface: Surface
+  let grid: Grid
+  const view = $(new Rect)
 
   $.fx(() => {
     const { path } = state
@@ -34,8 +38,10 @@ export function Main() {
           return <BenchResults />
 
         default:
-          grid ??= <Grid />
-          return grid
+          surface ??= Surface(view)
+          grid ??= Grid(surface)
+          grid.write()
+          return surface.canvas
       }
     })())
   })
