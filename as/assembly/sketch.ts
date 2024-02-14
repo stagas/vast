@@ -1,4 +1,5 @@
-import { Sketch, VertRange } from './sketch-shared'
+import { Sketch } from './sketch-class'
+import { VertRange } from './sketch-shared'
 
 export function createSketch(
   range$: usize,
@@ -6,6 +7,7 @@ export function createSketch(
   a_opts$: usize,
   a_vert$: usize,
   a_color$: usize,
+  a_lineWidth$: usize,
 ): usize {
   return changetype<usize>(new Sketch(
     range$,
@@ -13,6 +15,7 @@ export function createSketch(
     a_opts$,
     a_vert$,
     a_color$,
+    a_lineWidth$,
   ))
 }
 

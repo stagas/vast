@@ -2,7 +2,7 @@ import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 // import { log } from './state.ts'
 
-export function Canvas({ view }: { view: Rect }) {
+export function Canvas({ view, onresize }: { view: Rect, onresize?: () => void }) {
   using $ = Signal()
 
   const el = <canvas width="1" height="1" /> as HTMLCanvasElement
@@ -14,6 +14,7 @@ export function Canvas({ view }: { view: Rect }) {
     el.height = h_pr
     el.style.width = width + 'px'
     el.style.height = height + 'px'
+    onresize?.()
     // log(`resize: ${width}:${height}:${pr}`)
   })
 

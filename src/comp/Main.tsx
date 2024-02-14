@@ -6,8 +6,10 @@ import { MainMenu } from './MainMenu.tsx'
 import { ThemePicker } from './ThemePicker.tsx'
 import { Surface } from '../surface.ts'
 import { Rect } from 'std'
+import { MainBtn } from './MainBtn.tsx'
+import { Console } from './Console.tsx'
 
-const DEBUG = true
+const DEBUG = false
 
 export function Main() {
   DEBUG && console.log('[main] create')
@@ -59,12 +61,12 @@ export function Main() {
         </a>
       </div>
 
-      <button class="btn" onclick={() => {
+      <MainBtn label="anim" onclick={() => {
         state.path = '/'
         state.animCycle?.()
       }}>
         {() => state.animMode}
-      </button>
+      </MainBtn>
 
       {bench.button}
 
@@ -74,5 +76,11 @@ export function Main() {
     </nav>
 
     {article}
+
+    {DEBUG && <Console
+      signal={() => state.debugUpdated}
+      history={state.debugHistory}
+      size={12}
+    />}
   </main>
 }

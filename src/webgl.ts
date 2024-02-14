@@ -24,7 +24,7 @@ export function WebGL(world: World, canvas: HTMLCanvasElement) {
 
   const GL = initGL(canvas, {
     antialias: false,
-    alpha: false,
+    alpha: true,
     preserveDrawingBuffer: true
   })
 
@@ -57,6 +57,7 @@ export function WebGL(world: World, canvas: HTMLCanvasElement) {
     DEBUG && console.log('[webgl] dispose')
     world.anim.ticks.delete(draw)
     state.meshes.clear()
+    GL.reset()
   })
 
   return { GL, draw, add }

@@ -3,11 +3,13 @@ import { TaskResult, Bench as TinyBench } from 'tinybench'
 import { rafs } from 'utils'
 import { state } from '../state.ts'
 import { AnimMode } from '../world/anim.ts'
+import { MainBtn } from './MainBtn.tsx'
 
 const DEBUG = true
 
 const REVERSED = ['hz', 'raf']
 const HIGHLIGHT = ['mean', 'raf', 'totalTime']
+const HIDDEN = ['samples', 'p75', 'p99', 'p995']
 
 function fmt(times: number, key: string, value: any) {
   const v = REVERSED.includes(key) ? value * times : value / times
@@ -29,9 +31,7 @@ export function BenchResults() {
         {task.name}:
         <div class="flex flex-row flex-wrap w-full min-w-full items-stretch text-xs">{
           Object.entries(extra(task.result) ?? {})
-            .filter(([key]) => ![
-              'samples', 'p75', 'p99', 'p995'
-            ].includes(key))
+            .filter(([key]) => !HIDDEN.includes(key))
             .map(([key, value]) =>
               <div class={[
                 "flex flex-col flex-auto min-w-0 truncate border-r border-black odd:bg-base-300 even:bg-base-200",
@@ -59,7 +59,7 @@ export function Bench() {
   type P = Parameters<TinyBench['add']>
 
   function add(name: P[0], setup: () => P[1], opts: P[2] & { times?: number, raf?: boolean } = {}) {
-    let fn = () => {}
+    let fn = () => { }
 
     opts.beforeAll = () => {
       fn = setup()
@@ -96,20 +96,23 @@ export function Bench() {
     state.benchIsRunning = false
   }
 
-  const spinner = <span class="loading loading-spinner loading-xs"></span>
+  const spinner = <span class="loading loading-spinner loading-sm"></span>
 
   fx(() => {
     if (state.benchIsRunning) {
-      button.append(spinner)
+      button.prepend(spinner)
     }
     else {
       spinner.remove()
     }
   })
 
-  const button = <button class="btn" onclick={run}>
+  const button = <MainBtn
+    label={() => state.benchIsRunning ? 'running' : 'start'}
+    onclick={run}
+  >
     bench
-  </button>
+  </MainBtn>
 
   return { button, add, remove }
 }
