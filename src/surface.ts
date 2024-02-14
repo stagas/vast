@@ -114,7 +114,16 @@ export function Surface(view: Rect) {
   $.fx(() => dom.on(window, 'wheel', $.fn((e: WheelEvent): void => {
     info.isHovering = true
     mouse.pos.setFromEvent(e, canvas)
-    handleWheelScaleX(e)
+    if (e.shiftKey) {
+      matrix.dest.m.e += e.deltaY * 0.04 * (matrix.a ** 0.65)
+      matrix.dest.sync()
+    }
+    else if (e.ctrlKey) {
+      handleWheelScaleY(e)
+    }
+    else {
+      handleWheelScaleX(e)
+    }
   }), { passive: true }))
 
   return { info, world, view, matrix, canvas, webgl, sketch, mouseTargets }

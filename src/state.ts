@@ -2,8 +2,8 @@ import { Theme } from 'daisyui'
 import themes from 'daisyui/src/theming/themes'
 import { $, storage } from 'signal-jsx'
 import { Task } from 'tinybench'
-import { Mesh } from './webgl.ts'
 import { LerpMatrix } from './util/lerp-matrix.ts'
+import { Mesh } from './webgl.ts'
 import { AnimMode } from './world/anim.ts'
 
 const DEBUG = true

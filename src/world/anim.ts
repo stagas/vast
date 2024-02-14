@@ -1,6 +1,5 @@
 import { Signal } from 'signal-jsx'
 import { state } from '../state.ts'
-// import { log } from './state.ts'
 
 const DEBUG = false //true
 
@@ -80,7 +79,7 @@ export function Anim() {
   $.fx(() => () => {
     DEBUG && console.log('[anim] dispose')
     stop()
-})
+  })
 
   state.animCycle = cycle
 

@@ -1,7 +1,7 @@
 import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
-import { World } from '../world/world.ts'
 import { MeshInfo } from '../mesh-info.ts'
+import { World } from '../world/world.ts'
 // import { log } from '../state.ts'
 
 const vertex = /*glsl*/`
@@ -95,10 +95,6 @@ export function Boxes(GL: GL, world: World, boxes: Float32Array) {
   const { view, matrix } = world
   const { gl } = GL
 
-  // const shaders = GL.createShaders({ vertex, fragment })
-  // const program = GL.createProgram(shaders)
-  // const vao = GL.createVertexArray()
-
   const info = MeshInfo(GL, {
     vertex,
     fragment,
@@ -132,7 +128,7 @@ export function Boxes(GL: GL, world: World, boxes: Float32Array) {
   } = info.uniforms
 
   const mat3fv = new Float64Array(9)
-// console.log(matrix)
+
   $.fx(() => {
     const { pr } = view
     const { a, d, e, f } = matrix

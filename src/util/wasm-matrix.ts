@@ -1,8 +1,8 @@
 import wasm from 'assembly'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
-import { LerpMatrix } from './lerp-matrix.ts'
 import { log } from '../state.ts'
+import { LerpMatrix } from './lerp-matrix.ts'
 
 export type WasmMatrix = ReturnType<typeof WasmMatrix>
 

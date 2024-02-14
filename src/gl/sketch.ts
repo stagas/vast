@@ -97,7 +97,7 @@ function SketchInfo(GL: GL, view: Rect) {
 
   const { gl, attrib } = GL
 
-  console.log('[sketch] MAX_GL_INSTANCES:', MAX_GL_INSTANCES)
+  DEBUG && console.log('[sketch] MAX_GL_INSTANCES:', MAX_GL_INSTANCES)
 
   const info = MeshInfo(GL, {
     vertex,
@@ -228,7 +228,6 @@ function SketchInfo(GL: GL, view: Rect) {
     const count = data.length / SHAPE_LENGTH
     const begin = shapes.count
     const end = (shapes.count += count)
-    // info.attribs.a_opts.data.fill(opts, begin, end)
     DEBUG && console.log('[sketch] shapes write begin:', begin, 'end:', end, 'count:', count)
     shapes.set(data, begin * SHAPE_LENGTH)
   }
