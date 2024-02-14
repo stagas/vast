@@ -1,19 +1,28 @@
 import { $ } from 'signal-jsx'
-import { Point, Rect } from 'std'
-import { LerpMatrix } from '../util/lerp-matrix.ts'
+import { Matrix, Point, Rect } from 'std'
 
 const DEBUG = false
 
-export function Mouse(view: Rect, matrix: LerpMatrix) {
+export type Mouse = ReturnType<typeof Mouse>
+
+export function Mouse(view: Rect, matrix: Matrix) {
   const clipPos = $(new Point)
   const screenPos = $(new Point)
 
-  const info = $({
+  function handle(e: MouseEvent | PointerEvent | WheelEvent) {
+    for (const fn of mouse.targets) {
+      fn?.(e)
+    }
+  }
+
+  const mouse = $({
     isDown: false,
     button: 0,
+    targets: new Set<(e: MouseEvent | PointerEvent | WheelEvent) => void>(),
+    handle,
     pos: $(new Point),
     get clipPos() {
-      const { pos } = info
+      const { pos } = mouse
       const { x, y } = pos
       const { pr, size: { w, h } } = view
       $()
@@ -27,18 +36,18 @@ export function Mouse(view: Rect, matrix: LerpMatrix) {
       return clipPos
     },
     get screenPos() {
-      const { pos } = info
+      const { pos } = mouse
       const { x, y } = pos
       const { pr } = view
-      const { a, b, c, d, e, f } = matrix.dest
+      const { a, b, c, d, e, f } = matrix
       $()
       screenPos
         .setParameters(x, y)
-        .transformMatrixInverse(matrix.dest)
+        .transformMatrixInverse(matrix)
       DEBUG && console.log('[mouse] screenPos', screenPos.text)
       return screenPos
     }
   })
 
-  return info
+  return mouse
 }

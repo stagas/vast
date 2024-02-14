@@ -5,6 +5,7 @@ import { Task } from 'tinybench'
 import { LerpMatrix } from './util/lerp-matrix.ts'
 import { Mesh } from './webgl.ts'
 import { AnimMode } from './world/anim.ts'
+import { Matrix } from 'std'
 
 const DEBUG = true
 
@@ -28,7 +29,7 @@ class State {
   animMode = storage(AnimMode.Auto)
   animCycle?: () => void
 
-  matrix = $(new LerpMatrix())
+  matrix = $(new Matrix())
   meshes = new Set<Mesh>()
 }
 

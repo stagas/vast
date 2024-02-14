@@ -9,6 +9,47 @@ import { WasmMatrix } from '../util/wasm-matrix.ts'
 
 const DEBUG = false
 
+export namespace ShapeData {
+  export type Box = [
+    kind: ShapeKind.Box,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    lw: number,
+    ptr: number,
+    len: number,
+    color: number,
+    alpha: number,
+  ]
+
+  export type Wave = [
+    kind: ShapeKind.Wave,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    lw: number,
+    ptr: number,
+    len: number,
+    color: number,
+    alpha: number,
+  ]
+
+  export type Line = [
+    kind: ShapeKind.Line,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    lw: number,
+    ptr: number,
+    len: number,
+    color: number,
+    alpha: number,
+  ]
+}
+
 const hasVertOpts = (...bits: number[]) => /*glsl*/
   `(int(a_opts) & (${bits.join(' | ')})) != 0`
 
@@ -306,5 +347,5 @@ export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
     }
   }
 
-  return { draw, shape, info, write }
+  return { draw, shapes, shape, info, write }
 }
