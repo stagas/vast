@@ -4,7 +4,7 @@ import { Rect } from 'std'
 import { state } from './state.ts'
 import { World } from './world/world.ts'
 
-const DEBUG = true
+const DEBUG = false
 
 export interface MeshProps {
   GL: GL

@@ -3,6 +3,8 @@ import { Signal } from 'signal-jsx'
 import { Matrix, Rect } from 'std'
 import { log } from '../state.ts'
 
+const DEBUG = false
+
 export type WasmMatrix = ReturnType<typeof WasmMatrix>
 
 export function WasmMatrix(view: Rect, matrix: Matrix) {
@@ -15,7 +17,7 @@ export function WasmMatrix(view: Rect, matrix: Matrix) {
     const { pr } = view
     $()
     mat2d.set(matrix.values)
-    log(a)
+    DEBUG && log(a)
   })
 
   return mat2d

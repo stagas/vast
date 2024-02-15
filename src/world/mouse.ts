@@ -9,13 +9,14 @@ export function Mouse(view: Rect, matrix: Matrix) {
   const clipPos = $(new Point)
   const screenPos = $(new Point)
 
-  function handle(e: MouseEvent | PointerEvent | WheelEvent) {
+  const handle = $.fn((e: MouseEvent | PointerEvent | WheelEvent) => {
     for (const fn of mouse.targets) {
       fn?.(e)
     }
-  }
+  })
 
   const mouse = $({
+    matrix,
     isDown: false,
     button: 0,
     targets: new Set<(e: MouseEvent | PointerEvent | WheelEvent) => void>(),
@@ -36,7 +37,7 @@ export function Mouse(view: Rect, matrix: Matrix) {
       return clipPos
     },
     get screenPos() {
-      const { pos } = mouse
+      const { pos, matrix } = mouse
       const { x, y } = pos
       const { pr } = view
       const { a, b, c, d, e, f } = matrix

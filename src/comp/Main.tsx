@@ -80,7 +80,7 @@ export function Main() {
     {DEBUG && <Console
       signal={() => state.debugUpdated}
       history={state.debugHistory}
-      size={12}
+      size={46}
     />}
   </main>
 }

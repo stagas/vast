@@ -2,7 +2,7 @@ import { Theme } from 'daisyui'
 import themes from 'daisyui/src/theming/themes'
 import { $, storage } from 'signal-jsx'
 import { Task } from 'tinybench'
-import { LerpMatrix } from './util/lerp-matrix.ts'
+import { LerpMatrix } from './util/geometry.ts'
 import { Mesh } from './webgl.ts'
 import { AnimMode } from './world/anim.ts'
 import { Matrix } from 'std'
@@ -30,6 +30,11 @@ class State {
   animCycle?: () => void
 
   matrix = $(new Matrix())
+  viewMatrix = $(new LerpMatrix())
+  lastFarMatrix = $(new Matrix())
+  targetMatrix = $(new Matrix())
+  zoomState = 'far'
+
   meshes = new Set<Mesh>()
 }
 
