@@ -11,10 +11,13 @@ export enum VertOpts {
   Line /**/ = 0b010,
 }
 
-export enum ShapeKind {
-  Box = 1,
-  Line,
-  Wave,
+export enum ShapeOpts {
+  // kind
+  Box /*      */ = 0b0000_0000_0001,
+  Line /*     */ = 0b0000_0000_0010,
+  Wave /*     */ = 0b0000_0000_0100,
+  // flags
+  Collapse /* */ = 0b0001_0000_0000,
 }
 
 // Note: All shapes must have equal 32bit size.
@@ -23,12 +26,12 @@ export const SHAPE_LENGTH = 10
 
 @unmanaged
 export class Shape {
-  kind: f32 = f32(ShapeKind.Box)
+  opts: f32 = f32(ShapeOpts.Box)
 }
 
 @unmanaged
 export class Box {
-  kind: f32 = f32(ShapeKind.Box)
+  opts: f32 = f32(ShapeOpts.Box)
   x: f32 = 0
   y: f32 = 0
   w: f32 = 0
@@ -45,7 +48,7 @@ export class Box {
 
 @unmanaged
 export class Line {
-  kind: f32 = f32(ShapeKind.Line)
+  opts: f32 = f32(ShapeOpts.Line)
   x0: f32 = 0
   y0: f32 = 0
   x1: f32 = 0
@@ -61,7 +64,7 @@ export class Line {
 }
 
 export class Wave {
-  kind: f32 = f32(ShapeKind.Wave)
+  opts: f32 = f32(ShapeOpts.Wave)
   x: f32 = 0
   y: f32 = 0
   w: f32 = 0

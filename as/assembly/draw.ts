@@ -1,6 +1,6 @@
 import { logf, logf2, logf3, logf4, logf6 } from './env'
 import { Sketch } from './sketch-class'
-import { Box, SHAPE_LENGTH, MAX_GL_INSTANCES, Matrix, VertOpts, Wave, ShapeKind, Shape, Line } from './sketch-shared'
+import { Box, SHAPE_LENGTH, MAX_GL_INSTANCES, Matrix, VertOpts, Wave, ShapeOpts, Shape, Line } from './sketch-shared'
 import { Floats } from './util'
 
 export function draw(
@@ -39,19 +39,20 @@ export function draw(
     next_i = i + 1
 
     const shape$ = shapes$ + ((i * SHAPE_LENGTH) << 2)
-    const kind = i32(changetype<Shape>(shape$).kind)
+    const opts = i32(changetype<Shape>(shape$).opts)
 
-    switch (kind) {
+    switch (opts & 0b1111_1111) {
       //
       // Box
       //
-      case ShapeKind.Box: {
+      case ShapeOpts.Box: {
         box = changetype<Box>(shape$)
 
         const x = f32(box.x * ma + me)
         const y = f32(box.y * md + mf)
         const w = f32(box.w * ma - x_gap)
-        const h = f32(box.h * md - 1)
+        let h = f32(box.h * md)
+        if ( (!(opts & ShapeOpts.Collapse) || h > 1.5) && h > 1.5) h -= h > 3 ? 1.0 : h > 1.5 ? .5 : 0
 
         // check if visible
         if (x > width
@@ -82,7 +83,7 @@ export function draw(
       //
       // Line
       //
-      case ShapeKind.Line: {
+      case ShapeOpts.Line: {
         line = changetype<Line>(shape$)
 
         const x0 = f32(line.x0 * ma + me)
@@ -129,7 +130,7 @@ export function draw(
       //
       // Wave
       //
-      case ShapeKind.Wave: {
+      case ShapeOpts.Wave: {
         // continue
         wave = changetype<Wave>(shape$)
 

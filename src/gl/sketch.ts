@@ -3,7 +3,7 @@ import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { Struct } from 'utils'
-import { Box, SHAPE_LENGTH, Line, MAX_GL_INSTANCES, MAX_SHAPES, VertOpts, VertRange, Wave, ShapeKind } from '../../as/assembly/sketch-shared.ts'
+import { Box, SHAPE_LENGTH, Line, MAX_GL_INSTANCES, MAX_SHAPES, VertOpts, VertRange, Wave, ShapeOpts } from '../../as/assembly/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
 import { WasmMatrix } from '../util/wasm-matrix.ts'
 
@@ -11,7 +11,7 @@ const DEBUG = false
 
 export namespace ShapeData {
   export type Box = [
-    kind: ShapeKind.Box,
+    kind: ShapeOpts.Box,
     x: number,
     y: number,
     w: number,
@@ -24,7 +24,7 @@ export namespace ShapeData {
   ]
 
   export type Wave = [
-    kind: ShapeKind.Wave,
+    kind: ShapeOpts.Wave,
     x: number,
     y: number,
     w: number,
@@ -37,7 +37,7 @@ export namespace ShapeData {
   ]
 
   export type Line = [
-    kind: ShapeKind.Line,
+    kind: ShapeOpts.Line,
     x0: number,
     y0: number,
     x1: number,
@@ -167,7 +167,7 @@ function SketchInfo(GL: GL, view: Rect) {
   })
 
   const Box = Struct({
-    kind: 'i32',
+    opts: 'i32',
     x: 'f32',
     y: 'f32',
     w: 'f32',
@@ -180,7 +180,7 @@ function SketchInfo(GL: GL, view: Rect) {
   })
 
   const Line = Struct({
-    kind: 'i32',
+    opts: 'i32',
     x0: 'f32',
     y0: 'f32',
     x1: 'f32',
@@ -193,7 +193,7 @@ function SketchInfo(GL: GL, view: Rect) {
   })
 
   const Wave = Struct({
-    kind: 'i32',
+    opts: 'i32',
     x: 'f32',
     y: 'f32',
     w: 'f32',

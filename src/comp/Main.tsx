@@ -69,6 +69,11 @@ export function Main() {
         </a>
       </div>
 
+      <MainBtn label="take" onclick={() => {
+      }}>
+        photo
+      </MainBtn>
+
       {minimapDiv}
 
       <MainBtn label="debug" onclick={() => {

@@ -1,7 +1,7 @@
 import { $, Signal } from 'signal-jsx'
 import { Matrix, Point, RectLike } from 'std'
-import { clamp, debounce } from 'utils'
-import { ShapeKind } from '../../as/assembly/sketch-shared.ts'
+import { clamp, debounce, dom } from 'utils'
+import { ShapeOpts } from '../../as/assembly/sketch-shared.ts'
 import { ShapeData } from '../gl/sketch.ts'
 import { Surface } from '../surface.ts'
 import { Floats } from '../util/floats.ts'
@@ -9,6 +9,7 @@ import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { log, state } from '../state.ts'
 
 const DEBUG = true
+const SCALE_X = 1
 
 export type Grid = ReturnType<typeof Grid>
 
@@ -22,7 +23,7 @@ export function Grid(surface: Surface) {
   const ROWS = 10
   const COLS = 120
   const SCALE_X = 16
-
+  log('VIEW', view.text)
   const boxes = Boxes(ROWS, COLS, SCALE_X)
   const waves = Waves(boxes)
   const notes = Notes(boxes)
@@ -32,7 +33,10 @@ export function Grid(surface: Surface) {
     boxes,
     waves,
     notes,
-    focusedBox: null as null | BoxData
+    focusedBox: null as null | BoxData,
+    hoveringNoteN: -1,
+    hoveringNote: null as null | Note,
+    draggingNote: null as null | Note,
   })
 
   $.untrack(function initial_scale() {
@@ -134,19 +138,25 @@ export function Grid(surface: Surface) {
 
   const point = $(new Point)
 
-  function handleWheelScaleX(e: WheelEvent) {
+  function handleWheelScaleX(ev: WheelEvent) {
     const { x, y } = mousePos
 
     const m = intentMatrix
-    const a = m.a
-    const delta = -e.deltaY * 0.0035
+    const { a, e, f } = m
+    const delta = -ev.deltaY * 0.0035
     if (lockedZoom.x && delta > 0) return
     const delta_a = (a + (delta * a ** 0.9)) / a
-    const minZoomX = view.w / 2 / info.boxes.right
+    const minZoomX = view.w / info.boxes.right
     m.translate(x, y)
     m.scale(delta_a, 1)
+    const ba = m.a
     m.a = clamp(minZoomX, 2000, intentMatrix.a)
     m.translate(-x, -y)
+    if (ba !== m.a) {
+      m.e = e
+      m.f = f
+      return
+    }
 
     if (state.zoomState === 'zooming') {
       const lm = lastFarMatrix
@@ -169,6 +179,8 @@ export function Grid(surface: Surface) {
   }
 
   function handleHoveringBox() {
+    if (info.draggingNote) return
+
     let { x, y } = mouse.screenPos
     x = Math.floor(x)
     y = Math.floor(y)
@@ -193,6 +205,59 @@ export function Grid(surface: Surface) {
     }
   }
 
+  const notePos = { x: -1, y: -1 }
+
+  function updateHoveringNoteN() {
+    if (!hoveringBox?.notes) return
+
+    let { x, y } = mouse.screenPos
+    x -= hoveringBox.x
+    y -= hoveringBox.y
+    notePos.x = x
+    notePos.y = y
+
+    const { notes } = hoveringBox
+
+    info.hoveringNoteN = clamp(0, MAX_NOTE - 1, Math.ceil(notes.scale.max - 1 - (y * notes.scale.N)))
+  }
+
+  function handleHoveringNote() {
+    if (!info.focusedBox) return
+    if (hoveringBox !== info.focusedBox) return
+    if (!hoveringBox.notes) return
+    if (info.draggingNote) return
+
+    const { notes } = hoveringBox
+
+    updateHoveringNoteN()
+    const hn = info.hoveringNoteN
+    const { x, y } = notePos
+
+    let found = false
+    for (let i = notes.length - 1; i >= 0; i--) {
+      const note = notes[i]
+      const { n, time, length } = note
+      if (n !== hn) continue
+      if (x >= time && x <= time + length) {
+        info.hoveringNote = note
+        found = true
+        break
+      }
+    }
+    if (!found) {
+      info.hoveringNote = null
+    }
+
+    log('hover note', hn, x, y)
+  }
+
+  function handleDraggingNoteMove() {
+    if (!info.draggingNote) return
+
+    updateHoveringNoteN()
+    info.draggingNote.n = info.hoveringNoteN
+  }
+
   function updateMousePos() {
     const { x, y } = mouse.screenPos
     mousePos.x = x
@@ -211,7 +276,7 @@ export function Grid(surface: Surface) {
   DEBUG && $.fx(() => {
     const { a } = viewMatrix
     $()
-    // log('m.a', a)
+    log('m.a', a)
   })
 
   const zoomFar = $.fn(function zoomFar() {
@@ -238,9 +303,9 @@ export function Grid(surface: Surface) {
     const ox = box?.notes ? 1 : 0
     Matrix.viewBox(m, view, {
       x: box.x - w / 20 - ox,
-      y: box.y - .1,
+      y: box.y - (box.y ? .1 : 0),
       w: w + w / 10,
-      h: box.h + .2,
+      h: box.h + .2 - (box.y ? 0 : .1),
     })
   }
 
@@ -263,7 +328,8 @@ export function Grid(surface: Surface) {
 
   let orientChangeScore = 0
   let clicks = 0
-  const debounceClearClicks = debounce(300, () => {
+  const CLICK_MS = 300
+  const debounceClearClicks = debounce(CLICK_MS, () => {
     clicks = 0
   })
   mouse.targets.add(ev => {
@@ -274,19 +340,34 @@ export function Grid(surface: Surface) {
     }
     else if (ev.type === 'mousedown') {
       updateMousePos()
+      debounceClearClicks()
       if (hoveringBox) {
-        debounceClearClicks()
-        if (++clicks === 2) {
+        if (++clicks >= 2) {
           if (state.zoomState === 'far') {
             lastFarMatrix.set(intentMatrix)
           }
           info.focusedBox = hoveringBox
           zoomBox(hoveringBox)
+          return
+        }
+        if (info.hoveringNote) {
+          info.draggingNote = info.hoveringNote
+          dom.on(window, 'mouseup', $.fn((e: MouseEvent): void => {
+            info.hoveringNote = null
+            info.draggingNote = null
+            info.notes = Notes(boxes, info.focusedBox!.notes!)
+            handleHoveringNote()
+          }), { once: true })
+          return
         }
       }
     }
     else if (ev.type === 'mousemove') {
       updateMousePos()
+      if (info.draggingNote) {
+        handleDraggingNoteMove()
+        return
+      }
     }
     else if (ev.type === 'wheel') {
       const e = ev as WheelEvent
@@ -355,7 +436,10 @@ export function Grid(surface: Surface) {
       }
     }
 
+    if (info.draggingNote) return
+
     handleHoveringBox()
+    handleHoveringNote()
   })
 
   $.fx(() => {
@@ -369,12 +453,16 @@ export function Grid(surface: Surface) {
     'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'
   ]
   $.fx(() => {
-    const { focusedBox } = $.of(info)
+    const { focusedBox, hoveringNoteN } = $.of(info)
+    const { hoveringNote, draggingNote } = info
+    if (draggingNote) {
+      const { n, time, length, vel } = draggingNote
+    }
     $()
     if (focusedBox.notes) {
       log('yeah')
       const { notes } = focusedBox
-      const scale = getNotesScale(notes)
+      const scale = notes.scale = getNotesScale(notes)
       const scaleX = 1
 
       const { x: cx, y: cy, w: cw, h: ch } = focusedBox
@@ -382,7 +470,7 @@ export function Grid(surface: Surface) {
       const SNAPS = 16
       pianorollData = Float32Array.from([
         [
-          ShapeKind.Box,
+          ShapeOpts.Box,
           cx,
           cy,
           cw,
@@ -396,11 +484,12 @@ export function Grid(surface: Surface) {
         Array.from({ length: scale.N }, (_, ny) => {
           const h = ch / scale.N
           const y = cy + h * ny
-          const n = scale.N - ny + scale.min
+          const n = scale.N - ny - 1 + scale.min
           const n_key = n % 12
+
           const isBlack = BLACK_KEYS.has(n_key)
           const row = [
-            ShapeKind.Box,
+            ShapeOpts.Box,
             cx,
             y,
             cw,
@@ -408,11 +497,14 @@ export function Grid(surface: Surface) {
             1, // lw
             1, // ptr
             0, // len
-            focusedBox.color,
+            hoveringNoteN === n
+              ? 0x00aaff
+              : focusedBox.color,
             .25 + (isBlack ? 0 : .10) // alpha
           ] as ShapeData.Box
+
           const key = [
-            ShapeKind.Box,
+            ShapeOpts.Box | ShapeOpts.Collapse,
             cx - 1,
             y,
             1,
@@ -428,7 +520,7 @@ export function Grid(surface: Surface) {
         Array.from({ length: (cw * SNAPS) - 1 }, (_, col) => {
           const x = (1 + col) / SNAPS + cx
           return [
-            ShapeKind.Line,
+            ShapeOpts.Line,
             x,
             cy,
             x,
@@ -445,15 +537,20 @@ export function Grid(surface: Surface) {
           if (x > cw) return
 
           const h = ch / scale.N
-          const y = ch - h * (n - scale.min) // y
+          const y = ch - h * (n + 1 - scale.min) // y
 
           let w = length * scaleX // w
           if (x + w > cw) {
             w = cw - x
           }
 
+          const isHovering = hoveringNote
+            && hoveringNote.n === n
+            && hoveringNote.time === time
+            && hoveringNote.length === length
+
           return [
-            ShapeKind.Box,
+            ShapeOpts.Box,
             cx + x,
             cy + y,
             w,
@@ -461,8 +558,10 @@ export function Grid(surface: Surface) {
             1, // lw
             1, // ptr
             0, // len
-            focusedBox.color,
-            .45 + (.55 * vel) // alpha
+            isHovering
+              ? 0xffffff
+              : focusedBox.color,
+            isHovering ? 1 : .45 + (.55 * vel) // alpha
           ] as ShapeData.Box
         }).filter(Boolean).flat()
       ].flat().flat())
@@ -487,7 +586,7 @@ type BoxData = RectLike & {
   ptr: number
   color: number
   setColor: (color: number) => void
-  notes?: Note[]
+  notes?: BoxNotes
 }
 
 const boxesHitmap = new Map<string, BoxData>()
@@ -521,7 +620,7 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
       right = Math.max(right, x + w)
 
       const shape = Object.assign([
-        ShapeKind.Box,
+        ShapeOpts.Box,
         x, y, w, h,
         1, 1, 0, // lw, ptr, len
         color, // color
@@ -562,7 +661,7 @@ function Waves(boxes: ReturnType<typeof Boxes>) {
     .map(cols =>
       cols.map(([, x, y, w, h]) =>
         [
-          ShapeKind.Wave,
+          ShapeOpts.Wave,
           x, y, w, h, // same dims as the box
           1, // lw
           floats.ptr, // ptr
@@ -610,6 +709,7 @@ function createDemoNotes(
   }).flat()
 }
 
+const MAX_NOTE = 121
 function getNotesScale(notes: Note[]) {
   let max = -Infinity
   let min = Infinity
@@ -622,38 +722,41 @@ function getNotesScale(notes: Note[]) {
     max = 12
   }
   min = Math.max(0, min - 6)
-  max = Math.min(127, max + 6)
+  max = Math.min(MAX_NOTE, max + 6)
   const N = max - min
   return { min, max, N }
 }
 
-function Notes(boxes: ReturnType<typeof Boxes>) {
-  const notes = createDemoNotes()
-  const scale = getNotesScale(notes)
-  const scaleX = 1
+type BoxNotes = Note[] & {
+  ptr: number
+  scale: ReturnType<typeof getNotesScale>
+}
 
+function Notes(boxes: ReturnType<typeof Boxes>, notes = createDemoNotes()) {
+  const scale = getNotesScale(notes)
+
+  let ptr = 0
   const data = new Float32Array(boxes.rows
     .filter((_, ry) => ry % 2 === 0)
     .map(cols =>
       cols.map(box => {
         const [, cx, cy, cw, ch] = box
-
-        box.data.notes = [...notes]
+        box.data.notes = Object.assign([...notes], { ptr, scale })
 
         const boxNotes = notes.map(({ n, time, length, vel }) => {
-          const x = time * scaleX // x
+          const x = time * SCALE_X // x
           if (x > cw) return
 
           const h = ch / scale.N
-          const y = ch - h * (n - scale.min) // y
+          const y = ch - h * (n + 1 - scale.min) // y
 
-          let w = length * scaleX // w
+          let w = length * SCALE_X // w
           if (x + w > cw) {
             w = cw - x
           }
 
           return [
-            ShapeKind.Box,
+            ShapeOpts.Box,
             cx + x,
             cy + y,
             w,

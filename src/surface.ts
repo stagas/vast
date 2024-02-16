@@ -63,10 +63,11 @@ export function Surface(view: Rect) {
 
     [window, 'mousemove', (e: MouseEvent) => {
       mouse.pos.setFromEvent(e, canvas)
-      if (info.isHovering) mouse.handle(e)
+      if (info.isHovering || mouse.isDown) mouse.handle(e)
     }],
 
     [document, 'mouseout', (e: MouseEvent) => {
+      if (mouse.isDown) return
       if (!e.relatedTarget) {
         info.isHovering = false
         mouse.handle(e)
@@ -74,15 +75,18 @@ export function Surface(view: Rect) {
     }],
 
     [canvas, 'mouseleave', (e: MouseEvent) => {
+      if (mouse.isDown) return
       info.isHovering = false
       mouse.handle(e)
     }],
 
     [window, 'mousedown', (e: MouseEvent) => {
       mouse.pos.setFromEvent(e, canvas)
-      mouse.isDown = true
       mouse.button = e.button
-      if (info.isHovering) mouse.handle(e)
+      if (info.isHovering) {
+        mouse.isDown = true
+        mouse.handle(e)
+      }
     }],
 
     [window, 'mouseup', (e: MouseEvent) => {
