@@ -53,12 +53,15 @@ export function Surface(view: Rect) {
       view.pr = window.devicePixelRatio
     }, { unsafeInitial: true }],
 
+    [canvas, 'mouseenter', (e: MouseEvent) => {
+      info.isHovering = true
+    }],
+
     [canvas, 'mousemove', (e: MouseEvent) => {
       info.isHovering = true
     }],
 
     [window, 'mousemove', (e: MouseEvent) => {
-      // info.isHovering = true
       mouse.pos.setFromEvent(e, canvas)
       if (info.isHovering) mouse.handle(e)
     }],

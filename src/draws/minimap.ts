@@ -1,15 +1,9 @@
-import { $, Signal } from 'signal-jsx'
-import { Matrix, Point, Rect, RectLike } from 'std'
-import { clamp, debounce, dom } from 'utils'
-import { ShapeKind } from '../../as/assembly/sketch-shared.ts'
-import { ShapeData } from '../gl/sketch.ts'
-import { Surface } from '../surface.ts'
-import { Floats } from '../util/floats.ts'
-import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
-import { log, state } from '../state.ts'
-import { Grid } from './grid.ts'
+import { Signal } from 'signal-jsx'
+import { Matrix, Rect } from 'std'
+import { dom } from 'utils'
 import { Canvas } from '../comp/Canvas.tsx'
-import { Mouse } from '../world/mouse.ts'
+import { log } from '../state.ts'
+import { Grid } from './grid.ts'
 
 const DEBUG = true
 
@@ -113,5 +107,6 @@ export function Minimap(grid: Grid) {
     c.stroke()
     c.restore()
   })
+
   return { canvas, handle }
 }
