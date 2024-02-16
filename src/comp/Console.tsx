@@ -12,7 +12,16 @@ export function Console({ signal, history, size }: { signal: () => void, history
   c.imageSmoothingEnabled = false
   c.scale(view.pr, view.pr)
 
+  const el  = <div class="
+    fixed bottom-2 left-2
+    bg-base-300 bg-opacity-50
+    pointer-events-none
+  " />
+
+  let active = true
+
   $.fx(() => {
+    if (!state.debugConsoleActive) return
     signal()
     c.clearRect(0, 0, view.width, view.height)
     c.fillStyle = state.colors['primary']
@@ -24,8 +33,16 @@ export function Console({ signal, history, size }: { signal: () => void, history
     }
   })
 
-  return <div class="
-    fixed bottom-2 left-2
-    bg-base-300 bg-opacity-50
-  ">{canvas}</div>
+  $.fx(() => {
+    const { debugConsoleActive } = state
+    $()
+    if (debugConsoleActive) {
+      el.append(canvas)
+    }
+    else {
+      canvas.remove()
+    }
+  })
+
+  return el
 }

@@ -5,9 +5,10 @@ export class LerpMatrix extends Matrix {
   dest = $(new Matrix)
   speed = 0.3
   threshold = .001
+  isRunning = false
   @fn tick = () => {
     const { dest, speed, threshold } = this
-    lerpMatrix(this, dest, speed, threshold)
+    this.isRunning = lerpMatrix(this, dest, speed, threshold)
   }
 }
 
@@ -32,6 +33,7 @@ export function lerpMatrix(src: MatrixLike, dst: MatrixLike, speed = 0.3, thresh
     src.d += dd * speed
     src.e += de * speed
     src.f += df * speed
+    return true
   }
   else {
     src.a = dst.a
@@ -40,6 +42,7 @@ export function lerpMatrix(src: MatrixLike, dst: MatrixLike, speed = 0.3, thresh
     src.d = dst.d
     src.e = dst.e
     src.f = dst.f
+    return false
   }
 }
 

@@ -1,5 +1,5 @@
 import { $, Signal } from 'signal-jsx'
-import { Matrix, RectLike } from 'std'
+import { Matrix, Point, RectLike } from 'std'
 import { clamp, debounce } from 'utils'
 import { ShapeKind } from '../../as/assembly/sketch-shared.ts'
 import { ShapeData } from '../gl/sketch.ts'
@@ -19,7 +19,7 @@ export function Grid(surface: Surface) {
   const { lastFarMatrix, targetMatrix } = state
 
   // create Box data
-  const ROWS = 8
+  const ROWS = 10
   const COLS = 120
   const SCALE_X = 16
 
@@ -34,15 +34,10 @@ export function Grid(surface: Surface) {
   })
 
   $.untrack(function initial_scale() {
-    Matrix.viewBox(lastFarMatrix, view, {
-      x: 0,
-      y: 0,
-      w: info.boxes.right,
-      h: info.boxes.rows.length
-    })
     if (intentMatrix.a === 1) {
-      viewMatrix.a = intentMatrix.a = view.w / (COLS * SCALE_X)
+      viewMatrix.a = intentMatrix.a = Math.max(12, view.w / (COLS * SCALE_X))
       viewMatrix.d = intentMatrix.d = view.h / ROWS
+      lastFarMatrix.set(viewMatrix)
       $.fx(function scale_rows_to_fit_height() {
         const { h } = view
         $()
@@ -78,7 +73,7 @@ export function Grid(surface: Surface) {
     const m = viewMatrix.dest
     m.set(intentMatrix)
     // log(-info.boxes.right * m.a + view.w / 2, view.w / 2, m.e)
-    m.e = clamp(-info.boxes.right * m.a + mouse.pos.x + 2, mouse.pos.x - 2, m.e)
+    m.e = clamp(-info.boxes.right * m.a + mouse.pos.x, mouse.pos.x, m.e)
     intentMatrix.a = m.a
     intentMatrix.e = m.e
     // log(m.e)
@@ -134,6 +129,8 @@ export function Grid(surface: Surface) {
     m.translate(-x, -y)
   }
 
+  const point = $(new Point)
+
   function handleWheelScaleX(e: WheelEvent) {
     const { x, y } = mousePos
 
@@ -147,10 +144,35 @@ export function Grid(surface: Surface) {
     m.scale(delta_a, 1)
     m.a = clamp(minZoomX, 2000, intentMatrix.a)
     m.translate(-x, -y)
+
+    if (state.zoomState === 'zooming') {
+      const lm = lastFarMatrix
+      point
+        .setParameters(mouse.pos.x, mouse.pos.y)
+        .transformMatrixInverse(lm)
+      const { x, y } = point
+      lm.translate(x, y)
+      lm.scale(m.a / a, 1)
+      lm.translate(-x, -y)
+    }
   }
 
   function setTargetMatrix(box: RectLike) {
-    Matrix.viewBox(targetMatrix, view, box)
+    Matrix.viewBox(targetMatrix, view, {
+      x: box.x - box.w / 20,
+      y: box.y - .1,
+      w: box.w + box.w / 10,
+      h: box.h + .2,
+    })
+    log(mousePos.x)
+  }
+
+  function unhoverBox() {
+    if (hoveringBox) {
+      hoveringBox = null
+      info.boxes = Boxes(ROWS, COLS, SCALE_X)
+      write()
+    }
   }
 
   function handleHoveringBox() {
@@ -170,11 +192,7 @@ export function Grid(surface: Surface) {
         }
       }
       else {
-        if (hoveringBox) {
-          hoveringBox = null
-          info.boxes = Boxes(ROWS, COLS, SCALE_X)
-          write()
-        }
+        unhoverBox()
       }
     }
   }
@@ -194,10 +212,42 @@ export function Grid(surface: Surface) {
     log('zoomState', zoomState)
   })
 
-  function zoomFar() {
+  DEBUG && $.fx(() => {
+    const { a } = viewMatrix
+    $()
+    log('m.a', a)
+  })
+
+  const zoomFar = $.fn(function zoomFar() {
     state.zoomState = 'far'
     intentMatrix.set(lastFarMatrix)
-  }
+  })
+
+  const ZOOM_SPEED_SLOW = 0.22
+  const ZOOM_SPEED_NORMAL = 0.3
+  $.fx(() => {
+    const { isRunning } = viewMatrix
+    $()
+    if (!isRunning) {
+      if (viewMatrix.speed === ZOOM_SPEED_SLOW) {
+        viewMatrix.speed = ZOOM_SPEED_NORMAL
+      }
+    }
+  })
+
+  const zoomBox = $.fn(function zoomBox(box: RectLike) {
+    isWheelHoriz = false
+    state.zoomState = 'zooming'
+    viewMatrix.isRunning = true
+    viewMatrix.speed = ZOOM_SPEED_SLOW
+    viewMatrix.threshold = 1
+    Matrix.viewBox(intentMatrix, view, {
+      x: box.x - box.w / 20,
+      y: box.y - .1,
+      w: box.w + box.w / 10,
+      h: box.h + .2,
+    })
+  })
 
   keyboard.targets.add(ev => {
     if (ev.type === 'keydown') {
@@ -208,17 +258,26 @@ export function Grid(surface: Surface) {
     }
   })
 
+  let orientChangeScore = 0
   mouse.targets.add(ev => {
+    // if (!surface.info.isHovering) return
+
     isZooming = false
-    if (ev.type === 'mousedown') {
+    if (ev.type === 'mouseout' || ev.type === 'mouseleave') {
+      unhoverBox()
+      return
+    }
+    else if (ev.type === 'mousedown') {
       updateMousePos()
       if (hoveringBox) {
         if (state.zoomState === 'far') {
           lastFarMatrix.set(intentMatrix)
         }
-        state.zoomState = 'zooming'
-        Matrix.viewBox(intentMatrix, view, hoveringBox)
+        zoomBox(hoveringBox)
       }
+    }
+    else if (ev.type === 'mousemove') {
+      updateMousePos()
     }
     else if (ev.type === 'wheel') {
       const e = ev as WheelEvent
@@ -226,17 +285,26 @@ export function Grid(surface: Surface) {
       mouse.matrix = intentMatrix
 
       const isHoriz =
-        Math.abs(e.deltaX) * (isWheelHoriz ? 4 : 3) >
+        Math.abs(e.deltaX) * (isWheelHoriz ? 3 : 2) >
         Math.abs(e.deltaY) * (isWheelHoriz ? .5 : 1)
 
       if (isHoriz !== isWheelHoriz) {
-        updateMousePos()
-        isWheelHoriz = isHoriz
+        if (orientChangeScore++ > (isWheelHoriz ? 3 : 2)) {
+          orientChangeScore = 0
+          updateMousePos()
+          isWheelHoriz = isHoriz
+        }
+        else {
+          return
+        }
+      }
+      else {
+        orientChangeScore = 0
       }
 
       if (isHoriz) {
         mouse.matrix = viewMatrix
-        const de = e.deltaX * 1.5 * 0.04 * (intentMatrix.a ** 0.65)
+        const de = e.deltaX * 2.5 * 0.08 * (intentMatrix.a ** 0.18)
         intentMatrix.e -= de
         lastFarMatrix.e -= (de / intentMatrix.a) * lastFarMatrix.a
       }
@@ -249,9 +317,9 @@ export function Grid(surface: Surface) {
           isZooming = true
           if (e.deltaY > 0) {
             if (state.zoomState === 'zooming') {
-              const amt = Math.min(1, Math.abs(e.deltaY) / 400)
+              const amt = Math.min(.5, Math.abs(e.deltaY / ((viewMatrix.a * 0.08) ** 1.12) * ((targetMatrix.a * 0.1) ** 1.15) * .85) * .002)
               lerpMatrix(intentMatrix, lastFarMatrix, amt)
-              if (Matrix.compare(intentMatrix, lastFarMatrix, 20.0)) {
+              if (Matrix.compare(intentMatrix, lastFarMatrix, 30.0)) {
                 zoomFar()
               }
             }
@@ -262,13 +330,15 @@ export function Grid(surface: Surface) {
               lastFarMatrix.set(intentMatrix)
             }
             if (state.zoomState === 'zooming') {
-              const amt = Math.min(1, Math.abs(e.deltaY) / 800)
+              const amt = Math.min(.5, Math.abs(e.deltaY * ((viewMatrix.a * 0.08) ** 0.92) / ((targetMatrix.a * 0.1) ** 0.5) * .85) * .0015)
               lerpMatrix(intentMatrix, targetMatrix, amt)
             }
           }
         }
       }
     }
+
+    handleHoveringBox()
 
     // // handle wheel
     // if (ev.type === 'wheel') {
@@ -338,7 +408,7 @@ export function Grid(surface: Surface) {
     //   intentMatrix.set(viewMatrix)
     // }
 
-    handleHoveringBox()
+
   })
 
   $.fx(() => {

@@ -25,6 +25,7 @@ class State {
   debugMessage = ''
   debugHistory: string[] = []
   debugUpdated = 0
+  debugConsoleActive = storage(true)
 
   animMode = storage(AnimMode.Auto)
   animCycle?: () => void

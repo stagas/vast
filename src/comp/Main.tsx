@@ -9,7 +9,7 @@ import { Rect } from 'std'
 import { MainBtn } from './MainBtn.tsx'
 import { Console } from './Console.tsx'
 
-const DEBUG = false
+const DEBUG = true
 
 export function Main() {
   DEBUG && console.log('[main] create')
@@ -61,6 +61,11 @@ export function Main() {
         </a>
       </div>
 
+      <MainBtn label="debug" onclick={() => {
+        state.debugConsoleActive = !state.debugConsoleActive
+      }}>
+        {() => state.debugConsoleActive ? 'on' : 'off'}
+      </MainBtn>
       <MainBtn label="anim" onclick={() => {
         state.path = '/'
         state.animCycle?.()
@@ -80,7 +85,7 @@ export function Main() {
     {DEBUG && <Console
       signal={() => state.debugUpdated}
       history={state.debugHistory}
-      size={46}
+      size={45}
     />}
   </main>
 }

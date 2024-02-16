@@ -53,43 +53,45 @@ export function Surface(view: Rect) {
       view.pr = window.devicePixelRatio
     }, { unsafeInitial: true }],
 
-    [window, 'mousemove', (e: MouseEvent) => {
+    [canvas, 'mousemove', (e: MouseEvent) => {
       info.isHovering = true
+    }],
+
+    [window, 'mousemove', (e: MouseEvent) => {
+      // info.isHovering = true
       mouse.pos.setFromEvent(e, canvas)
-      mouse.handle(e)
+      if (info.isHovering) mouse.handle(e)
     }],
 
     [document, 'mouseout', (e: MouseEvent) => {
       if (!e.relatedTarget) {
         info.isHovering = false
+        mouse.handle(e)
       }
     }],
 
+    [canvas, 'mouseleave', (e: MouseEvent) => {
+      info.isHovering = false
+      mouse.handle(e)
+    }],
+
     [window, 'mousedown', (e: MouseEvent) => {
-      info.isHovering = true
       mouse.pos.setFromEvent(e, canvas)
       mouse.isDown = true
       mouse.button = e.button
-      mouse.handle(e)
+      if (info.isHovering) mouse.handle(e)
     }],
 
     [window, 'mouseup', (e: MouseEvent) => {
       mouse.pos.setFromEvent(e, canvas)
       mouse.isDown = false
       mouse.button = 0
-      mouse.handle(e)
+      if (info.isHovering) mouse.handle(e)
     }],
 
     [window, 'wheel', (e: WheelEvent) => {
-      info.isHovering = true
       mouse.pos.setFromEvent(e, canvas)
-      mouse.handle(e)
-    }, { passive: true }],
-
-    [window, 'wheel', (e: WheelEvent) => {
-      info.isHovering = true
-      mouse.pos.setFromEvent(e, canvas)
-      mouse.handle(e)
+      if (info.isHovering) mouse.handle(e)
     }, { passive: true }],
 
     [window, 'keydown', (e: KeyboardEvent) => {
