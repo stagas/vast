@@ -2,7 +2,7 @@ import wasm from 'assembly'
 import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
-import { defineStruct } from 'utils'
+import { Struct } from 'utils'
 import { Box, SHAPE_LENGTH, Line, MAX_GL_INSTANCES, MAX_SHAPES, VertOpts, VertRange, Wave, ShapeKind } from '../../as/assembly/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
 import { WasmMatrix } from '../util/wasm-matrix.ts'
@@ -166,7 +166,7 @@ function SketchInfo(GL: GL, view: Rect) {
     }
   })
 
-  const Box = defineStruct({
+  const Box = Struct({
     kind: 'i32',
     x: 'f32',
     y: 'f32',
@@ -179,7 +179,7 @@ function SketchInfo(GL: GL, view: Rect) {
     alpha: 'f32',
   })
 
-  const Line = defineStruct({
+  const Line = Struct({
     kind: 'i32',
     x0: 'f32',
     y0: 'f32',
@@ -192,7 +192,7 @@ function SketchInfo(GL: GL, view: Rect) {
     alpha: 'f32',
   })
 
-  const Wave = defineStruct({
+  const Wave = Struct({
     kind: 'i32',
     x: 'f32',
     y: 'f32',
@@ -219,7 +219,7 @@ function SketchInfo(GL: GL, view: Rect) {
   const wave = Wave(wasm.memory.buffer, shapes.ptr) satisfies Wave
 
   const range$ = wasm.createVertRange() // TODO: __pin and free structs
-  const range = defineStruct({
+  const range = Struct({
     begin: 'i32',
     end: 'i32',
     count: 'i32',
@@ -327,6 +327,7 @@ export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
       shapes.count
     )) {
       if (previousLastIndex === index) {
+        // we're in an infinite loop, so stop drawing
         break
       }
 

@@ -1,5 +1,6 @@
 import { $, fn } from 'signal-jsx'
 import { Matrix, MatrixLike, PointLike, RectLike } from 'std'
+import { log } from '../state.ts'
 
 export class LerpMatrix extends Matrix {
   dest = $(new Matrix)
@@ -24,8 +25,8 @@ export function lerpMatrix(src: MatrixLike, dst: MatrixLike, speed = 0.3, thresh
     || Math.abs(db) > threshold
     || Math.abs(dc) > threshold
     || Math.abs(dd) > threshold
-    || Math.abs(de) > threshold
-    || Math.abs(df) > threshold
+    || Math.abs(de / src.a) > threshold
+    || Math.abs(df / src.d) > threshold
   ) {
     src.a += da * speed
     src.b += db * speed

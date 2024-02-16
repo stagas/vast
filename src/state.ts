@@ -31,7 +31,7 @@ class State {
   animCycle?: () => void
 
   matrix = $(new Matrix())
-  viewMatrix = $(new LerpMatrix())
+  viewMatrix = $(new LerpMatrix(), { threshold: 1 })
   lastFarMatrix = $(new Matrix())
   targetMatrix = $(new Matrix())
   zoomState = 'far'

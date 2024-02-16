@@ -60,7 +60,7 @@ export function Grid(surface: Surface) {
   const s = { x: 0, y: 0 }
   const r = { x: 0, y: 0, w: 0, h: 0 }
   let mousePos = { x: 0, y: 0 }
-  let hoveringBox: RectLike | null
+  let hoveringBox: BoxData | null
 
   const snap = { x: false, y: false }
   const lockedZoom = { x: false, y: false }
@@ -169,8 +169,8 @@ export function Grid(surface: Surface) {
 
   function unhoverBox() {
     if (hoveringBox) {
+      hoveringBox.setColor(hoveringBox.color)
       hoveringBox = null
-      info.boxes = Boxes(ROWS, COLS, SCALE_X)
       write()
     }
   }
@@ -186,8 +186,11 @@ export function Grid(surface: Surface) {
       if (box) {
         if (!hoveringBox || hoveringBox.x !== box.x || hoveringBox.y !== box.y) {
           setTargetMatrix(box)
+          if (hoveringBox) {
+            hoveringBox.setColor(hoveringBox.color)
+          }
           hoveringBox = box
-          info.boxes = Boxes(ROWS, COLS, SCALE_X, box)
+          box.setColor(BOX_HOVER_COLOR)
           write()
         }
       }
@@ -219,11 +222,12 @@ export function Grid(surface: Surface) {
   })
 
   const zoomFar = $.fn(function zoomFar() {
+    viewMatrix.speed = ZOOM_SPEED_NORMAL
     state.zoomState = 'far'
     intentMatrix.set(lastFarMatrix)
   })
 
-  const ZOOM_SPEED_SLOW = 0.22
+  const ZOOM_SPEED_SLOW = 0.2
   const ZOOM_SPEED_NORMAL = 0.3
   $.fx(() => {
     const { isRunning } = viewMatrix
@@ -240,7 +244,6 @@ export function Grid(surface: Surface) {
     state.zoomState = 'zooming'
     viewMatrix.isRunning = true
     viewMatrix.speed = ZOOM_SPEED_SLOW
-    viewMatrix.threshold = 1
     Matrix.viewBox(intentMatrix, view, {
       x: box.x - box.w / 20,
       y: box.y - .1,
@@ -285,7 +288,7 @@ export function Grid(surface: Surface) {
       mouse.matrix = intentMatrix
 
       const isHoriz =
-        Math.abs(e.deltaX) * (isWheelHoriz ? 3 : 2) >
+        Math.abs(e.deltaX) * (isWheelHoriz ? 3 : 3) >
         Math.abs(e.deltaY) * (isWheelHoriz ? .5 : 1)
 
       if (isHoriz !== isWheelHoriz) {
@@ -302,9 +305,9 @@ export function Grid(surface: Surface) {
         orientChangeScore = 0
       }
 
-      if (isHoriz) {
+      if (isHoriz || e.altKey) {
         mouse.matrix = viewMatrix
-        const de = e.deltaX * 2.5 * 0.08 * (intentMatrix.a ** 0.18)
+        const de = (e.deltaX - (e.altKey ? e.deltaY : 0)) * 2.5 * 0.08 * (intentMatrix.a ** 0.18)
         intentMatrix.e -= de
         lastFarMatrix.e -= (de / intentMatrix.a) * lastFarMatrix.a
       }
@@ -317,7 +320,7 @@ export function Grid(surface: Surface) {
           isZooming = true
           if (e.deltaY > 0) {
             if (state.zoomState === 'zooming') {
-              const amt = Math.min(.5, Math.abs(e.deltaY / ((viewMatrix.a * 0.08) ** 1.12) * ((targetMatrix.a * 0.1) ** 1.15) * .85) * .002)
+              const amt = Math.min(.5, Math.abs(e.deltaY / ((viewMatrix.a * 0.08) ** 1.12) * ((targetMatrix.a * 0.1) ** 1.15) * .85) * .004)
               lerpMatrix(intentMatrix, lastFarMatrix, amt)
               if (Matrix.compare(intentMatrix, lastFarMatrix, 30.0)) {
                 zoomFar()
@@ -330,7 +333,7 @@ export function Grid(surface: Surface) {
               lastFarMatrix.set(intentMatrix)
             }
             if (state.zoomState === 'zooming') {
-              const amt = Math.min(.5, Math.abs(e.deltaY * ((viewMatrix.a * 0.08) ** 0.92) / ((targetMatrix.a * 0.1) ** 0.5) * .85) * .0015)
+              const amt = Math.min(.5, Math.abs(e.deltaY * ((viewMatrix.a * 0.08) ** 0.92) / ((targetMatrix.a * 0.1) ** 0.5) * .85) * .0014)
               lerpMatrix(intentMatrix, targetMatrix, amt)
             }
           }
@@ -339,76 +342,6 @@ export function Grid(surface: Surface) {
     }
 
     handleHoveringBox()
-
-    // // handle wheel
-    // if (ev.type === 'wheel') {
-    //   snap.x = true
-    //   snap.y = true
-    //   mouse.matrix = intentMatrix
-
-    //   const e = ev as WheelEvent
-
-    //   const isHoriz = Math.abs(e.deltaX) * (isWheelHoriz ? 4 : 1.5) > Math.abs(e.deltaY) * (isWheelHoriz ? 1 : 2.5)
-    //   if (isHoriz !== isWheelHoriz) {
-    //     updateMousePos()
-    //     isWheelHoriz = isHoriz
-    //   }
-
-    //   if ((e.altKey || isWheelHoriz) && !e.shiftKey) {
-    //     isZooming = false
-    //     updateMousePos()
-    //     if (!e.altKey) {
-    //       mouse.matrix = viewMatrix
-    //       returningToLastScroll = false
-    //       lastIntentMatrix.set(viewMatrix)
-    //       snap.x = false
-    //     }
-    //     else if (!e.ctrlKey) {
-    //       mouse.matrix = viewMatrix
-    //       returningToLastScroll = false
-    //       lastIntentMatrix.set(viewMatrix)
-    //       snap.y = false
-    //     }
-    //     if (isWheelHoriz) {
-    //       intentMatrix.m.e -= e.deltaX * 1.5 * 0.04 * (intentMatrix.m.a ** 0.65)
-    //     }
-    //     else {
-    //       intentMatrix.m.f -= e.deltaY * 0.01 * (intentMatrix.m.d ** 0.65)
-
-    //     }
-    //     intentMatrix.sync()
-    //   }
-    //   else {
-    //     const delta = isHoriz ? e.deltaX : e.deltaY
-    //     if (!e.ctrlKey && !e.shiftKey && (returningToLastScroll || lockedZoom.x || lockedZoom.y) && delta > 0) {
-    //       returningToLastScroll = true
-    //       const amt = Math.min(1, delta / 400)
-    //       const lm = lastIntentMatrix
-    //       const m = intentMatrix
-    //       lerpMatrix(m, lm, amt)
-    //     }
-    //     else {
-    //       if (e.ctrlKey || lockedZoom.x) {
-    //         handleWheelScaleY(e)
-    //       }
-    //       if (!e.ctrlKey || e.shiftKey) {
-    //         handleWheelScaleX(e)
-    //       }
-    //     }
-    //   }
-
-    // }
-
-    // // mousePos only register intentional move
-    // if (ev.type === 'mousemove') {
-    //   isZooming = false
-    //   updateMousePos()
-    //   returningToLastScroll = false
-    //   lastIntentMatrix.set(viewMatrix)
-    //   intentMatrix.set(viewMatrix)
-    // }
-
-
   })
 
   $.fx(() => {
@@ -420,13 +353,17 @@ export function Grid(surface: Surface) {
   return { write }
 }
 
-const boxesHitmap = new Map()
+type BoxData = RectLike & { ptr: number, color: number, setColor: (color: number) => void }
 
-function Boxes(rowsLength: number, cols: number, scaleX: number, hover: RectLike = { x: -1, y: -1, w: 0, h: 0 }) {
+const boxesHitmap = new Map<string, BoxData>()
+
+const BOX_HOVER_COLOR = 0x777777
+
+function Boxes(rowsLength: number, cols: number, scaleX: number) {
   boxesHitmap.clear()
 
   let right = 0
-
+  let ptr = 0
   const rows = Array.from({ length: rowsLength }, (_, ry) => {
     const mul = (ry % 2 === 1 ? 4 : 1)
     return Array.from({ length: cols * mul }, (_, rx) => {
@@ -434,28 +371,39 @@ function Boxes(rowsLength: number, cols: number, scaleX: number, hover: RectLike
       const y = ry
       const w = scaleX / mul //1 + Math.round(Math.random() * 12), // w
       const h = 1 // h
+      const color = 0x770000 + 0x111111 * (Math.sin(ry * 100) * 0.5 + 0.5)
 
       for (let i = x; i < x + w; i++) {
-        boxesHitmap.set(`${i}:${y}`, { x, y, w, h })
+        boxesHitmap.set(`${i}:${y}`, {
+          x, y, w, h, ptr, color, setColor(color: number) {
+            setColor(this.ptr, color)
+          }
+        })
       }
 
       right = Math.max(right, x + w)
 
-      return [
+      const shape = Object.assign([
         ShapeKind.Box,
         x, y, w, h,
         1, 1, 0, // lw, ptr, len
-        hover.x === x && hover.y === y
-          ? 0x777777
-          : 0x770000 + 0x111111 * (Math.sin(ry * 100) * 0.5 + 0.5), // color
+        color, // color
         1.0 // alpha
-      ] as ShapeData.Box
+      ] as ShapeData.Box, { ptr })
+
+      ptr += shape.length
+
+      return shape
     })
   })
 
   const data = new Float32Array(rows.flat(Infinity) as number[])
 
-  return { rows, right, data }
+  function setColor(ptr: number, color: number) {
+    data[ptr + 8] = color
+  }
+
+  return { rows, right, data, setColor }
 }
 
 const waveformLength = 2048
