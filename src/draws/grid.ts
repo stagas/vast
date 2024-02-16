@@ -320,6 +320,7 @@ export function Grid(surface: Surface) {
           isZooming = true
           if (e.deltaY > 0) {
             if (state.zoomState === 'zooming') {
+              viewMatrix.speed = ZOOM_SPEED_NORMAL
               const amt = Math.min(.5, Math.abs(e.deltaY / ((viewMatrix.a * 0.08) ** 1.12) * ((targetMatrix.a * 0.1) ** 1.15) * .85) * .004)
               lerpMatrix(intentMatrix, lastFarMatrix, amt)
               if (Matrix.compare(intentMatrix, lastFarMatrix, 30.0)) {
@@ -350,7 +351,7 @@ export function Grid(surface: Surface) {
     handleHoveringBox()
   })
 
-  return { write }
+  return { info, write, view, mouse, mousePos, intentMatrix, lastFarMatrix, handleWheelScaleX }
 }
 
 type BoxData = RectLike & { ptr: number, color: number, setColor: (color: number) => void }
@@ -367,11 +368,11 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
   const rows = Array.from({ length: rowsLength }, (_, ry) => {
     const mul = (ry % 2 === 1 ? 4 : 1)
     return Array.from({ length: cols * mul }, (_, rx) => {
-      const x = rx * (scaleX / mul) //scaleX + Math.round(Math.random() * 4),
+      const x = (rx + Math.round(Math.random() * 4)) * (scaleX / mul)
       const y = ry
-      const w = scaleX / mul //1 + Math.round(Math.random() * 12), // w
+      const w = scaleX / mul // w
       const h = 1 // h
-      const color = 0x770000 + 0x111111 * (Math.sin(ry * 100) * 0.5 + 0.5)
+      const color = Math.floor((0x770000 + 0x111111 * (Math.sin(ry * 100) * 0.5 + 0.5)) % 0xffffff)
 
       for (let i = x; i < x + w; i++) {
         boxesHitmap.set(`${i}:${y}`, {
@@ -400,6 +401,7 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
   const data = new Float32Array(rows.flat(Infinity) as number[])
 
   function setColor(ptr: number, color: number) {
+    // TODO: sketch.shape.box.color
     data[ptr + 8] = color
   }
 
@@ -495,27 +497,27 @@ function Notes(boxes: ReturnType<typeof Boxes>) {
   const scaleX = 1
 
   const data = new Float32Array(boxes.rows
-    .filter((_, y) => y % 2 === 0)
+    .filter((_, ry) => ry % 2 === 0)
     .map(cols =>
-      cols.map(([, x, y, w, h]) =>
+      cols.map(([, cx, cy, cw, ch]) =>
         notes.map(({ n, time, length, vel }) => {
-          const nx = time * scaleX // x
-          if (nx > w) return
+          const x = time * scaleX // x
+          if (x > cw) return
 
-          const nh = h / scale.N
-          const ny = h - nh * (n - scale.min) // y
+          const h = ch / scale.N
+          const y = ch - h * (n - scale.min) // y
 
-          let nw = length * scaleX // w
-          if (nx + nw > w) {
-            nw = w - nx
+          let w = length * scaleX // w
+          if (x + w > cw) {
+            w = cw - x
           }
 
           return [
             ShapeKind.Box,
-            x + nx,
-            y + ny,
-            nw,
-            nh,
+            cx + x,
+            cy + y,
+            w,
+            h,
             1, // lw
             1, // ptr
             0, // len

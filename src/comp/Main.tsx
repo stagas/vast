@@ -8,6 +8,8 @@ import { Surface } from '../surface.ts'
 import { Rect } from 'std'
 import { MainBtn } from './MainBtn.tsx'
 import { Console } from './Console.tsx'
+import { Canvas } from './Canvas.tsx'
+import { Minimap } from '../draws/minimap.ts'
 
 const DEBUG = true
 
@@ -27,9 +29,11 @@ export function Main() {
     }
   }, { times: 100_000, raf: true })
 
-  let surface: Surface
-  let grid: Grid
+  let surface: Surface | undefined
+  let grid: Grid | undefined
   const view = $(new Rect)
+  let minimap: Minimap | undefined
+  const minimapDiv = <div class="relative m-1.5 h-8" />
 
   $.fx(() => {
     const { path } = state
@@ -37,12 +41,16 @@ export function Main() {
     article.replaceChildren((() => {
       switch (path) {
         case '/bench':
+          minimap?.canvas.remove()
           return <BenchResults />
 
         default:
           surface ??= Surface(view)
           grid ??= Grid(surface)
           grid.write()
+          minimap ??= Minimap(grid)
+          minimapDiv.append(minimap.canvas)
+          minimapDiv.append(minimap.handle)
           return surface.canvas
       }
     })())
@@ -60,6 +68,8 @@ export function Main() {
           {state.name}
         </a>
       </div>
+
+      {minimapDiv}
 
       <MainBtn label="debug" onclick={() => {
         state.debugConsoleActive = !state.debugConsoleActive
