@@ -1,6 +1,6 @@
 import { logf, logf2, logf3, logf4, logf6 } from './env'
 import { Sketch } from './sketch-class'
-import { Box, SHAPE_LENGTH, MAX_GL_INSTANCES, Matrix, VertOpts, Wave, ShapeKind, Shape } from './sketch-shared'
+import { Box, SHAPE_LENGTH, MAX_GL_INSTANCES, Matrix, VertOpts, Wave, ShapeKind, Shape, Line } from './sketch-shared'
 import { Floats } from './util'
 
 export function draw(
@@ -28,6 +28,7 @@ export function draw(
 
   // shapes
   let box: Box
+  let line: Line
   let wave: Wave
 
   // let wave_step: f32 = Mathf.max(0.01, Mathf.min(1.0, .005 * ma ** 1.1))
@@ -64,6 +65,53 @@ export function draw(
           ptr,
           x, y, w, h,
           box.color, box.alpha
+        )
+
+        ptr++
+        count++
+
+        // did we reach the limit before the end?
+        if (count === MAX_GL_INSTANCES && next_i < end) {
+          range.end = ptr
+          range.count = count
+          return next_i // we've drawn this shape, go to next shape in the next iteration
+        }
+        continue
+      }
+
+      //
+      // Line
+      //
+      case ShapeKind.Line: {
+        line = changetype<Line>(shape$)
+
+        const x0 = f32(line.x0 * ma + me)
+        const y0 = f32(line.y0 * md + mf)
+        const x1 = f32(line.x1 * ma + me)
+        const y1 = f32(line.y1 * md + mf)
+
+        // check if visible
+        if (
+          (
+            x0 > width ||
+            y0 > height ||
+            x0 < 0 ||
+            y0 < 0
+          ) && (
+            x1 > width ||
+            y1 > height ||
+            x1 < 0 ||
+            y1 < 0
+          )
+        ) continue
+
+        // draw box
+        sketch.putLine(
+          ptr,
+          x0, y0,
+          x1, y1,
+          line.color, line.alpha,
+          line.lw,
         )
 
         ptr++

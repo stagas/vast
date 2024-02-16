@@ -26,11 +26,13 @@ export function Grid(surface: Surface) {
   const boxes = Boxes(ROWS, COLS, SCALE_X)
   const waves = Waves(boxes)
   const notes = Notes(boxes)
+  let pianorollData: Float32Array | null
 
   const info = $({
     boxes,
     waves,
     notes,
+    focusedBox: null as null | BoxData
   })
 
   $.untrack(function initial_scale() {
@@ -51,6 +53,7 @@ export function Grid(surface: Surface) {
     sketch.write(info.boxes.data)
     sketch.write(info.waves.data)
     sketch.write(info.notes.data)
+    if (pianorollData) sketch.write(pianorollData)
     anim.info.epoch++
   }
 
@@ -157,16 +160,6 @@ export function Grid(surface: Surface) {
     }
   }
 
-  function setTargetMatrix(box: RectLike) {
-    Matrix.viewBox(targetMatrix, view, {
-      x: box.x - box.w / 20,
-      y: box.y - .1,
-      w: box.w + box.w / 10,
-      h: box.h + .2,
-    })
-    log(mousePos.x)
-  }
-
   function unhoverBox() {
     if (hoveringBox) {
       hoveringBox.setColor(hoveringBox.color)
@@ -185,7 +178,7 @@ export function Grid(surface: Surface) {
 
       if (box) {
         if (!hoveringBox || hoveringBox.x !== box.x || hoveringBox.y !== box.y) {
-          setTargetMatrix(box)
+          applyBoxMatrix(targetMatrix, box)
           if (hoveringBox) {
             hoveringBox.setColor(hoveringBox.color)
           }
@@ -218,10 +211,11 @@ export function Grid(surface: Surface) {
   DEBUG && $.fx(() => {
     const { a } = viewMatrix
     $()
-    log('m.a', a)
+    // log('m.a', a)
   })
 
   const zoomFar = $.fn(function zoomFar() {
+    info.focusedBox = null
     viewMatrix.speed = ZOOM_SPEED_NORMAL
     state.zoomState = 'far'
     intentMatrix.set(lastFarMatrix)
@@ -239,17 +233,23 @@ export function Grid(surface: Surface) {
     }
   })
 
-  const zoomBox = $.fn(function zoomBox(box: RectLike) {
+  function applyBoxMatrix(m: Matrix, box: RectLike & { notes?: Note[] }) {
+    const w = box?.notes ? box.w + 1 : box.w
+    const ox = box?.notes ? 1 : 0
+    Matrix.viewBox(m, view, {
+      x: box.x - w / 20 - ox,
+      y: box.y - .1,
+      w: w + w / 10,
+      h: box.h + .2,
+    })
+  }
+
+  const zoomBox = $.fn(function zoomBox(box: RectLike & { notes?: Note[] }) {
     isWheelHoriz = false
     state.zoomState = 'zooming'
     viewMatrix.isRunning = true
     viewMatrix.speed = ZOOM_SPEED_SLOW
-    Matrix.viewBox(intentMatrix, view, {
-      x: box.x - box.w / 20,
-      y: box.y - .1,
-      w: box.w + box.w / 10,
-      h: box.h + .2,
-    })
+    applyBoxMatrix(intentMatrix, box)
   })
 
   keyboard.targets.add(ev => {
@@ -262,9 +262,11 @@ export function Grid(surface: Surface) {
   })
 
   let orientChangeScore = 0
+  let clicks = 0
+  const debounceClearClicks = debounce(300, () => {
+    clicks = 0
+  })
   mouse.targets.add(ev => {
-    // if (!surface.info.isHovering) return
-
     isZooming = false
     if (ev.type === 'mouseout' || ev.type === 'mouseleave') {
       unhoverBox()
@@ -273,10 +275,14 @@ export function Grid(surface: Surface) {
     else if (ev.type === 'mousedown') {
       updateMousePos()
       if (hoveringBox) {
-        if (state.zoomState === 'far') {
-          lastFarMatrix.set(intentMatrix)
+        debounceClearClicks()
+        if (++clicks === 2) {
+          if (state.zoomState === 'far') {
+            lastFarMatrix.set(intentMatrix)
+          }
+          info.focusedBox = hoveringBox
+          zoomBox(hoveringBox)
         }
-        zoomBox(hoveringBox)
       }
     }
     else if (ev.type === 'mousemove') {
@@ -321,6 +327,10 @@ export function Grid(surface: Surface) {
           if (e.deltaY > 0) {
             if (state.zoomState === 'zooming') {
               viewMatrix.speed = ZOOM_SPEED_NORMAL
+              log(intentMatrix.d)
+              if (intentMatrix.d < 100) {
+                info.focusedBox = null
+              }
               const amt = Math.min(.5, Math.abs(e.deltaY / ((viewMatrix.a * 0.08) ** 1.12) * ((targetMatrix.a * 0.1) ** 1.15) * .85) * .004)
               lerpMatrix(intentMatrix, lastFarMatrix, amt)
               if (Matrix.compare(intentMatrix, lastFarMatrix, 30.0)) {
@@ -334,6 +344,9 @@ export function Grid(surface: Surface) {
               lastFarMatrix.set(intentMatrix)
             }
             if (state.zoomState === 'zooming') {
+              if (intentMatrix.d > 150) {
+                info.focusedBox = hoveringBox
+              }
               const amt = Math.min(.5, Math.abs(e.deltaY * ((viewMatrix.a * 0.08) ** 0.92) / ((targetMatrix.a * 0.1) ** 0.5) * .85) * .0014)
               lerpMatrix(intentMatrix, targetMatrix, amt)
             }
@@ -351,10 +364,131 @@ export function Grid(surface: Surface) {
     handleHoveringBox()
   })
 
+  const BLACK_KEYS = new Set([1, 3, 6, 8, 10])
+  const KEY_NAMES = [
+    'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'
+  ]
+  $.fx(() => {
+    const { focusedBox } = $.of(info)
+    $()
+    if (focusedBox.notes) {
+      log('yeah')
+      const { notes } = focusedBox
+      const scale = getNotesScale(notes)
+      const scaleX = 1
+
+      const { x: cx, y: cy, w: cw, h: ch } = focusedBox
+
+      const SNAPS = 16
+      pianorollData = Float32Array.from([
+        [
+          ShapeKind.Box,
+          cx,
+          cy,
+          cw,
+          ch,
+          1, // lw
+          1, // ptr
+          0, // len
+          0x0,
+          .92 // alpha
+        ] as ShapeData.Box,
+        Array.from({ length: scale.N }, (_, ny) => {
+          const h = ch / scale.N
+          const y = cy + h * ny
+          const n = scale.N - ny + scale.min
+          const n_key = n % 12
+          const isBlack = BLACK_KEYS.has(n_key)
+          const row = [
+            ShapeKind.Box,
+            cx,
+            y,
+            cw,
+            h,
+            1, // lw
+            1, // ptr
+            0, // len
+            focusedBox.color,
+            .25 + (isBlack ? 0 : .10) // alpha
+          ] as ShapeData.Box
+          const key = [
+            ShapeKind.Box,
+            cx - 1,
+            y,
+            1,
+            h,
+            1, // lw
+            1, // ptr
+            0, // len
+            isBlack ? 0x0 : 0xffffff,
+            1.0 // alpha
+          ] as ShapeData.Box
+          return [row, key]
+        }).flat(),
+        Array.from({ length: (cw * SNAPS) - 1 }, (_, col) => {
+          const x = (1 + col) / SNAPS + cx
+          return [
+            ShapeKind.Line,
+            x,
+            cy,
+            x,
+            cy + ch,
+            col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : .5, // lw
+            1, // ptr
+            0, // len
+            0x0,
+            1 // alpha
+          ] as ShapeData.Line
+        }),
+        notes.map(({ n, time, length, vel }) => {
+          const x = time * scaleX // x
+          if (x > cw) return
+
+          const h = ch / scale.N
+          const y = ch - h * (n - scale.min) // y
+
+          let w = length * scaleX // w
+          if (x + w > cw) {
+            w = cw - x
+          }
+
+          return [
+            ShapeKind.Box,
+            cx + x,
+            cy + y,
+            w,
+            h,
+            1, // lw
+            1, // ptr
+            0, // len
+            focusedBox.color,
+            .45 + (.55 * vel) // alpha
+          ] as ShapeData.Box
+        }).filter(Boolean).flat()
+      ].flat().flat())
+
+      write()
+    }
+    return () => {
+      log('nop')
+      pianorollData = null
+      write()
+    }
+  })
+
+  // DEV KEEP: (un)comment when working with notes
+  info.focusedBox = boxes.rows[0][1].data
+  zoomBox(info.focusedBox)
+
   return { info, write, view, mouse, mousePos, intentMatrix, lastFarMatrix, handleWheelScaleX }
 }
 
-type BoxData = RectLike & { ptr: number, color: number, setColor: (color: number) => void }
+type BoxData = RectLike & {
+  ptr: number
+  color: number
+  setColor: (color: number) => void
+  notes?: Note[]
+}
 
 const boxesHitmap = new Map<string, BoxData>()
 
@@ -368,18 +502,20 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
   const rows = Array.from({ length: rowsLength }, (_, ry) => {
     const mul = (ry % 2 === 1 ? 4 : 1)
     return Array.from({ length: cols * mul }, (_, rx) => {
-      const x = (rx + Math.round(Math.random() * 4)) * (scaleX / mul)
+      const x = (rx + Math.round(Math.random() * 0)) * (scaleX / mul)
       const y = ry
       const w = scaleX / mul // w
       const h = 1 // h
-      const color = Math.floor((0x770000 + 0x111111 * (Math.sin(ry * 100) * 0.5 + 0.5)) % 0xffffff)
+      const color = Math.floor((0xaa0000 + 0xfff * (Math.sin(ry * 10) * 0.5 + 0.5)) % 0xffffff)
+
+      const boxData: BoxData = {
+        x, y, w, h, ptr, color, setColor(color: number) {
+          setColor(this.ptr, color)
+        }
+      }
 
       for (let i = x; i < x + w; i++) {
-        boxesHitmap.set(`${i}:${y}`, {
-          x, y, w, h, ptr, color, setColor(color: number) {
-            setColor(this.ptr, color)
-          }
-        })
+        boxesHitmap.set(`${i}:${y}`, boxData)
       }
 
       right = Math.max(right, x + w)
@@ -390,7 +526,7 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
         1, 1, 0, // lw, ptr, len
         color, // color
         1.0 // alpha
-      ] as ShapeData.Box, { ptr })
+      ] as ShapeData.Box, { ptr, data: boxData })
 
       ptr += shape.length
 
@@ -499,8 +635,12 @@ function Notes(boxes: ReturnType<typeof Boxes>) {
   const data = new Float32Array(boxes.rows
     .filter((_, ry) => ry % 2 === 0)
     .map(cols =>
-      cols.map(([, cx, cy, cw, ch]) =>
-        notes.map(({ n, time, length, vel }) => {
+      cols.map(box => {
+        const [, cx, cy, cw, ch] = box
+
+        box.data.notes = [...notes]
+
+        const boxNotes = notes.map(({ n, time, length, vel }) => {
           const x = time * scaleX // x
           if (x > cw) return
 
@@ -524,8 +664,10 @@ function Notes(boxes: ReturnType<typeof Boxes>) {
             0x0,
             .2 + (.8 * vel) // alpha
           ] as ShapeData.Box
-        }).filter(Boolean).flat()
-      ).flat()
+        })
+
+        return boxNotes.filter(Boolean).flat()
+      }).flat()
     ).flat())
 
   return { data }
