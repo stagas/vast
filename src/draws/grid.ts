@@ -355,7 +355,9 @@ export function Grid(surface: Surface) {
           dom.on(window, 'mouseup', $.fn((e: MouseEvent): void => {
             info.hoveringNote = null
             info.draggingNote = null
-            info.notes = Notes(boxes, info.focusedBox!.notes!)
+            if (info.focusedBox?.notes) {
+              info.notes = Notes(boxes, info.focusedBox.notes)
+            }
             handleHoveringNote()
           }), { once: true })
           return
