@@ -7,6 +7,7 @@ import { Surface } from '../surface.ts'
 import { Floats } from '../util/floats.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { log, state } from '../state.ts'
+import { waveform } from '../util/waveform.ts'
 
 const DEBUG = true
 const SCALE_X = 1
@@ -20,7 +21,7 @@ export function Grid(surface: Surface) {
   const { lastFarMatrix, targetMatrix } = state
 
   // create Box data
-  const ROWS = 6
+  const ROWS = 9
   const COLS = 120
   const SCALE_X = 16
   log('VIEW', view.text)
@@ -53,6 +54,7 @@ export function Grid(surface: Surface) {
     if (intentMatrix.a === 1) {
       viewMatrix.a = intentMatrix.a = Math.max(12, targetView.w / (COLS * SCALE_X))
       viewMatrix.d = intentMatrix.d = targetView.h / ROWS
+      viewMatrix.e = intentMatrix.e = 350
       lastFarMatrix.set(viewMatrix)
       $.fx(function scale_rows_to_fit_height() {
         const { h } = targetView
@@ -76,7 +78,8 @@ export function Grid(surface: Surface) {
   const p = { x: 0, y: 0 }
   const s = { x: 0, y: 0 }
   const r = { x: 0, y: 0, w: 0, h: 0 }
-  let mousePos = { x: 0, y: 0 }
+  let mousePos = { x: window.innerWidth, y: 0 }
+  mouse.pos.x = mousePos.x
   let hoveringBox: BoxData | null
 
   const snap = { x: false, y: false }
@@ -89,11 +92,11 @@ export function Grid(surface: Surface) {
 
     const m = viewMatrix.dest
     m.set(intentMatrix)
-    // log(-info.boxes.right * m.a + view.w / 2, view.w / 2, m.e)
+    log('m.e', -info.boxes.right * m.a + mouse.pos.x, mouse.pos.x, m.e)
     m.e = clamp(-info.boxes.right * m.a + mouse.pos.x, mouse.pos.x, m.e)
     intentMatrix.a = m.a
     intentMatrix.e = m.e
-    // log(m.e)
+    log('m.e', m.e)
 
     if (hoveringBox) {
       if (snap.y && snap.x) {
@@ -205,7 +208,7 @@ export function Grid(surface: Surface) {
             hoveringBox.setColor(hoveringBox.color)
           }
           hoveringBox = box
-          box.setColor(BOX_HOVER_COLOR)
+          box.setColor(hoveringBox.color + 0x1fffff)
           write()
         }
       }
@@ -472,7 +475,6 @@ export function Grid(surface: Surface) {
     }
     $()
     if (focusedBox.notes) {
-      log('yeah')
       const { notes } = focusedBox
       const scale = notes.scale = getNotesScale(notes)
       const scaleX = 1
@@ -581,7 +583,6 @@ export function Grid(surface: Surface) {
       write()
     }
     return () => {
-      log('nop')
       pianorollData = null
       write()
     }
@@ -656,12 +657,6 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
   return { rows, right, data, setColor }
 }
 
-const waveformLength = 2048
-const waveform = Float32Array.from({ length: waveformLength }, (_, i) =>
-  Math.sin((i * 100) / waveformLength * Math.PI * 2) // sine wave
-  * (1 - (((i * 4) / waveformLength) % 1) ** .2) // envelope
-)
-
 let floats: Floats
 
 function Waves(boxes: ReturnType<typeof Boxes>) {
@@ -678,7 +673,7 @@ function Waves(boxes: ReturnType<typeof Boxes>) {
           x, y, w, h, // same dims as the box
           1, // lw
           floats.ptr, // ptr
-          waveformLength, // len
+          waveform.length, // len
           0x0, //0ffff, // color
           1.0, // alpha
         ] as ShapeData.Wave

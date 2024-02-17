@@ -13,7 +13,7 @@ export function Console({ signal, history, size }: { signal: () => void, history
   c.scale(view.pr, view.pr)
 
   const el  = <div class="
-    fixed bottom-2 left-2
+    fixed bottom-2 left-2 z-30
     bg-base-300 bg-opacity-50
     pointer-events-none
   " />

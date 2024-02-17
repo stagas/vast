@@ -6,8 +6,9 @@ import { Struct } from 'utils'
 import { Box, SHAPE_LENGTH, Line, MAX_GL_INSTANCES, MAX_SHAPES, VertOpts, VertRange, Wave, ShapeOpts } from '../../as/assembly/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
 import { WasmMatrix } from '../util/wasm-matrix.ts'
+import { log } from '../state.ts'
 
-const DEBUG = false
+const DEBUG = true
 
 export namespace ShapeData {
   export type Box = [
@@ -138,7 +139,7 @@ function SketchInfo(GL: GL, view: Rect) {
 
   const { gl, attrib } = GL
 
-  DEBUG && console.log('[sketch] MAX_GL_INSTANCES:', MAX_GL_INSTANCES)
+  DEBUG && log('[sketch] MAX_GL_INSTANCES:', MAX_GL_INSTANCES)
 
   const info = MeshInfo(GL, {
     vertex,
@@ -207,7 +208,7 @@ function SketchInfo(GL: GL, view: Rect) {
 
   const shapesLength = MAX_SHAPES * (Box.byteLength >> 2)
 
-  DEBUG && console.log('[sketch]', 'MAX_SHAPES:', MAX_SHAPES, 'bytes:', shapesLength)
+  DEBUG && log('[sketch]', 'MAX_SHAPES:', MAX_SHAPES, 'bytes:', shapesLength)
 
   const shapes = Object.assign(
     wasm.alloc(Float32Array, shapesLength),
@@ -262,14 +263,14 @@ function SketchInfo(GL: GL, view: Rect) {
     GL.writeAttribRange(a_vert, range)
     GL.writeAttribRange(a_color, range)
     GL.writeAttribRange(a_lineWidth, range)
-    DEBUG && console.log('[sketch] write gl begin:', range.begin, 'end:', range.end, 'count:', range.count)
+    DEBUG && log('[sketch] write gl begin:', range.begin, 'end:', range.end, 'count:', range.count)
   }
 
   function write(data: Float32Array) {
     const count = data.length / SHAPE_LENGTH
     const begin = shapes.count
     const end = (shapes.count += count)
-    DEBUG && console.log('[sketch] shapes write begin:', begin, 'end:', end, 'count:', count)
+    DEBUG && log('[sketch] shapes write begin:', begin, 'end:', end, 'count:', count)
     shapes.set(data, begin * SHAPE_LENGTH)
   }
 
@@ -304,7 +305,8 @@ export type Sketch = ReturnType<typeof Sketch>
 export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
   using $ = Signal()
 
-  sketch ??= SketchInfo(GL, view)
+  const sketch = SketchInfo(GL, view)
+  // sketch ??= SketchInfo(GL, view)
 
   const { gl } = GL
   const { info, range, write, writeGL, shapes, shape, draw: sketchDraw } = sketch
@@ -331,7 +333,7 @@ export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
         break
       }
 
-      DEBUG && console.log('[sketch] draw', index, index >= 0 ? shapes.count - index : '---')
+      DEBUG && log('[sketch] draw', index, index >= 0 ? shapes.count - index : '---')
 
       writeGL()
 

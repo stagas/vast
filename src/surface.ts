@@ -1,9 +1,10 @@
 import { Signal } from 'signal-jsx'
-import { Rect } from 'std'
+import { Matrix, Rect } from 'std'
 import { dom } from 'utils'
 import { Canvas } from './comp/Canvas.tsx'
 import { Sketch } from './gl/sketch.ts'
 import { state } from './state.ts'
+import { LerpMatrix } from './util/geometry.ts'
 import { WasmMatrix } from './util/wasm-matrix.ts'
 import { WebGL } from './webgl.ts'
 import { World } from './world/world.ts'
@@ -12,20 +13,19 @@ const DEBUG = false
 
 export type Surface = ReturnType<typeof Surface>
 
-export function Surface(view: Rect) {
+export function Surface(view: Rect, intentMatrix: Matrix, viewMatrix: LerpMatrix, onresize?: () => void, alpha = false) {
   using $ = Signal()
 
   const info = $({
     isHovering: false,
   })
 
-  const world = World(view)
-  const { anim, matrix: intentMatrix, mouse, keyboard } = world
+  const world = World(view, intentMatrix)
+  const { anim, mouse, keyboard } = world
 
   const canvas = Canvas(world)
   canvas.style.imageRendering = 'pixelated'
 
-  const viewMatrix = state.viewMatrix
   const mat2d = WasmMatrix(view, viewMatrix)
   anim.ticks.add(viewMatrix.tick)
   $.fx(() => {
@@ -37,7 +37,7 @@ export function Surface(view: Rect) {
     anim.info.epoch++
   })
 
-  const webgl = WebGL(world, canvas)
+  const webgl = WebGL(world, canvas, alpha)
   const sketch = Sketch(webgl.GL, view, mat2d)
   webgl.add($, sketch)
 
@@ -48,9 +48,8 @@ export function Surface(view: Rect) {
     }],
 
     [window, 'resize', () => {
-      view.w = window.innerWidth
-      view.h = window.innerHeight - 44
-      state.pr = view.pr = window.devicePixelRatio
+      state.pr = window.devicePixelRatio
+      onresize?.()
     }, { unsafeInitial: true }],
 
     [canvas, 'mouseenter', (e: MouseEvent) => {

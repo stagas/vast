@@ -10,7 +10,7 @@ import { Matrix } from 'std'
 const DEBUG = true
 
 class State {
-  name = 'Vast'
+  name = 'ravescript'
 
   pr = window.devicePixelRatio
   theme = storage<Theme>('dark')
@@ -33,6 +33,8 @@ class State {
 
   matrix = $(new Matrix())
   viewMatrix = $(new LerpMatrix(), { threshold: .15 })
+  codeMatrix = $(new Matrix())
+  codeViewMatrix = $(new LerpMatrix(), { threshold: .15 })
   lastFarMatrix = $(new Matrix())
   targetMatrix = $(new Matrix())
   zoomState = 'far'

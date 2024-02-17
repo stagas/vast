@@ -1,14 +1,12 @@
 import { Signal } from 'signal-jsx'
-import { Rect } from 'std'
-import { state } from '../state.ts'
+import { Matrix, Rect } from 'std'
 import { Anim } from './anim.ts'
 import { Mouse } from './mouse.ts'
 
 export type World = ReturnType<typeof World>
 
-export function World(view: Rect) {
+export function World(view: Rect, matrix: Matrix) {
   using $ = Signal()
-  const { matrix } = state
   const anim = Anim()
   const mouse = Mouse(view, matrix)
   const keyboard = Keyboard()

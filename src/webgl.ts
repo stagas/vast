@@ -15,7 +15,7 @@ export interface Mesh {
   draw(): void
 }
 
-export function WebGL(world: World, canvas: HTMLCanvasElement) {
+export function WebGL(world: World, canvas: HTMLCanvasElement, alpha = false) {
   DEBUG && console.log('[webgl] create')
   using $ = Signal()
 
@@ -23,7 +23,7 @@ export function WebGL(world: World, canvas: HTMLCanvasElement) {
 
   const GL = initGL(canvas, {
     antialias: false,
-    alpha: false,
+    alpha,
     preserveDrawingBuffer: true
   })
 
