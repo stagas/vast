@@ -1,5 +1,5 @@
 import { $, Signal } from 'signal-jsx'
-import { Matrix, Point, RectLike } from 'std'
+import { Matrix, Point, Rect, RectLike } from 'std'
 import { clamp, debounce, dom } from 'utils'
 import { ShapeOpts } from '../../as/assembly/sketch-shared.ts'
 import { ShapeData } from '../gl/sketch.ts'
@@ -24,6 +24,16 @@ export function Grid(surface: Surface) {
   const COLS = 120
   const SCALE_X = 16
   log('VIEW', view.text)
+
+  const targetView = $(new Rect)
+  $.fx(() => {
+    const { w, h } = view
+    $()
+    targetView.set(view)
+    targetView.x += 350
+    targetView.w -= 350
+  })
+
   const boxes = Boxes(ROWS, COLS, SCALE_X)
   const waves = Waves(boxes)
   const notes = Notes(boxes)
@@ -41,11 +51,11 @@ export function Grid(surface: Surface) {
 
   $.untrack(function initial_scale() {
     if (intentMatrix.a === 1) {
-      viewMatrix.a = intentMatrix.a = Math.max(12, view.w / (COLS * SCALE_X))
-      viewMatrix.d = intentMatrix.d = view.h / ROWS
+      viewMatrix.a = intentMatrix.a = Math.max(12, targetView.w / (COLS * SCALE_X))
+      viewMatrix.d = intentMatrix.d = targetView.h / ROWS
       lastFarMatrix.set(viewMatrix)
       $.fx(function scale_rows_to_fit_height() {
-        const { h } = view
+        const { h } = targetView
         $()
         intentMatrix.d = h / ROWS
       })
@@ -301,7 +311,7 @@ export function Grid(surface: Surface) {
   function applyBoxMatrix(m: Matrix, box: RectLike & { notes?: Note[] }) {
     const w = box?.notes ? box.w + 1 : box.w
     const ox = box?.notes ? 1 : 0
-    Matrix.viewBox(m, view, {
+    Matrix.viewBox(m, targetView, {
       x: box.x - w / 20 - ox,
       y: box.y - (box.y ? .1 : 0),
       w: w + w / 10,

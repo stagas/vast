@@ -10,6 +10,7 @@ import { MainBtn } from './MainBtn.tsx'
 import { Console } from './Console.tsx'
 import { Canvas } from './Canvas.tsx'
 import { Minimap } from '../draws/minimap.ts'
+import { Code } from './Code.tsx'
 
 const DEBUG = true
 
@@ -95,6 +96,8 @@ export function Main() {
 
       <MainMenu />
     </nav>
+
+    <Code />
 
     {article}
 
