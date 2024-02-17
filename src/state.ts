@@ -12,6 +12,7 @@ const DEBUG = true
 class State {
   name = 'Vast'
 
+  pr = window.devicePixelRatio
   theme = storage<Theme>('dark')
   get colors() { return themes[state.theme] }
 
@@ -25,7 +26,7 @@ class State {
   debugMessage = ''
   debugHistory: string[] = []
   debugUpdated = 0
-  debugConsoleActive = storage(true)
+  debugConsoleActive = storage(false)
 
   animMode = storage(AnimMode.Auto)
   animCycle?: () => void

@@ -42,6 +42,7 @@ export function Main() {
       switch (path) {
         case '/bench':
           minimap?.canvas.remove()
+          minimap?.handle.remove()
           return <BenchResults />
 
         default:

@@ -8,6 +8,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import assemblyScriptPlugin from "./vendor/vite-plugin-assemblyscript"
 import externalize from "vite-plugin-externalize-dependencies"
 import tsconfigPaths from 'vite-tsconfig-paths'
+import ViteUsing from 'vite-plugin-using'
 
 import type { HmrContext, Plugin } from 'vite'
 
@@ -147,11 +148,13 @@ export default defineConfig({
     exclude: []
   },
   build: {
+    target: 'es2022',
     rollupOptions: {
       treeshake: { propertyReadSideEffects: 'always' },
     }
   },
   plugins: [
+    ViteUsing(),
     hexLoader,
     tsconfigPaths(),
     externalize({

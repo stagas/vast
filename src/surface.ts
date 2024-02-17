@@ -50,7 +50,7 @@ export function Surface(view: Rect) {
     [window, 'resize', () => {
       view.w = window.innerWidth
       view.h = window.innerHeight - 44
-      view.pr = window.devicePixelRatio
+      state.pr = view.pr = window.devicePixelRatio
     }, { unsafeInitial: true }],
 
     [canvas, 'mouseenter', (e: MouseEvent) => {

@@ -98,7 +98,7 @@ void main() {
       a.x - n.x * lwh, a.y - n.y * lwh, 1.0
     );
 
-    pos = (transform * vec3(quad, 1.0)).xy * 2.0;
+    pos = (transform * vec3(quad, 1.0)).xy * u_pr;
   }
   else {
     pos = (a_vert.xy + a_vert.zw * quad) * u_pr;

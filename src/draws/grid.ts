@@ -576,8 +576,8 @@ export function Grid(surface: Surface) {
   })
 
   // DEV KEEP: (un)comment when working with notes
-  info.focusedBox = boxes.rows[0][1].data
-  zoomBox(info.focusedBox)
+  // info.focusedBox = boxes.rows[0][1].data
+  // zoomBox(info.focusedBox)
 
   return { info, write, view, mouse, mousePos, intentMatrix, lastFarMatrix, handleWheelScaleX }
 }
@@ -601,11 +601,11 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
   const rows = Array.from({ length: rowsLength }, (_, ry) => {
     const mul = (ry % 2 === 1 ? 4 : 1)
     return Array.from({ length: cols * mul }, (_, rx) => {
-      const x = (rx + Math.round(Math.random() * 0)) * (scaleX / mul)
+      const x = (rx + Math.round(Math.random() * 16)) * (scaleX / mul)
       const y = ry
       const w = scaleX / mul // w
       const h = 1 // h
-      const color = Math.floor((0xaa0000 + 0xfff * (Math.sin(ry * 10) * 0.5 + 0.5)) % 0xffffff)
+      const color = Math.floor((0xdd0000 + 0xfffff * (Math.sin(ry * 10) * 0.5 + 0.5)) % 0xffffff)
 
       const boxData: BoxData = {
         x, y, w, h, ptr, color, setColor(color: number) {

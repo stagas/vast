@@ -2,7 +2,7 @@ import { Signal } from 'signal-jsx'
 import { Matrix, Rect } from 'std'
 import { dom } from 'utils'
 import { Canvas } from '../comp/Canvas.tsx'
-import { log } from '../state.ts'
+import { log, state } from '../state.ts'
 import { Grid } from './grid.ts'
 
 const DEBUG = true
@@ -12,7 +12,7 @@ export type Minimap = ReturnType<typeof Minimap>
 export function Minimap(grid: Grid) {
   using $ = Signal()
 
-  const view = $(new Rect, { w: 250, h: 32, pr: window.devicePixelRatio })
+  const view = $(new Rect, { w: 250, h: 32, pr: state.$.pr })
   const canvas = Canvas({ view })
   const handle = Canvas({ view })
   handle.style.position = 'absolute'
@@ -59,6 +59,7 @@ export function Minimap(grid: Grid) {
   $.fx(() => {
     const { info } = grid
     const { boxes } = info
+    const { pr } = view
     $()
     Matrix.viewBox(matrix, view, {
       x: 0,
@@ -67,7 +68,7 @@ export function Minimap(grid: Grid) {
       h: boxes.rows.length / view.pr + .08,
     })
     c.save()
-    c.scale(view.pr, view.pr)
+    c.scale(pr, pr)
     view.clear(c)
     c.setTransform(matrix)
     for (const row of boxes.rows) {

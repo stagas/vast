@@ -2,3 +2,4 @@ node_modules
 .vscode
 as/build
 old
+dist

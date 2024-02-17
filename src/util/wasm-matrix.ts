@@ -14,7 +14,7 @@ export function WasmMatrix(view: Rect, matrix: Matrix) {
 
   $.fx(() => {
     const { a, d, e, f } = matrix
-    const { pr } = view
+    const { pr, h } = view
     $()
     mat2d.set(matrix.values)
     DEBUG && log(a)
