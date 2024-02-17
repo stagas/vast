@@ -20,7 +20,7 @@ export function Grid(surface: Surface) {
   const { lastFarMatrix, targetMatrix } = state
 
   // create Box data
-  const ROWS = 10
+  const ROWS = 6
   const COLS = 120
   const SCALE_X = 16
   log('VIEW', view.text)
@@ -603,11 +603,12 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
   const rows = Array.from({ length: rowsLength }, (_, ry) => {
     const mul = (ry % 2 === 1 ? 4 : 1)
     return Array.from({ length: cols * mul }, (_, rx) => {
-      const x = (rx + Math.round(Math.random() * 16)) * (scaleX / mul)
+      const x = (rx + Math.round(Math.random() * 0)) * (scaleX / mul)
       const y = ry
       const w = scaleX / mul // w
       const h = 1 // h
-      const color = Math.floor((0xdd0000 + 0xfffff * (Math.sin(ry * 10) * 0.5 + 0.5)) % 0xffffff)
+      const color = Math.floor((0x990000 + 0xfff * (Math.sin(ry * 10) * 0.5 + 0.5)) % 0xffffff)
+      // const color = Math.floor((0xdd0000 + 0xfffff * (Math.sin(ry * 10) * 0.5 + 0.5)) % 0xffffff)
 
       const boxData: BoxData = {
         x, y, w, h, ptr, color, setColor(color: number) {
