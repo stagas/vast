@@ -57,6 +57,8 @@ export function Main() {
   style.textContent = makeCss()
   document.head.append(style)
 
+
+  const sidebar = <aside />
   const article = <article />
 
   const bench = Bench()
@@ -85,9 +87,30 @@ export function Main() {
   $.fx(() => {
     const { path } = state
     $()
+    sidebar.replaceChildren((() => {
+      switch (path) {
+        case '/bench':
+          return <div />
+
+        default:
+          return <div>
+            {code.canvas}
+
+            <div class="absolute flex bottom-0 left-0 bg-base-300 border-t-black border-t-2 text-primary z-50 h-10 items-center justify-around" style={`width: ${CODE_WIDTH - 1}px`}>
+              <Btn onclick={() => { }}>new</Btn>
+              <Btn onclick={() => { }}>load</Btn>
+              <Btn onclick={() => { }}>save</Btn>
+              <Btn onclick={() => { }}>solo</Btn>
+              <Btn onclick={() => { }}>mute</Btn>
+            </div>
+          </div>
+      }
+    })())
+
     article.replaceChildren((() => {
       switch (path) {
         case '/bench':
+          code.canvas.remove()
           minimap?.canvas.remove()
           minimap?.handle.remove()
           return <BenchResults />
@@ -199,22 +222,10 @@ export function Main() {
     ].filter(Boolean).flat())
   })
 
-
   return <main data-theme={() => state.theme} class="mono bg-base-100 h-full w-full">
     {navbar}
-
-    {code.canvas}
-
-    <div class="absolute flex bottom-0 left-0 bg-base-300 border-t-black border-t-2 text-primary z-50 h-10 items-center justify-around" style={`width: ${CODE_WIDTH - 1}px`}>
-      <Btn onclick={() => { }}>new</Btn>
-      <Btn onclick={() => { }}>load</Btn>
-      <Btn onclick={() => { }}>save</Btn>
-      <Btn onclick={() => { }}>solo</Btn>
-      <Btn onclick={() => { }}>mute</Btn>
-    </div>
-
+    {sidebar}
     {article}
-
     {DEBUG && <Console
       signal={() => state.debugUpdated}
       history={state.debugHistory}
