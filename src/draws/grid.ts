@@ -486,6 +486,7 @@ export function Grid(surface: Surface) {
 
       const SNAPS = 16
       pianorollData = Float32Array.from([
+
         [
           ShapeOpts.Box,
           cx,
@@ -498,6 +499,7 @@ export function Grid(surface: Surface) {
           0x0,
           .92 // alpha
         ] as ShapeData.Box,
+
         Array.from({ length: scale.N }, (_, ny) => {
           const h = ch / scale.N
           const y = cy + h * ny
@@ -534,6 +536,7 @@ export function Grid(surface: Surface) {
           ] as ShapeData.Box
           return [row, key]
         }).flat(),
+
         Array.from({ length: (cw * SNAPS) - 1 }, (_, col) => {
           const x = (1 + col) / SNAPS + cx
           return [
@@ -542,13 +545,14 @@ export function Grid(surface: Surface) {
             cy,
             x,
             cy + ch,
-            col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : .5, // lw
+            col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0, // lw
             1, // ptr
             0, // len
             0x0,
             1 // alpha
           ] as ShapeData.Line
         }),
+
         notes.map(({ n, time, length, vel }) => {
           const x = time * scaleX // x
           if (x > cw) return
@@ -581,6 +585,7 @@ export function Grid(surface: Surface) {
             isHovering ? 1 : .45 + (.55 * vel) // alpha
           ] as ShapeData.Box
         }).filter(Boolean).flat()
+
       ].flat().flat())
 
       write()

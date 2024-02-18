@@ -163,7 +163,7 @@ export function Main() {
     const { mode } = state
     $()
     navbar.replaceChildren(...[
-      <div class="min-w-[334px]">
+      <div class="lg:min-w-[334px]">
         <a class="btn hover:bg-base-100 border-none bg-transparent text-lg text-primary font-bold h-10 min-h-10 px-3">
           {state.name}
         </a>
