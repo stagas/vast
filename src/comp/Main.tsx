@@ -6,12 +6,13 @@ import { MainMenu } from './MainMenu.tsx'
 import { ThemePicker } from './ThemePicker.tsx'
 import { Surface } from '../surface.ts'
 import { Rect } from 'std'
-import { MainBtn } from './MainBtn.tsx'
+import { Btn, MainBtn } from './MainBtn.tsx'
 import { Console } from './Console.tsx'
 import { Canvas } from './Canvas.tsx'
 import { Minimap } from '../draws/minimap.ts'
 import { Code } from './Code.tsx'
 import { CodeDraw } from '../draws/code.ts'
+import { CODE_WIDTH } from '../constants.ts'
 
 const DEBUG = true
 
@@ -20,13 +21,30 @@ export function Main() {
   using $ = Signal()
 
   const dir = `./`
-  const fontFilename = 'Miracode.ttf'
+  // const fontFilename = 'Brass.woff2'
+  // const fontFilename = 'CascadiaCode.woff2'
+  // const fontFilename = 'CascadiaMono.woff2'
+  // const fontFilename = 'Cousine-Regular.woff2'
+  // const fontFilename = 'FantasqueSansMono-Regular.woff2'
+  // const fontFilename = 'hack-regular.woff2'
+  // const fontFilename = 'halflings-regular.woff2'
+  const fontFilename = 'Hermit-Regular.woff2'
+  // const fontFilename = 'Iosevka-Term.woff2'
+  // const fontFilename = 'JuliaMono-Regular.woff2'
+  // const fontFilename = 'Monocraft.woff2'
+  // const fontFilename = 'Monoid-Regular.woff2'
+  // const fontFilename = 'Monoid-Retina.woff2'
+  // const fontFilename = 'MonoMusic-Regular.woff2'
+  // const fontFilename = 'mplus-1m-regular.woff2'
+  // const fontFilename = 'MPlus.woff2'
+  // const fontFilename = 'SpaceMono-Regular.woff2'
+  // const fontFilename = 'Miracode.ttf'
   function makeCss() {
     return /*css*/`
       @font-face {
         font-family: 'Mono';
         src: url('${dir}${fontFilename}');
-        src: url('${dir}${fontFilename}') format('truetype');
+        src: url('${dir}${fontFilename}') format('woff2');
         font-weight: normal;
         font-style: normal;
       }
@@ -81,16 +99,16 @@ export function Main() {
             view.pr = state.pr
           })
 
-          codeSurface ??= Surface(codeView, state.codeMatrix, state.codeViewMatrix, () => {
-            codeView.w = 350
-            codeView.h = window.innerHeight - 44
-          }, true)
-          codeSurface.canvas.style.position = 'absolute'
-          codeSurface.canvas.style.left = '0'
-          codeSurface.canvas.style.top = '44px'
-          codeSurface.canvas.style.zIndex = '40'
-          codeDraw ??= CodeDraw(codeSurface)
-          codeDraw.write()
+          // codeSurface ??= Surface(codeView, state.codeMatrix, state.codeViewMatrix, () => {
+          //   codeView.w = 350
+          //   codeView.h = window.innerHeight - 44
+          // }, true)
+          // codeSurface.canvas.style.position = 'absolute'
+          // codeSurface.canvas.style.left = '0'
+          // codeSurface.canvas.style.top = '44px'
+          // codeSurface.canvas.style.zIndex = '40'
+          // codeDraw ??= CodeDraw(codeSurface)
+          // codeDraw.write()
 
           grid ??= Grid(surface)
           grid.write()
@@ -101,7 +119,7 @@ export function Main() {
 
           return <div>
             {surface.canvas}
-            {codeSurface.canvas}
+            {/* {codeSurface.canvas} */}
           </div>
       }
     })())
@@ -111,43 +129,89 @@ export function Main() {
     DEBUG && console.log('[main] dispose')
   })
 
-  return <main data-theme={() => state.theme} class="mono bg-base-100 h-full w-full">
-    <nav class="navbar items-stretch bg-base-300 border-b-black border-b-2 p-0 min-h-0">
+  const navbar = <nav class="navbar
+    items-stretch
+    justify-stretch
+    flex
+    bg-base-300
+    border-b-black border-b-2 p-0 min-h-0" />
 
-      <div class="flex-1">
+  $.fx(() => {
+    const { mode } = state
+    $()
+    navbar.replaceChildren(...[
+      <div class="min-w-[334px]">
         <a class="btn hover:bg-base-100 border-none bg-transparent text-lg text-primary font-bold h-10 min-h-10 px-3">
           {state.name}
         </a>
-      </div>
+      </div>,
+
+      <div>
+        <Btn onclick={() => { }}>Play</Btn>
+        <Btn onclick={() => { }}>Stop</Btn>
+      </div>,
+
+      minimapDiv,
+
+      <MainBtn label={mode} onclick={() => {
+        if (state.mode === 'edit') {
+          state.mode = 'live'
+        }
+        else if (state.mode === 'live') {
+          state.mode = 'dev'
+        }
+        else {
+          state.mode = 'edit'
+        }
+      }}>
+        mode
+      </MainBtn>,
 
       <MainBtn label="take" onclick={() => {
       }}>
         photo
-      </MainBtn>
+      </MainBtn>,
 
-      {minimapDiv}
+      <div class="flex-1 flex items-end justify-end">
 
-      <MainBtn label="debug" onclick={() => {
-        state.debugConsoleActive = !state.debugConsoleActive
-      }}>
-        {() => state.debugConsoleActive ? 'on' : 'off'}
-      </MainBtn>
+        {state.mode === 'dev' && <>
+          <MainBtn label="debug" onclick={() => {
+            state.debugConsoleActive = !state.debugConsoleActive
+          }}>
+            {() => state.debugConsoleActive ? 'on' : 'off'}
+          </MainBtn>
 
-      <MainBtn label="anim" onclick={() => {
-        state.path = '/'
-        state.animCycle?.()
-      }}>
-        {() => state.animMode}
-      </MainBtn>
+          <MainBtn label="anim" onclick={() => {
+            state.path = '/'
+            state.animCycle?.()
+          }}>
+            {() => state.animMode}
+          </MainBtn>
 
-      {bench.button}
+          {bench.button}
+        </>}
+      </div>
+      ,
 
-      <ThemePicker />
+      <ThemePicker />,
 
-      <MainMenu />
-    </nav>
+      <MainMenu />,
+    ].filter(Boolean).flat())
+  })
+
+
+  return <main data-theme={() => state.theme} class="mono bg-base-100 h-full w-full">
+    {navbar}
 
     {code.canvas}
+
+    <div class="absolute flex bottom-0 left-0 bg-base-300 border-t-black border-t-2 text-primary z-50 h-10 items-center justify-around" style={`width: ${CODE_WIDTH - 1}px`}>
+      <Btn onclick={() => { }}>new</Btn>
+      <Btn onclick={() => { }}>load</Btn>
+      <Btn onclick={() => { }}>save</Btn>
+      <Btn onclick={() => { }}>solo</Btn>
+      <Btn onclick={() => { }}>mute</Btn>
+    </div>
 
     {article}
 

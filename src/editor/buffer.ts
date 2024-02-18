@@ -80,8 +80,8 @@ export class Buffer {
     const { dims } = of(ctx)
     const { lineTops, scroll, view, charWidth } = of(dims)
 
-    const py = p.y - scroll.y //- view.y
-    const px = p.x - scroll.x //- view.x
+    const py = p.y - scroll.y
+    const px = p.x - scroll.x
 
     let y = 0
     for (; y < lineTops.length; y++) {

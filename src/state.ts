@@ -16,8 +16,10 @@ class State {
   theme = storage<Theme>('dark')
   get colors() { return themes[state.theme] }
 
-  pages = ['Page one', 'Page two']
-  page = this.pages[0]
+  mode = storage('sequencer')
+
+  pages = ['Publish', 'Download', 'My Tracks', 'My Sounds', 'About']
+  page = '' //this.pages[0]
   path = location.pathname
 
   benchIsRunning = false

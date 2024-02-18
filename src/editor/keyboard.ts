@@ -187,7 +187,7 @@ export class Keyboard {
       left: 0px;
       width: 50px;
       height: 50px;
-      /* pointer-events: none; */
+      pointer-events: none;
       caret-color: transparent;
       border: none;
       resize: none;

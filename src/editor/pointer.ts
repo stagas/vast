@@ -142,6 +142,8 @@ export class Pointer {
   ctrl = this.event.$.ctrlKey
   shift = this.event.$.shiftKey
 
+  offset = $(new Point)
+
   _sparePoint = $(new Point)
 
   @fn handler = (real: PointerLikeEvent) => {
@@ -209,7 +211,7 @@ export class Pointer {
     }
 
     const p = this._sparePoint
-    p.set(this.pos)
+    p.set(this.pos).sub(this.offset)
     for (const target of this.targets) {
       if (p.withinRect(target.rect)) {
         this.hoverTarget = target

@@ -8,3 +8,11 @@ export function MainBtn({ label, onclick, children }: { label: JSX.Element | str
     </div>
   </button>
 }
+
+export function Btn({ onclick, children }: { onclick: () => void, children?: any[] }) {
+  return <button class="btn" onclick={onclick}>
+    <div class="flex flex-col items-center justify-center">
+      {children}
+    </div>
+  </button>
+}

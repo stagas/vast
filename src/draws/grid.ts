@@ -8,6 +8,7 @@ import { Floats } from '../util/floats.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { log, state } from '../state.ts'
 import { waveform } from '../util/waveform.ts'
+import { CODE_WIDTH } from '../constants.ts'
 
 const DEBUG = true
 const SCALE_X = 1
@@ -31,8 +32,8 @@ export function Grid(surface: Surface) {
     const { w, h } = view
     $()
     targetView.set(view)
-    targetView.x += 350
-    targetView.w -= 350
+    targetView.x += CODE_WIDTH
+    targetView.w -= CODE_WIDTH
   })
 
   const boxes = Boxes(ROWS, COLS, SCALE_X)
@@ -52,9 +53,9 @@ export function Grid(surface: Surface) {
 
   $.untrack(function initial_scale() {
     if (intentMatrix.a === 1) {
-      viewMatrix.a = intentMatrix.a = Math.max(12, targetView.w / (COLS * SCALE_X))
+      viewMatrix.a = intentMatrix.a = Math.max(14.8, targetView.w / (COLS * SCALE_X))
       viewMatrix.d = intentMatrix.d = targetView.h / ROWS
-      viewMatrix.e = intentMatrix.e = 350
+      viewMatrix.e = intentMatrix.e = CODE_WIDTH
       lastFarMatrix.set(viewMatrix)
       $.fx(function scale_rows_to_fit_height() {
         const { h } = targetView
@@ -314,11 +315,13 @@ export function Grid(surface: Surface) {
   function applyBoxMatrix(m: Matrix, box: RectLike & { notes?: Note[] }) {
     const w = box?.notes ? box.w + 1 : box.w
     const ox = box?.notes ? 1 : 0
+    const padY = .082
+    const padX = 10
     Matrix.viewBox(m, targetView, {
-      x: box.x - w / 20 - ox,
-      y: box.y - (box.y ? .1 : 0),
-      w: w + w / 10,
-      h: box.h + .2 - (box.y ? 0 : .1),
+      x: box.x - w / (padX * 2) - ox,
+      y: box.y - (box.y ? padY : 0),
+      w: w + w / padX,
+      h: box.h + padY * 2 - (box.y && box.y < boxes.rows.length - 1 ? 0 : padY),
     })
   }
 

@@ -25,7 +25,8 @@ export class Scroll extends Comp {
   }
 
   @fx update_targetScroll_top() {
-    const { history, buffer, dims } = of(this.ctx)
+    const { history, buffer, dims, text } = of(this.ctx)
+    const { rescroll } = text
     const { view } = of(dims)
     const { line } = of(buffer)
     const { viewState } = of(history)
@@ -36,7 +37,8 @@ export class Scroll extends Comp {
     const { targetScroll } = of(this)
 
     const viewTop = -targetScroll.top
-    const viewBottom = viewTop + view.h + lineHeight
+    // Note: this determines caret bottom limit
+    const viewBottom = viewTop + view.h
 
     let y = lineTops[line]!
 
@@ -51,7 +53,7 @@ export class Scroll extends Comp {
       if (!(line in lineBottoms)) {
         throw new Error('Invalid line state.')
       }
-      y = lineBottoms[line] + lineHeight + scrollbarSize.h + 2
+      y = lineBottoms[line] + lineHeight + 3//+ scrollbarSize.h + 2
       dy = y - viewBottom
       if (dy > 0) {
         this.animSettings = Scroll.AnimSettings.Slow
@@ -61,7 +63,8 @@ export class Scroll extends Comp {
   }
 
   @fx update_targetScroll_left() {
-    const { history, buffer, dims } = of(this.ctx)
+    const { history, buffer, dims, text } = of(this.ctx)
+    const { rescroll } = text
     const { view, charWidth } = of(dims)
     const { col } = of(buffer)
     const { viewState } = of(history)
@@ -94,14 +97,14 @@ export class Scroll extends Comp {
   }
   @fx update_minScroll() {
     const { ctx, minScroll } = of(this)
-    const { dims } = of(ctx)
+    const { dims, text } = of(ctx)
     const { view, innerSize, lineBottoms, lineHeight, overscrollX } = of(dims)
     const { w, h } = of(innerSize)
 
     const top = -h
       + Math.min(
         lineBottoms.at(-1) || 0,
-        view.h
+        view.h - 3.5
       )
     const left = -Math.max(0, (w - view.w) + overscrollX)
 

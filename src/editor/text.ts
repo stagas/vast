@@ -1,6 +1,6 @@
 import { $, fn, of } from 'signal'
 import { Point, Rect } from 'std'
-import { MouseButtons, colory, debounce, match, prevent } from 'utils'
+import { MouseButtons, colory, debounce, dom, match, prevent } from 'utils'
 import { Comp } from './comp.ts'
 import { Keyboard } from './keyboard.ts'
 import { Linecol } from './linecol.ts'
@@ -8,7 +8,7 @@ import { PointerEventType } from './pointer.ts'
 import { Scroll } from './scroll.ts'
 import { Close, NONSPACE, Open, SPACE, WORD, closers, escapeRegExp, findMatchingBrackets, lineBegin, openers, parseWords } from './util.ts'
 
-const DEBUG_KEYS = false
+const DEBUG_KEYS = true
 
 interface Keypress {
   key?: Keyboard.Key | undefined
@@ -21,6 +21,7 @@ interface Keypress {
   ctrl?: boolean | undefined
   shift?: boolean | undefined
   time?: number
+  real?: KeyboardEvent
 }
 
 const ignoredKeys = 'cvxJr=+-tn'
@@ -28,11 +29,13 @@ const handledKeys = 'zyvxc=+-tnb'
 
 export class Text extends Comp {
   padding = $(new Point)
+  offset = $(new Point)
   linecol = $(new Linecol)
   mousePos = $(new Point)
   isDown = false
   downCount = 0
   keypress?: Keypress
+  rescroll = 0
 
   debounceClearDownCount = debounce(200, () => {
     this.downCount = 0
@@ -40,7 +43,7 @@ export class Text extends Comp {
 
   @fn onMouseEvent(kind: PointerEventType) {
     const it = this
-    const { linecol, mousePos, padding } = it
+    const { linecol, mousePos, padding, offset } = it
     const { view, buffer, dims, misc, keyboard, scroll, selection, history } = it.ctx
     const mouse = it.ctx.pointer
     if (!dims.charWidth) return
@@ -48,7 +51,7 @@ export class Text extends Comp {
 
     const { Down, Up, Wheel, Move } = PointerEventType
 
-    mousePos.set(mouse.pos).sub(view.pos).sub(padding)
+    mousePos.set(mouse.pos).sub(view.pos).sub(padding).sub(offset)
     // mousePos.set(mouse.pos).sub({ x: 60, y: 39 })
     // console.log(mousePos.text, view.pos.text)
     if (kind !== Wheel) {
@@ -138,6 +141,7 @@ export class Text extends Comp {
 
     const { key, char, special, alt, ctrl, shift } = keyboard
 
+    this.rescroll++
     // history.saveHistoryDebounced()
 
     return match('Key', { kind }, [
@@ -167,7 +171,7 @@ export class Text extends Comp {
         clipboard.handlePaste(keyboard.clip!)
       }],
     ], DEBUG_KEYS ? ((category, matcher, result) => {
-      colory(
+      console.log(
         category,
         Keyboard.EventKind[matcher!.kind],
         { char, special, ctrl, shift, alt },
@@ -178,7 +182,7 @@ export class Text extends Comp {
 
   specialKeys: any = {
     'Enter': '\n',
-    'Tab': '  ',
+    'Tab': ' ',
     'Space': ' ',
   }
 
@@ -485,7 +489,8 @@ export class Text extends Comp {
         return true
       }],
 
-      [[{ special: 'Tab' }], (): Keyboard.Result => {
+      [[{ special: 'Tab' }], (e): Keyboard.Result => {
+        dom.prevent(e.real)
         if (!selection.hasSelection && !shift) return
 
         history.saveHistoryDebounced()
@@ -782,7 +787,7 @@ export class Text extends Comp {
         return true
       }],
     ], DEBUG_KEYS ? ((category, matcher, result) => {
-      colory(
+      console.log(
         category,
         matcher?.special ?? matcher?.char ?? '(catchall)',
         { char, special, ctrl, shift, alt },
