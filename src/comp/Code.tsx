@@ -1,39 +1,13 @@
-import { Signal, of } from 'signal-jsx'
+import { Signal } from 'signal-jsx'
 import { Point, Rect } from 'std'
+import { isMobile, rafs } from 'utils'
+import { CODE_WIDTH } from '../constants.ts'
 import { createEditor } from '../editor/editor.ts'
-import { History } from '../editor/history.ts'
 import { Keyboard } from '../editor/keyboard.ts'
 import { Pointer } from '../editor/pointer.ts'
-import { Token, tokenize } from '../lang/tokenize.ts'
-import { Canvas } from './Canvas.tsx'
+import { Token } from '../lang/tokenize.ts'
 import { state } from '../state.ts'
-import { dom, isMobile, rafs } from 'utils'
-import { CODE_WIDTH } from '../constants.ts'
-
-export type Tokenize<T extends SourceToken = SourceToken> = (
-  source: { code: string }
-) => (Generator<T, void, unknown> | T[])
-
-export interface SourceToken {
-  type: any // TODO Token.Type
-  text: string
-  line: number
-  col: number
-}
-
-export class Source<T extends SourceToken = SourceToken> {
-  constructor(public tokenize: Tokenize<T>) { }
-  code?: string
-  viewState = History.createViewState()
-  get tokens(): T[] {
-    const { code, tokenize } = of(this)
-    return Array.from(tokenize(this as any))
-  }
-  get lines() {
-    const { code } = of(this)
-    return code.split('\n')
-  }
-}
+import { Canvas } from './Canvas.tsx'
 
 let initial = true
 
@@ -42,7 +16,7 @@ export function Code() {
 
   const fontSize = '16px'
   const font = 'Mono'
-  const textLeft = 20
+  const textLeft = 19
   const textTop = 20
   const lineHeight = 17
 
@@ -108,7 +82,7 @@ export function Code() {
     editor.text.onKeyboardEvent(kind)
     // }
   }
-  keyboard.appendTo(dom.body)
+  // keyboard.appendTo(dom.body)
 
   if (!isMobile()) {
     keyboard.textarea.focus()
@@ -121,42 +95,6 @@ export function Code() {
   const editor = createEditor(rect, c, Token, keyboard, pointer)
   editor.text.offset.y = 42
 
-  const source = $(new Source<Token>(tokenize), {
-    code: `; square after bass
-[sqr (90 104 90 127) t ?
- [sqr 8 co* t .5*] norm 13 *
- [tri 12 co* t .5*] norm 7 *
- + + t]
-
- [exp 16 co* t] 2.0^ [lp 8] *
- [exp .5 co* t] .01^ [lp 4] *
-
-[slp 3000 4000 [tri 1] *
- [exp 16 co* t] .57^ [lp 42] *
- + 0.75]
-
-[inc .11 t 4*] clip 50.15^
- .3 + clip *
-
- .6*
-[sqr (90 104 90 127) t ?
- [sqr 8 co* t .5*] norm 13 *
- [tri 12 co* t .5*] norm 7 *
- + + t]
-
- [exp 16 co* t] 2.0^ [lp 8] *
- [exp .5 co* t] .01^ [lp 4] *
-
-[slp 3000 4000 [tri 1] *
- [exp 16 co* t] .57^ [lp 42] *
- + 0.75]
-
-[inc .11 t 4*] clip 50.15^
- .3 + clip *
-
- .6*
-` })
-
     ; (async () => {
       if (initial) {
         initial = false
@@ -164,7 +102,7 @@ export function Code() {
         await rafs(10)
       }
 
-      editor.buffer.source = source
+      editor.buffer.source = state.source
 
       editor.text.padding.setParameters(textLeft, textTop)
 
@@ -187,7 +125,7 @@ export function Code() {
       pointer.targets.add(target)
 
       $.fx(() => {
-        const { tokens } = $.of(source)
+        const { tokens } = $.of(editor.buffer.source)
         // const { tokensAstNode, error } = state
         const { colors } = state
         const { line, col } = editor.buffer
@@ -246,7 +184,7 @@ export function Code() {
 
         // draw tokens
         c.lineWidth = 0.35 // stroke width
-        source.tokens.forEach(t => {
+        editor.buffer.source.tokens.forEach(t => {
           c.strokeStyle =
             c.fillStyle =
             (Builtin as any)[t.text] ??
@@ -303,5 +241,5 @@ export function Code() {
       }
     })()
 
-  return { canvas, editor }
+  return { canvas, editor, textarea: keyboard.textarea }
 }

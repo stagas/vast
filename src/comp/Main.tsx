@@ -13,6 +13,7 @@ import { Minimap } from '../draws/minimap.ts'
 import { Code } from './Code.tsx'
 import { CodeDraw } from '../draws/code.ts'
 import { CODE_WIDTH } from '../constants.ts'
+import { TextDraw } from '../draws/text.ts'
 
 const DEBUG = true
 
@@ -95,6 +96,7 @@ export function Main() {
         default:
           return <div>
             {code.canvas}
+            {code.textarea}
 
             <div class="absolute flex bottom-0 left-0 bg-base-300 border-t-black border-t-2 text-primary z-50 h-10 items-center justify-around" style={`width: ${CODE_WIDTH - 1}px`}>
               <Btn onclick={() => { }}>new</Btn>
@@ -136,12 +138,15 @@ export function Main() {
           grid ??= Grid(surface)
           grid.write()
 
+          const textDraw = TextDraw(surface, grid, view)
+
           minimap ??= Minimap(grid)
           minimapDiv.append(minimap.canvas)
           minimapDiv.append(minimap.handle)
 
           return <div>
             {surface.canvas}
+            {textDraw.canvas}
             {/* {codeSurface.canvas} */}
           </div>
       }

@@ -9,6 +9,7 @@ import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { log, state } from '../state.ts'
 import { waveform } from '../util/waveform.ts'
 import { CODE_WIDTH } from '../constants.ts'
+import { Canvas } from '../comp/Canvas.tsx'
 
 const DEBUG = true
 const SCALE_X = 1
@@ -154,23 +155,24 @@ export function Grid(surface: Surface) {
 
   function handleWheelScaleX(ev: WheelEvent) {
     const { x, y } = mousePos
+    const minZoomX = view.w / info.boxes.right
+    const maxZoomX = 4000
 
     const m = intentMatrix
     const { a, e, f } = m
     const delta = -ev.deltaY * 0.0035
     if (lockedZoom.x && delta > 0) return
-    const delta_a = (a + (delta * a ** 0.9)) / a
-    const minZoomX = view.w / info.boxes.right
+
+    let delta_a = (a + (delta * a ** 0.9)) / a
+    const new_a = a * delta_a
+    const clamped_a = clamp(minZoomX, maxZoomX, new_a)
+    if (clamped_a !== new_a) {
+      delta_a = clamped_a / a
+    }
+
     m.translate(x, y)
     m.scale(delta_a, 1)
-    const ba = m.a
-    m.a = clamp(minZoomX, 2000, intentMatrix.a)
     m.translate(-x, -y)
-    if (ba !== m.a) {
-      m.e = e
-      m.f = f
-      return
-    }
 
     if (state.zoomState === 'zooming') {
       const lm = lastFarMatrix
@@ -193,6 +195,7 @@ export function Grid(surface: Surface) {
   }
 
   function handleHoveringBox() {
+    if (state.hoveringBoxToolbar) return
     if (info.draggingNote) return
 
     let { x, y } = mouse.screenPos

@@ -1,11 +1,13 @@
 import { Theme } from 'daisyui'
 import themes from 'daisyui/src/theming/themes'
 import { $, storage } from 'signal-jsx'
+import { Matrix } from 'std'
 import { Task } from 'tinybench'
+import { Token, tokenize } from './lang/tokenize.ts'
+import { Source } from './source.ts'
 import { LerpMatrix } from './util/geometry.ts'
 import { Mesh } from './webgl.ts'
 import { AnimMode } from './world/anim.ts'
-import { Matrix } from 'std'
 
 const DEBUG = true
 
@@ -18,7 +20,7 @@ class State {
 
   mode = storage('sequencer')
 
-  pages = ['Publish', 'Download', 'My Tracks', 'My Sounds', 'About']
+  pages = ['Share', 'Download', 'My Tracks', 'My Sounds', 'About']
   page = '' //this.pages[0]
   path = location.pathname
 
@@ -42,6 +44,29 @@ class State {
   zoomState = 'far'
 
   meshes = new Set<Mesh>()
+
+  hoveringBoxToolbar = false
+
+  source = $(new Source<Token>(tokenize), {
+    code: `; square after bass
+[sqr (90 104 90 127) t ?
+ [sqr 8 co* t .5*] norm 13 *
+ [tri 12 co* t .5*] norm 7 *
+ + + t]
+
+ [exp 16 co* t] 2.0^ [lp 8] *
+ [exp .5 co* t] .01^ [lp 4] *
+
+[slp 3000 4000 [tri 1] *
+ [exp 16 co* t] .57^ [lp 42] *
+ + 0.75]
+
+[inc .11 t 4*] clip 50.15^
+ .3 + clip *
+
+ .6*
+` })
+
 }
 
 export function log(...x: any[]) {
