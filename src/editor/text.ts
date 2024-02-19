@@ -1,6 +1,6 @@
 import { $, fn, of } from 'signal'
-import { Point, Rect } from 'std'
-import { MouseButtons, colory, debounce, dom, match, prevent } from 'utils'
+import { Point } from 'std'
+import { MouseButtons, debounce, dom, match, prevent } from 'utils'
 import { Comp } from './comp.ts'
 import { Keyboard } from './keyboard.ts'
 import { Linecol } from './linecol.ts'
@@ -8,7 +8,9 @@ import { PointerEventType } from './pointer.ts'
 import { Scroll } from './scroll.ts'
 import { Close, NONSPACE, Open, SPACE, WORD, closers, escapeRegExp, findMatchingBrackets, lineBegin, openers, parseWords } from './util.ts'
 
-const DEBUG_KEYS = true
+// FOLD: 4
+
+const DEBUG = false
 
 interface Keypress {
   key?: Keyboard.Key | undefined
@@ -170,7 +172,7 @@ export class Text extends Comp {
       [[{ kind: Paste }], () => {
         clipboard.handlePaste(keyboard.clip!)
       }],
-    ], DEBUG_KEYS ? ((category, matcher, result) => {
+    ], DEBUG ? ((category, matcher, result) => {
       console.log(
         category,
         Keyboard.EventKind[matcher!.kind],
@@ -786,7 +788,7 @@ export class Text extends Comp {
 
         return true
       }],
-    ], DEBUG_KEYS ? ((category, matcher, result) => {
+    ], DEBUG ? ((category, matcher, result) => {
       console.log(
         category,
         matcher?.special ?? matcher?.char ?? '(catchall)',

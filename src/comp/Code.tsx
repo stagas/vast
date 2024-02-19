@@ -1,6 +1,6 @@
 import { Signal } from 'signal-jsx'
 import { Point, Rect } from 'std'
-import { isMobile, rafs } from 'utils'
+import { dom, drawText, isMobile, rafs } from 'utils'
 import { CODE_WIDTH } from '../constants.ts'
 import { createEditor } from '../editor/editor.ts'
 import { Keyboard } from '../editor/keyboard.ts'
@@ -46,8 +46,12 @@ export function Code() {
 
   const sparePoint = $(new Point)
 
-  const view = $(new Rect, { w: CODE_WIDTH - 0, h: window.innerHeight - 85, pr: state.$.pr })
-  const rect = $(new Rect, { w: CODE_WIDTH - 0, h: window.innerHeight - 85, pr: state.$.pr })
+  const view = $(new Rect, { pr: state.$.pr })
+  const rect = $(new Rect, { pr: state.$.pr })
+
+  const info = $({
+    redraw: 0
+  })
 
   let c: CanvasRenderingContext2D
   const canvas = Canvas({ view, onresize })
@@ -55,10 +59,11 @@ export function Code() {
   canvas.style.left = '0'
   canvas.style.zIndex = '10'
   c = canvas.getContext('2d', { alpha: true })!
+
   function onresize() {
     c?.scale(state.pr, state.pr)
+    info.redraw++
   }
-  onresize()
 
   const keyboard = $(new Keyboard)
   const pointer = $(new Pointer)
@@ -124,10 +129,18 @@ export function Code() {
       }
       pointer.targets.add(target)
 
+  $.fx(() => dom.on(window, 'resize', $.fn(() => {
+    view.setParameters(0, 0, CODE_WIDTH, window.innerHeight - 85)
+    rect.set(view)
+    editor.view.set(rect)
+  }), { passive: true, unsafeInitial: true }))
+
       $.fx(() => {
         const { tokens } = $.of(editor.buffer.source)
         // const { tokensAstNode, error } = state
+        const { redraw } = info
         const { colors } = state
+        const { w, h } = rect
         const { line, col } = editor.buffer
         const { x, y } = editor.scroll
         const { isFocused } = editor.misc
@@ -239,6 +252,7 @@ export function Code() {
 
         // console.log('draw')
       }
+
     })()
 
   return { canvas, editor, textarea: keyboard.textarea }
