@@ -1,15 +1,14 @@
 import { $, Signal } from 'signal-jsx'
 import { Matrix, Point, Rect, RectLike } from 'std'
 import { clamp, debounce, dom } from 'utils'
-import { ShapeOpts } from '../../as/assembly/sketch-shared.ts'
+import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
+import { CODE_WIDTH } from '../constants.ts'
 import { ShapeData } from '../gl/sketch.ts'
+import { log, state } from '../state.ts'
 import { Surface } from '../surface.ts'
 import { Floats } from '../util/floats.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
-import { log, state } from '../state.ts'
 import { waveform } from '../util/waveform.ts'
-import { CODE_WIDTH } from '../constants.ts'
-import { Canvas } from '../comp/Canvas.tsx'
 
 const DEBUG = true
 const SCALE_X = 1

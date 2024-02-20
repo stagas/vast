@@ -12,7 +12,6 @@ import { dom } from 'utils'
 const DEBUG = true
 
 export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
-  DEBUG && console.log('[main] create')
   using $ = Signal()
 
   const textView = $(new Rect, { pr: state.$.pr }).set(view)
@@ -64,7 +63,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     // const w = (data.w * m.a * 2)
     const h = (data.h * m.d * 2)
     const bh = 45
-    c.font = '33px Mono'
+    c.font = '32px Mono'
     const text = '32 16 8 4 2 1  shuffle  quantize  dup  sample:4b  share'
     const metrics = c.measureText(text)
     // if (data.y === 0) {

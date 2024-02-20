@@ -96,9 +96,9 @@ export function Code() {
     }, 100)
   }
 
-
   const editor = createEditor(rect, c, Token, keyboard, pointer)
   editor.text.offset.y = 42
+  editor.dims.lineHeight = lineHeight
 
     ; (async () => {
       if (initial) {
@@ -129,11 +129,11 @@ export function Code() {
       }
       pointer.targets.add(target)
 
-  $.fx(() => dom.on(window, 'resize', $.fn(() => {
-    view.setParameters(0, 0, CODE_WIDTH, window.innerHeight - 85)
-    rect.set(view)
-    editor.view.set(rect)
-  }), { passive: true, unsafeInitial: true }))
+      $.fx(() => dom.on(window, 'resize', $.fn(() => {
+        view.setParameters(0, 0, CODE_WIDTH, window.innerHeight - 85)
+        rect.set(view)
+        editor.view.set(rect)
+      }), { passive: true, unsafeInitial: true }))
 
       $.fx(() => {
         const { tokens } = $.of(editor.buffer.source)

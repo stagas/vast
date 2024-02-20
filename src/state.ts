@@ -20,7 +20,7 @@ class State {
 
   mode = storage('sequencer')
 
-  pages = ['Share', 'Download', 'My Tracks', 'My Sounds', 'About']
+  pages = ['share', 'download', 'my tracks', 'my sounds', 'about']
   page = '' //this.pages[0]
   path = location.pathname
 

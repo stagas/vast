@@ -3,10 +3,10 @@ import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { Struct } from 'utils'
-import { Box, SHAPE_LENGTH, Line, MAX_GL_INSTANCES, MAX_SHAPES, VertOpts, VertRange, Wave, ShapeOpts } from '../../as/assembly/sketch-shared.ts'
+import { Box, Line, MAX_GL_INSTANCES, MAX_SHAPES, SHAPE_LENGTH, ShapeOpts, VertOpts, VertRange, Wave } from '../../as/assembly/gfx/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
-import { WasmMatrix } from '../util/wasm-matrix.ts'
 import { log } from '../state.ts'
+import { WasmMatrix } from '../util/wasm-matrix.ts'
 
 const DEBUG = true
 
@@ -219,7 +219,7 @@ function SketchInfo(GL: GL, view: Rect) {
   const line = Line(wasm.memory.buffer, shapes.ptr) satisfies Line
   const wave = Wave(wasm.memory.buffer, shapes.ptr) satisfies Wave
 
-  const range$ = wasm.createVertRange() // TODO: __pin and free structs
+  const range$: number = wasm.createVertRange() as any // TODO: __pin and free structs
   const range = Struct({
     begin: 'i32',
     end: 'i32',
@@ -233,14 +233,14 @@ function SketchInfo(GL: GL, view: Rect) {
     a_lineWidth,
   } = info.attribs
 
-  const sketch$ = wasm.createSketch(
+  const sketch$: number = wasm.createSketch(
     range.ptr,
     shapes.ptr,
     a_opts.ptr,
     a_vert.ptr,
     a_color.ptr,
     a_lineWidth.ptr,
-  )
+  ) as any
 
   function draw(
     mat2d: WasmMatrix,

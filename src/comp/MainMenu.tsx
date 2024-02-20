@@ -9,7 +9,7 @@ export function MainMenu() {
         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M1 1h15M1 7h15M1 13h15" />
       </svg>
     </button>
-    <ul tabindex="0" class="dropdown-content z-[1] bg-base-300 menu p-2 shadow w-52 right-0">
+    <ul tabindex="0" class="dropdown-content z-[1] bg-base-300 menu p-2 shadow w-40 right-0">
       {state.pages.map(page =>
         <li><a class={() => `hover:bg-base-100 hover:text-primary ${state.page === page ? "bg-base-100 text-primary" : ""}`}
           onclick={() => state.page = page}

@@ -3,6 +3,9 @@
 export declare function logi(x: i32): void
 // @ts-ignore
 @external('env', 'log')
+export declare function logd(x: f64): void
+// @ts-ignore
+@external('env', 'log')
 export declare function logf(x: f32): void
 // @ts-ignore
 @external('env', 'log')

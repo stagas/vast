@@ -1,5 +1,5 @@
 import { VertOpts, VertRange } from './sketch-shared'
-import { Floats } from './util'
+import { Floats } from '../util'
 
 export class Sketch {
   range: VertRange

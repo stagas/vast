@@ -1,7 +1,7 @@
-import { logf, logf2, logf3, logf4, logf6 } from './env'
+import { logf, logf2, logf3, logf4, logf6 } from '../env'
 import { Sketch } from './sketch-class'
 import { Box, SHAPE_LENGTH, MAX_GL_INSTANCES, Matrix, VertOpts, Wave, ShapeOpts, Shape, Line } from './sketch-shared'
-import { Floats } from './util'
+import { Floats } from '../util'
 
 export function draw(
   sketch$: usize,
@@ -52,7 +52,7 @@ export function draw(
         const y = f32(box.y * md + mf)
         const w = f32(box.w * ma - x_gap)
         let h = f32(box.h * md)
-        if ( (!(opts & ShapeOpts.Collapse) || h > 1.5) && h > 1.5) h -= h > 3 ? 1.0 : h > 1.5 ? .5 : 0
+        if ((!(opts & ShapeOpts.Collapse) || h > 1.5) && h > 1.5) h -= h > 3 ? 1.0 : h > 1.5 ? .5 : 0
 
         // check if visible
         if (x > width

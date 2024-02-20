@@ -8,17 +8,17 @@ export function createSketch(
   a_vert$: usize,
   a_color$: usize,
   a_lineWidth$: usize,
-): usize {
-  return changetype<usize>(new Sketch(
+): Sketch {
+  return new Sketch(
     range$,
     shapes$,
     a_opts$,
     a_vert$,
     a_color$,
     a_lineWidth$,
-  ))
+  )
 }
 
-export function createVertRange(): usize {
-  return changetype<usize>(new VertRange)
+export function createVertRange(): VertRange {
+  return new VertRange()
 }

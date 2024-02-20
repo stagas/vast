@@ -1,4 +1,4 @@
-import { Floats } from './util'
+import { Floats } from '../util'
 
 // 4 float bytes per instance, so we fit into 1 page
 // (which might be better? TODO: bench)
@@ -81,6 +81,7 @@ export class Wave {
 
 @unmanaged
 export class Matrix {
+  constructor() { }
   a: f64 = 0
   b: f64 = 0
   c: f64 = 0
@@ -91,6 +92,7 @@ export class Matrix {
 
 @unmanaged
 export class VertRange {
+  constructor() { }
   begin: i32 = 0
   end: i32 = 0
   count: i32 = 0

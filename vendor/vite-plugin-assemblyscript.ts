@@ -22,6 +22,7 @@ async function compile(entryFile: string, mode: 'debug' | 'release') {
     entryFile,
     '--target', mode,
     '--transform', './vendor/unroll.js',
+    '--transform', './vendor/update-dsp-gens.js',
   ], {})
 
   if (error) {
@@ -54,11 +55,11 @@ export default function assemblyScriptPlugin(
       if (file.startsWith(matchPath)) {
         if (timestamp === handledTimestamp) return
         handledTimestamp = timestamp
-        await compile(entryFile, 'release')
+        await compile(entryFile, 'debug')
       }
     },
     async buildStart() {
-      await compile(entryFile, 'release')
+      await compile(entryFile, 'debug')
     },
   }
 }

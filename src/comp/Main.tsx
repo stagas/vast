@@ -175,8 +175,8 @@ export function Main() {
       </div>,
 
       <div>
-        <Btn onclick={() => { }}>Play</Btn>
-        <Btn onclick={() => { }}>Stop</Btn>
+        <Btn onclick={() => { }}>play</Btn>
+        <Btn onclick={() => { }}>stop</Btn>
       </div>,
 
       minimapDiv,

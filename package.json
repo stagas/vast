@@ -1,8 +1,8 @@
 {
-  "name": "vast",
+  "name": "ravescript",
   "author": "stagas",
   "version": "1.0.0",
-  "description": "Vast",
+  "description": "Ravescript",
   "license": "AGPLv3",
   "type": "module",
   "main": "src/index.ts",
@@ -13,6 +13,7 @@
     "asbuild:debug": "asc as/assembly/index.ts --target debug",
     "asbuild:release": "asc as/assembly/index.ts --target release",
     "asbuild": "npm run asbuild:debug && npm run asbuild:release",
+    "scripts": "bun run scripts/generate-dsp-vm.ts && bun run scripts/update-dsp-factory.ts && bun run scripts/update-gens-offsets.ts  ",
     "postinstall": "link-local"
   },
   "devDependencies": {
