@@ -15,13 +15,13 @@ class State {
   name = 'ravescript'
 
   pr = window.devicePixelRatio
-  theme = storage<Theme>('dark')
+  theme = storage<Theme>('sunset')
   get colors() {
-    console.log(themes[state.theme] )
+    // console.log(themes[state.theme] )
     return themes[state.theme]
-    }
+  }
 
-  mode = storage('sequencer')
+  mode = storage('edit')
 
   pages = ['share', 'download', 'my tracks', 'my sounds', 'about']
   page = '' //this.pages[0]

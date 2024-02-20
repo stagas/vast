@@ -104,7 +104,7 @@ export function Code() {
       if (initial) {
         initial = false
         await document.fonts.ready
-        await rafs(10)
+        await rafs(100)
       }
 
       editor.buffer.source = state.source

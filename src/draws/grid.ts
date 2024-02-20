@@ -53,7 +53,7 @@ export function Grid(surface: Surface) {
 
   $.untrack(function initial_scale() {
     if (intentMatrix.a === 1) {
-      viewMatrix.a = intentMatrix.a = Math.max(14.8, targetView.w / (COLS * SCALE_X))
+      viewMatrix.a = intentMatrix.a = Math.max(7.27, targetView.w / (COLS * SCALE_X))
       viewMatrix.d = intentMatrix.d = targetView.h / ROWS
       viewMatrix.e = intentMatrix.e = CODE_WIDTH
       lastFarMatrix.set(viewMatrix)
@@ -94,7 +94,7 @@ export function Grid(surface: Surface) {
     const m = viewMatrix.dest
     m.set(intentMatrix)
     log('m.e', -info.boxes.right * m.a + mouse.pos.x, mouse.pos.x, m.e)
-    m.e = clamp(-info.boxes.right * m.a + mouse.pos.x, mouse.pos.x, m.e)
+    m.e = clamp(-info.boxes.right * m.a + mouse.pos.x, 405, m.e)
     intentMatrix.a = m.a
     intentMatrix.e = m.e
     log('m.e', m.e)

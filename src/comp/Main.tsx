@@ -104,7 +104,7 @@ export function Main() {
             {code.canvas}
             {code.textarea}
 
-            <div class={`absolute flex bottom-0 left-0 bg-base-300 border-t-black border-t-2 text-primary z-50 h-14 items-center justify-items-center w-[${CODE_WIDTH}px]`}>
+            <div class={`absolute flex bottom-0 left-0 bg-base-300 border-t-black border-t-2 text-primary z-50 h-14 items-center justify-items-center w-[349px]`}>
               <Btn onclick={() => { }} icon={
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[20px] w-[20px] mt-[1px]" viewBox="0 0 32 32">
                   <defs>

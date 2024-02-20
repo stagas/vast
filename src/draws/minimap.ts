@@ -109,7 +109,7 @@ export function Minimap(grid: Grid) {
     c.lineTo(x + w, y) //, w, h - .5)
     c.fillStyle = '#fff3'
     c.fill()
-    c.strokeStyle = state.colors['primary'] + 'ee'
+    c.strokeStyle = '#fffa'
     c.lineWidth = 2.1
     c.stroke()
 

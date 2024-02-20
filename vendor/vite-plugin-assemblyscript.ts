@@ -59,7 +59,7 @@ export default function assemblyScriptPlugin(
       }
     },
     async buildStart() {
-      await compile(entryFile, 'debug')
+      await compile(entryFile, 'release')
     },
   }
 }
