@@ -17,3 +17,5 @@ out.push(']')
 const targetPath = './generated/assembly/dsp-offsets.ts'
 const text = out.join('\n')
 writeIfNotEqual(targetPath, text)
+
+console.log('done update-gens-offsets.')

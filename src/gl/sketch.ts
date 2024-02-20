@@ -219,12 +219,12 @@ function SketchInfo(GL: GL, view: Rect) {
   const line = Line(wasm.memory.buffer, shapes.ptr) satisfies Line
   const wave = Wave(wasm.memory.buffer, shapes.ptr) satisfies Wave
 
-  const range$: number = wasm.createVertRange() as any // TODO: __pin and free structs
+  const range$ = wasm.createVertRange() // TODO: __pin and free structs
   const range = Struct({
     begin: 'i32',
     end: 'i32',
     count: 'i32',
-  })(wasm.memory.buffer, range$) satisfies VertRange
+  })(wasm.memory.buffer, +range$) satisfies VertRange
 
   const {
     a_opts,
@@ -233,14 +233,14 @@ function SketchInfo(GL: GL, view: Rect) {
     a_lineWidth,
   } = info.attribs
 
-  const sketch$: number = wasm.createSketch(
+  const sketch$ = wasm.createSketch(
     range.ptr,
     shapes.ptr,
     a_opts.ptr,
     a_vert.ptr,
     a_color.ptr,
     a_lineWidth.ptr,
-  ) as any
+  )
 
   function draw(
     mat2d: WasmMatrix,
@@ -249,7 +249,7 @@ function SketchInfo(GL: GL, view: Rect) {
     end: number
   ) {
     return wasm.draw(
-      sketch$,
+      +sketch$,
       mat2d.ptr,
       view.width,
       view.height,

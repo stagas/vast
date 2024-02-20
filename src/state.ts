@@ -16,7 +16,10 @@ class State {
 
   pr = window.devicePixelRatio
   theme = storage<Theme>('dark')
-  get colors() { return themes[state.theme] }
+  get colors() {
+    console.log(themes[state.theme] )
+    return themes[state.theme]
+    }
 
   mode = storage('sequencer')
 

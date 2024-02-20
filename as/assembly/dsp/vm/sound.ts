@@ -1,7 +1,7 @@
 import { MAX_FLOATS, MAX_LISTS, MAX_LITERALS, MAX_SCALARS } from '../constants'
 import { Engine } from '../core/engine'
 import { Gen } from '../gen/gen'
-import { SoundValueKind } from './dsp-shared'
+import { SoundData, SoundValueKind } from './dsp-shared'
 
 export class SoundValue {
   constructor(
@@ -15,6 +15,24 @@ export class SoundValue {
 export class Sound {
   constructor(public engine: Engine) { }
 
+  data: SoundData = new SoundData()
+
+  get begin(): i32 {
+    return this.data.begin
+  }
+
+  get end(): i32 {
+    return this.data.end
+  }
+
+  set pan(v: f32) {
+    this.data.pan = v
+  }
+
+  get pan(): f32 {
+    return this.data.pan
+  }
+
   gens: Gen[] = []
   offsets: usize[][] = []
 
@@ -25,10 +43,6 @@ export class Sound {
   floats: StaticArray<i32> = new StaticArray<i32>(MAX_FLOATS)
 
   values: SoundValue[] = []
-
-  pan: f32 = 0
-  begin: i32 = 0
-  end: i32 = 0
 
   reset(): void {
     this.gens.forEach(gen => {

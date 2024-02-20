@@ -31,3 +31,5 @@ out.push(`export const Factory: ((engine: Engine) => Gen)[] = [${factories}]`)
 const targetPath = './generated/assembly/dsp-factory.ts'
 const text = out.join('\n')
 writeIfNotEqual(targetPath, text)
+
+console.log('done update-dsp-factory.')

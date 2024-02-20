@@ -121,3 +121,5 @@ continue
   const outFilename = './generated/assembly/dsp-runner.ts'
   writeIfNotEqual(outFilename, out)
 }
+
+console.log('done generate-dsp-vm.')

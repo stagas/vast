@@ -18,3 +18,11 @@ export enum DspBinaryOp {
   Div,
   Pow,
 }
+
+@unmanaged
+export class SoundData {
+  constructor() { }
+  begin: i32 = 0
+  end: i32 = 0
+  pan: f32 = 0
+}

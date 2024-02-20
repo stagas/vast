@@ -1,1 +1,1 @@
-export const CODE_WIDTH = 336
+export const CODE_WIDTH = 350

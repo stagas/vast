@@ -24,8 +24,8 @@
       "relaxed-simd",
       "threads"
     ],
-    "initialMemory": 10000,
-    "maximumMemory": 10000,
+    "initialMemory": 40000,
+    "maximumMemory": 40000,
     "bindings": "raw",
     "runtime": "incremental",
     "exportRuntime": true

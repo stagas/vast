@@ -12,12 +12,15 @@ export type Minimap = ReturnType<typeof Minimap>
 export function Minimap(grid: Grid) {
   using $ = Signal()
 
-  const view = $(new Rect, { w: 250, h: 32, pr: state.$.pr })
+  const view = $(new Rect, { w: 250, h: 34, pr: state.$.pr })
+  const handleView = $(new Rect, { w: 250, h: 38, pr: state.$.pr })
+
   const canvas = Canvas({ view })
-  const handle = Canvas({ view })
+  const handle = Canvas({ view: handleView })
   handle.style.position = 'absolute'
   handle.style.left = '0'
   handle.style.top = '0'
+  canvas.style.marginBottom = '-1px'
 
   $.fx(() => dom.on(handle, 'wheel', e => {
     const m = grid.intentMatrix
@@ -88,24 +91,40 @@ export function Minimap(grid: Grid) {
   $.fx(() => {
     const { a, b, c: mc, d, e, f } = grid.intentMatrix
     const { w: vw, h: vh } = grid.view
-    const { pr } = view
+    const { pr } = handleView
     $()
     const c = hc
     c.save()
     c.scale(pr, pr)
-    view.clear(c)
+    handleView.clear(c)
     c.translate(.5, .5)
     c.beginPath()
     const x = -(e / a / pr) * matrix.a
     const y = -(f / d / pr) * matrix.d
     const w = (vw / a / pr) * matrix.a
     const h = (vh / d / pr) * matrix.d
-    c.rect(x, y, w, h - .5)
-    c.fillStyle = '#4488ffcc'
+    // c.rect(x, y, w, h - .5)
+    c.moveTo(x, y + h)
+    c.lineTo(x, y)
+    c.lineTo(x + w, y) //, w, h - .5)
+    c.fillStyle = '#fff3'
     c.fill()
-    c.strokeStyle = '#fe0'
-    c.lineWidth = 1
+    c.strokeStyle = state.colors['primary'] + 'ee'
+    c.lineWidth = 2.1
     c.stroke()
+
+
+    c.beginPath()
+    c.moveTo(x + w, y)
+    c.lineTo(x + w, y + h)
+    c.lineTo(x, y + h)
+    c.fillStyle = '#fff3'
+    c.fill()
+
+    c.strokeStyle = '#000c' //state.colors['primary'] + '55'
+    c.lineWidth = 2.1
+    c.stroke()
+
     c.restore()
   })
 

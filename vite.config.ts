@@ -1,14 +1,14 @@
 /// <reference types="vitest" />
-import openInEditor from 'open-in-editor'
 import fs from 'fs'
+import openInEditor from 'open-in-editor'
 import os from 'os'
 import path from 'path'
 import { defineConfig } from 'vite'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import assemblyScriptPlugin from "./vendor/vite-plugin-assemblyscript"
 import externalize from "vite-plugin-externalize-dependencies"
-import tsconfigPaths from 'vite-tsconfig-paths'
 import ViteUsing from 'vite-plugin-using'
+import { watchAndRun } from 'vite-plugin-watch-and-run'
+import tsconfigPaths from 'vite-tsconfig-paths'
+import assemblyScriptPlugin from "./vendor/vite-plugin-assemblyscript"
 
 import type { HmrContext, Plugin } from 'vite'
 
@@ -205,5 +205,14 @@ export default defineConfig({
       },
     },
     !IS_TEST && PrintUrlsPlugin(),
+    watchAndRun([
+      {
+        name: 'scripts',
+        watchKind: ['add', 'change', 'unlink'],
+        watch: path.resolve('scripts/**.ts'),
+        run: 'npm run scripts',
+        delay: 100
+      }
+    ])
   ],
 })
