@@ -194,7 +194,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     }
 
     function put(item: any, w: number, y: number, xOffset: number = 0) {
-      const isHovering = state.isHoveringToolbar && mousePos.x > ix && mousePos.x < ix + w
+      const isHovering = state.isHoveringToolbar && mousePos.x >= ix - 15 && mousePos.x < ix + w
       if (isHovering) {
         c.fillStyle = state.colors['base-100'] //+ '22'
         c.fillRect(ix - 10, hitArea.y, w, hitArea.h)
