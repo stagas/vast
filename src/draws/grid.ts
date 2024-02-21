@@ -203,12 +203,14 @@ export function Grid(surface: Surface) {
     if (box) {
       const { hoveringBox } = info
       if (!hoveringBox || hoveringBox.x !== box.x || hoveringBox.y !== box.y) {
-        applyBoxMatrix(targetMatrix, box)
         if (hoveringBox) {
           hoveringBox.setColor(hoveringBox.color)
         }
-        info.hoveringBox = box
-        box.setColor(info.hoveringBox.color + 0x1fffff)
+        if (!state.isHoveringToolbar) {
+          applyBoxMatrix(targetMatrix, box)
+          info.hoveringBox = box
+          box.setColor(info.hoveringBox.color + 0x1fffff)
+        }
         write()
       }
     }
@@ -276,6 +278,36 @@ export function Grid(surface: Surface) {
     }
 
     log('hover note', hn, x, y)
+  }
+
+  function handleWheelZoom(e: WheelEvent) {
+    if (e.deltaY > 0) {
+      if (state.zoomState === 'zooming') {
+        viewMatrix.speed = ZOOM_SPEED_NORMAL
+        log(intentMatrix.d)
+        if (intentMatrix.d < 100) {
+          info.focusedBox = null
+        }
+        const amt = Math.min(.5, Math.abs(e.deltaY / ((viewMatrix.a * 0.08) ** 1.12) * ((targetMatrix.a * 0.1) ** 1.15) * .85) * .004)
+        lerpMatrix(intentMatrix, lastFarMatrix, amt)
+        if (Matrix.compare(intentMatrix, lastFarMatrix, 30.0)) {
+          zoomFar()
+        }
+      }
+    }
+    else {
+      if (state.zoomState === 'far') {
+        state.zoomState = 'zooming'
+        lastFarMatrix.set(intentMatrix)
+      }
+      if (state.zoomState === 'zooming') {
+        if (intentMatrix.d > 150 && !state.isHoveringToolbar) {
+          info.focusedBox = info.hoveringBox
+        }
+        const amt = Math.min(.5, Math.abs(e.deltaY * ((viewMatrix.a * 0.08) ** 0.92) / ((targetMatrix.a * 0.1) ** 0.5) * .85) * .0014)
+        lerpMatrix(intentMatrix, targetMatrix, amt)
+      }
+    }
   }
 
   function handleDraggingNoteMove() {
@@ -439,33 +471,7 @@ export function Grid(surface: Surface) {
         }
         else {
           isZooming = true
-          if (e.deltaY > 0) {
-            if (state.zoomState === 'zooming') {
-              viewMatrix.speed = ZOOM_SPEED_NORMAL
-              log(intentMatrix.d)
-              if (intentMatrix.d < 100) {
-                info.focusedBox = null
-              }
-              const amt = Math.min(.5, Math.abs(e.deltaY / ((viewMatrix.a * 0.08) ** 1.12) * ((targetMatrix.a * 0.1) ** 1.15) * .85) * .004)
-              lerpMatrix(intentMatrix, lastFarMatrix, amt)
-              if (Matrix.compare(intentMatrix, lastFarMatrix, 30.0)) {
-                zoomFar()
-              }
-            }
-          }
-          else {
-            if (state.zoomState === 'far') {
-              state.zoomState = 'zooming'
-              lastFarMatrix.set(intentMatrix)
-            }
-            if (state.zoomState === 'zooming') {
-              if (intentMatrix.d > 150) {
-                info.focusedBox = info.hoveringBox
-              }
-              const amt = Math.min(.5, Math.abs(e.deltaY * ((viewMatrix.a * 0.08) ** 0.92) / ((targetMatrix.a * 0.1) ** 0.5) * .85) * .0014)
-              lerpMatrix(intentMatrix, targetMatrix, amt)
-            }
-          }
+          handleWheelZoom(e)
         }
       }
     }
@@ -616,7 +622,7 @@ export function Grid(surface: Surface) {
   // info.focusedBox = boxes.rows[0][1].data
   // zoomBox(info.focusedBox)
 
-  return { info, write, view, mouse, mousePos, intentMatrix, lastFarMatrix, handleWheelScaleX, updateHoveringBox }
+  return { info, write, view, mouse, mousePos, intentMatrix, lastFarMatrix, handleWheelScaleX, updateHoveringBox, handleWheelZoom }
 }
 
 type BoxData = RectLike & {

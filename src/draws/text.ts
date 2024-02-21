@@ -20,28 +20,39 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   const r = $(new Rect)
 
   const mousePos = $(new Point)
-  $.fx(() => dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
-    if (!grid?.info.focusedBox) {
-      state.isHoveringToolbar = false
-      return
-    }
+
+  function handleHover(e: MouseEvent | WheelEvent) {
     mousePos.x = e.pageX * state.pr
     mousePos.y = e.pageY * state.pr
 
     r.set(hitArea)
     r.zoomLinear(5)
     if (mousePos.withinRect(r)) {
-      canvas.style.pointerEvents = 'all'
       e.stopImmediatePropagation()
       e.preventDefault()
       grid.updateHoveringBox(grid.info.focusedBox)
-      state.isHoveringToolbar = true
+      if (e.type !== 'wheel') {
+        canvas.style.pointerEvents = 'all'
+        state.isHoveringToolbar = true
+      }
+      dom.body.style.cursor = 'pointer'
     }
     else {
-      canvas.style.pointerEvents = 'none'
-      state.isHoveringToolbar = false
+      if (e.type !== 'wheel') {
+        canvas.style.pointerEvents = 'none'
+        state.isHoveringToolbar = false
+      }
+      dom.body.style.cursor = ''
     }
     surface.anim.info.epoch++
+  }
+
+  $.fx(() => dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
+    if (!grid?.info.focusedBox) {
+      state.isHoveringToolbar = false
+      return
+    }
+    handleHover(e)
   }), { capture: true }))
 
   const canvas = Canvas({ view: textView })
@@ -50,6 +61,12 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   canvas.style.imageRendering = 'pixelated'
   canvas.style.left = CODE_WIDTH + 'px'
   canvas.style.top = '0px'
+
+  $.fx(() => dom.on(canvas, 'wheel', (e) => {
+    grid.handleWheelZoom(e)
+    handleHover(e)
+  }))
+
   $.fx(() => {
     const { mode } = state
     $()
@@ -114,6 +131,8 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     c.translate(-textView.x * state.pr, 0)
 
     r.set(hitArea)
+    r.y -= r.h
+    r.h *= 2
     r.zoomLinear(5)
     r.clear(c)
 
@@ -127,9 +146,10 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
 
     const data = grid.info.focusedBox!
     const pr = state.pr
-    const x = data.x * m.a * pr + m.e * pr //+ 40
-    let y = data.y * m.d * pr + m.f * pr + 45 * pr
-    // const w = (data.w * m.a * 2)
+    const w = (data.w * m.a * pr)
+    let x = data.x * m.a * pr + m.e * pr //+ 40
+    if (mousePos.x >= x + w / 2) x += w - hitArea.w
+    let y = data.y * m.d * pr + m.f * pr + 45.5 * pr
     const h = (data.h * m.d * pr)
     const bh = 45
     c.font = '31px Mono'
@@ -144,19 +164,16 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     hitArea.h = bh
     hitArea.path(c)
     c.lineWidth = state.pr * 2
-    c.fillStyle = luminate(state.colors['base-100'], -0.04)
+    const dark = luminate(state.colors['base-100'], -0.04)
+    c.fillStyle = dark
 
     c.fill()
 
     c.fillStyle = state.colors['base-content']
     c.textBaseline = 'middle'
     c.textAlign = 'left'
-    // if (data.y === 0) {
-    //   c.fillText(text, x + 5, y + h + bh / 2 + 3.5)
-    // }
-    // else {
 
-    let ix = x + 13 //+ padX / 2
+    let ix = x + 13
     let iw = 50
 
     function hoverImg(cond: boolean, x: any) {
@@ -164,9 +181,11 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
       else return x.img
     }
 
+    let hoveringItem: any
     function put(item: any, w: number, y: number, xOffset: number = 0) {
       const isHovering = state.isHoveringToolbar && mousePos.x >= ix - 15 && mousePos.x < ix - 15 + w
       if (isHovering) {
+        hoveringItem = item
         c.fillStyle = state.colors['base-100']
         c.fillRect(ix - 10, hitArea.y, w, hitArea.h)
       }
@@ -186,6 +205,21 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
 
     hitArea.w = ix - hitArea.x - 10
 
+    // let explainText = ''
+    // if (hoveringItem === icons.snap) explainText = 'snap ' + snapText
+    // if (hoveringItem === icons.beat) explainText = 'beat ' + beatText
+    // if (hoveringItem === icons.shuffle) explainText = 'shuffle notes'
+    // if (hoveringItem === icons.quantize) explainText = 'quantize notes'
+    // if (hoveringItem === icons.duplicate) explainText = 'duplicate pattern'
+    // if (explainText) {
+    //   c.textBaseline = 'bottom'
+    //   c.textAlign = 'center'
+    //   c.font = '24px Mono'
+    //   c.fillStyle = dark + '75'
+    //   c.fillRect(hitArea.x, hitArea.y - (hitArea.h - 5), hitArea.w, hitArea.h)
+    //   c.fillStyle = state.colors['base-content']
+    //   c.fillText(explainText, hitArea.x + hitArea.w / 2, hitArea.y - 5)
+    // }
     c.restore()
     c.save()
   }
