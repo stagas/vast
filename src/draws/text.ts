@@ -1,13 +1,12 @@
 import { Signal } from 'signal-jsx'
-import { log, state } from '../state.ts'
-import { Grid } from './grid.ts'
-import { Surface } from '../surface.ts'
 import { Point, Rect } from 'std'
-import { Canvas } from '../comp/Canvas.tsx'
-import { Minimap } from '../draws/minimap.ts'
-import { CodeDraw } from '../draws/code.ts'
-import { CODE_WIDTH } from '../constants.ts'
 import { dom } from 'utils'
+import { Canvas } from '../comp/Canvas.tsx'
+import { CODE_WIDTH } from '../constants.ts'
+import { state } from '../state.ts'
+import { Surface } from '../surface.ts'
+import { fromSvg } from '../util/svg-to-image.ts'
+import { Grid } from './grid.ts'
 
 const DEBUG = true
 
@@ -18,6 +17,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
 
   const textView = $(new Rect, { pr: state.$.pr }).set(view)
   const hitArea = $(new Rect)
+  const r = $(new Rect)
 
   const mousePos = $(new Point)
   $.fx(() => dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
@@ -27,7 +27,10 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     }
     mousePos.x = e.pageX * state.pr
     mousePos.y = e.pageY * state.pr
-    if (mousePos.withinRect(hitArea)) {
+
+    r.set(hitArea)
+    r.zoomLinear(5)
+    if (mousePos.withinRect(r)) {
       e.stopImmediatePropagation()
       grid.updateHoveringBox(grid.info.focusedBox)
       state.isHoveringToolbar = true
@@ -62,30 +65,6 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   c.imageSmoothingEnabled = false
   c.save()
 
-  async function svgToImg(svg: string, color: string) {
-    const markup = svg.trim().replaceAll('currentColor', color)
-    const img = new Image()
-    await new Promise(resolve => {
-      img.onload = resolve
-      img.src = 'data:image/svg+xml,' + encodeURIComponent(markup)
-    })
-    return img
-  }
-  async function fromSvg(svg: string) {
-    const img = await svgToImg(svg, state.colors['base-content']
-    )
-    const img_hover = await svgToImg(svg, state.colors['primary'])
-
-    // const markup = svg.trim().replaceAll('currentColor', state.colors['base-content'])
-    // const img = new Image()
-    // await new Promise(resolve => {
-    //   img.onload = resolve
-    //   img.src = 'data:image/svg+xml,' + encodeURIComponent(markup)
-    // })
-
-    return { img, img_hover }
-  }
-
   const icons = $({
     snap: $.unwrap(() => fromSvg(/*html*/`
       <svg xmlns="http://www.w3.org/2000/svg" height="32" width="32" viewBox="0 0 32 32">
@@ -115,12 +94,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
         <path stroke="currentColor" d="M 6 12 L 22 12" />
       </svg>
     `)),
-
   })
-
-  // ; (
-  //   surface.anim.info.epoch++
-  // })()
 
   $.fx(() => {
     const { snap, beat, shuffle, quantize } = $.of(icons)
@@ -130,53 +104,47 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
 
   const tick = () => {
     c.restore()
-
     c.save()
-    c.scale(state.pr, state.pr)
-    c.translate(-textView.x, 0)
-    textView.clear(c)
-    c.restore()
 
-    c.save()
     if (!grid || !surface) return
-    if (!grid?.info.focusedBox) return
     const m = surface.viewMatrix
     c.translate(-textView.x * state.pr, 0)
+
+    r.set(hitArea)
+    r.zoomLinear(5)
+    r.clear(c)
+
+    if (!grid?.info.focusedBox) {
+      c.restore()
+      c.save()
+      return
+    }
+
     c.beginPath()
 
     const data = grid.info.focusedBox!
-    const x = data.x * m.a * 2 + m.e * 2 //+ 40
-    let y = data.y * m.d * 2 + m.f * 2 + 46 * 2
+    const pr = state.pr
+    const x = data.x * m.a * pr + m.e * pr //+ 40
+    let y = data.y * m.d * pr + m.f * pr + 45 * pr
     // const w = (data.w * m.a * 2)
-    const h = (data.h * m.d * 2)
+    const h = (data.h * m.d * pr)
     const bh = 45
     c.font = '31px Mono'
     // @ts-ignore
     c.letterSpacing = '-.035em'
     let snapText = '32'
     let beatText = '4b'
-    // const metrics = c.measureText(text)
-    // if (data.y === 0) {
-    //   c.rect(x, y + h, metrics.width + 12, bh)
-    // }
-    // else {
 
     hitArea.x = x
     hitArea.y = y - bh
-    // if (hitArea.y < 0) {
-    //   y = hitArea.y = y + h
-    //   y += bh
-    // }
     hitArea.w = 420
     hitArea.h = bh
     hitArea.path(c)
-    // c.rect(x, y - bh, metrics.width + padX, bh)
-    // }
     c.lineWidth = state.pr * 2
     c.fillStyle = state.colors['base-300']
 
-
     c.fill()
+
     c.fillStyle = state.colors['base-content']
     c.textBaseline = 'middle'
     c.textAlign = 'left'
@@ -213,7 +181,6 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     if (icons?.quantize) put(icons.quantize, iw * 1.50, y - bh + 4, 9)
     if (icons?.duplicate) put(icons.duplicate, iw * 1.50, y - bh + 4, 1)
 
-    // }
     c.restore()
     c.save()
   }
