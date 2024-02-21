@@ -49,6 +49,7 @@ export function Grid(surface: Surface) {
     waves,
     notes,
     focusedBox: null as null | BoxData,
+    hoveringBox: null as null | BoxData,
     hoveringNoteN: -1,
     hoveringNote: null as null | Note,
     draggingNote: null as null | Note,
@@ -84,12 +85,13 @@ export function Grid(surface: Surface) {
   const r = { x: 0, y: 0, w: 0, h: 0 }
   let mousePos = { x: window.innerWidth, y: 0 }
   mouse.pos.x = mousePos.x
-  let hoveringBox: BoxData | null
+  // let hoveringBox: BoxData | null
 
   const snap = { x: false, y: false }
   const lockedZoom = { x: false, y: false }
   $.fx(function apply_wasm_matrix() {
     const { a, b, c, d, e, f } = intentMatrix
+    const { hoveringBox } = info
     $()
     lockedZoom.x = false
     lockedZoom.y = false
@@ -189,10 +191,29 @@ export function Grid(surface: Surface) {
   }
 
   function unhoverBox() {
+    const { hoveringBox } = info
     if (hoveringBox) {
       hoveringBox.setColor(hoveringBox.color)
-      hoveringBox = null
+      info.hoveringBox = null
       write()
+    }
+  }
+
+  function updateHoveringBox(box?: BoxData | null) {
+    if (box) {
+      const { hoveringBox } = info
+      if (!hoveringBox || hoveringBox.x !== box.x || hoveringBox.y !== box.y) {
+        applyBoxMatrix(targetMatrix, box)
+        if (hoveringBox) {
+          hoveringBox.setColor(hoveringBox.color)
+        }
+        info.hoveringBox = box
+        box.setColor(info.hoveringBox.color + 0x1fffff)
+        write()
+      }
+    }
+    else {
+      unhoverBox()
     }
   }
 
@@ -206,27 +227,14 @@ export function Grid(surface: Surface) {
 
     if (!isZooming) {
       const box = boxesHitmap.get(`${x}:${y}`)
-
-      if (box) {
-        if (!hoveringBox || hoveringBox.x !== box.x || hoveringBox.y !== box.y) {
-          applyBoxMatrix(targetMatrix, box)
-          if (hoveringBox) {
-            hoveringBox.setColor(hoveringBox.color)
-          }
-          hoveringBox = box
-          box.setColor(hoveringBox.color + 0x1fffff)
-          write()
-        }
-      }
-      else {
-        unhoverBox()
-      }
+      updateHoveringBox(box)
     }
   }
 
   const notePos = { x: -1, y: -1 }
 
   function updateHoveringNoteN() {
+    const { hoveringBox } = info
     if (!hoveringBox?.notes) return
 
     let { x, y } = mouse.screenPos
@@ -242,11 +250,11 @@ export function Grid(surface: Surface) {
 
   function handleHoveringNote() {
     if (!info.focusedBox) return
-    if (hoveringBox !== info.focusedBox) return
-    if (!hoveringBox.notes) return
+    if (info.hoveringBox !== info.focusedBox) return
+    if (!info.hoveringBox?.notes) return
     if (info.draggingNote) return
 
-    const { notes } = hoveringBox
+    const { notes } = info.hoveringBox
 
     updateHoveringNoteN()
     const hn = info.hoveringNoteN
@@ -353,7 +361,10 @@ export function Grid(surface: Surface) {
   const debounceClearClicks = debounce(CLICK_MS, () => {
     clicks = 0
   })
+
   mouse.targets.add(ev => {
+    if (state.isHoveringToolbar) return
+
     isZooming = false
     if (ev.type === 'mouseout' || ev.type === 'mouseleave') {
       unhoverBox()
@@ -362,13 +373,13 @@ export function Grid(surface: Surface) {
     else if (ev.type === 'mousedown') {
       updateMousePos()
       debounceClearClicks()
-      if (hoveringBox) {
+      if (info.hoveringBox) {
         if (++clicks >= 2) {
           if (state.zoomState === 'far') {
             lastFarMatrix.set(intentMatrix)
           }
-          info.focusedBox = hoveringBox
-          zoomBox(hoveringBox)
+          info.focusedBox = info.hoveringBox
+          zoomBox(info.hoveringBox)
           return
         }
         if (info.hoveringNote) {
@@ -449,7 +460,7 @@ export function Grid(surface: Surface) {
             }
             if (state.zoomState === 'zooming') {
               if (intentMatrix.d > 150) {
-                info.focusedBox = hoveringBox
+                info.focusedBox = info.hoveringBox
               }
               const amt = Math.min(.5, Math.abs(e.deltaY * ((viewMatrix.a * 0.08) ** 0.92) / ((targetMatrix.a * 0.1) ** 0.5) * .85) * .0014)
               lerpMatrix(intentMatrix, targetMatrix, amt)
@@ -605,7 +616,7 @@ export function Grid(surface: Surface) {
   // info.focusedBox = boxes.rows[0][1].data
   // zoomBox(info.focusedBox)
 
-  return { info, write, view, mouse, mousePos, intentMatrix, lastFarMatrix, handleWheelScaleX }
+  return { info, write, view, mouse, mousePos, intentMatrix, lastFarMatrix, handleWheelScaleX, updateHoveringBox }
 }
 
 type BoxData = RectLike & {

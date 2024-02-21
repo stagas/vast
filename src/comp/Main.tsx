@@ -97,11 +97,55 @@ export function Main() {
     $()
     if (isLoadOpen) {
       loadDiv.replaceChildren(
-        <section class="absolute cursor-pointer bottom-[56px] z-30 w-[350px] h-[29%] flex p-2 box-border bg-base-200">
+        <section class="absolute bottom-[56px] z-30 w-[350px] h-[29%] flex items-stretch justify-items-center p-2 box-border bg-base-200">
+
+          {/* <div class="flex flex-col items-center justify-items-center w-[67px] border-r-2 border-primary border-opacity-80 pt-[2px] overflow-hidden">
+            <div class="flex-1 min-h-8">
+              <Btn icon={
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-[26px] h-[26px]" viewBox="0 0 256 256">
+                  <g fill="currentColor">
+                    <path d="M128 64v64H24Zm104 64H128v64Z" opacity="0.5" />
+                    <path d="m236.19 134.81l-104 64A8 8 0 0 1 120 192V78.32l-91.81 56.49a8 8 0 0 1-8.38-13.62l104-64A8 8 0 0 1 136 64v113.68l91.81-56.49a8 8 0 0 1 8.38 13.62" />
+                  </g>
+                </svg>
+              }
+                onclick={() => { }}
+              >
+              </Btn>
+            </div>
+
+            <div class="flex-1 min-h-8">
+              <Btn icon={
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-[24px] h-[22px]" viewBox="0 0 48 48">
+                  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.5">
+                    <path d="M24 17V31" />
+                    <path d="M33 11V37" />
+                    <path d="M6 17V31" />
+                    <path d="M42 18V30" />
+                    <path d="M15 4V44" />
+                  </g>
+                </svg>
+              }
+                onclick={() => { }}
+              >
+              </Btn>
+            </div>
+
+            <div class="flex-1 min-h-8">
+              <Btn icon={
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-[22px] h-[24px]" viewBox="0 0 256 256">
+                  <path fill="currentColor" d="M212.92 25.69a8 8 0 0 0-6.86-1.45l-128 32A8 8 0 0 0 72 64v110.08A36 36 0 1 0 88 204v-85.75l112-28v51.83A36 36 0 1 0 216 172V32a8 8 0 0 0-3.08-6.31M52 224a20 20 0 1 1 20-20a20 20 0 0 1-20 20m36-122.25v-31.5l112-28v31.5ZM180 192a20 20 0 1 1 20-20a20 20 0 0 1-20 20" />
+                </svg>
+              }
+                onclick={() => { }}
+              >
+              </Btn>
+            </div>
+          </div> */}
 
           <div class="w-[136px] border-r-2 border-primary border-opacity-80 pt-[2px]">
 
-            <div class={["flex w-full pl-[6px] pr-[9px] hover:bg-secondary hover:bg-opacity-20", loadOpenCategory === 'synths' && 'bg-secondary bg-opacity-20 text-primary']}
+            <div class={["cursor-pointer flex w-full pl-[6px] pr-[9px] hover:bg-secondary hover:bg-opacity-20", loadOpenCategory === 'synths' && 'bg-secondary bg-opacity-20 text-primary']}
               onmousedown={() => state.loadOpenCategory = 'synths'}
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-[16px] h-[20px]" viewBox="0 0 256 256">
@@ -113,7 +157,7 @@ export function Main() {
               <span class="text-sm ml-1 tracking-tight">synths</span>
             </div>
 
-            <div class={["flex w-full pl-[6px] pr-[9px] hover:bg-secondary hover:bg-opacity-20", loadOpenCategory === 'effects' && 'bg-secondary bg-opacity-20 text-primary ']}
+            <div class={["cursor-pointer flex w-full pl-[6px] pr-[9px] hover:bg-secondary hover:bg-opacity-20", loadOpenCategory === 'effects' && 'bg-secondary bg-opacity-20 text-primary ']}
               onmousedown={() => state.loadOpenCategory = 'effects'}
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-[16px] h-[16px] mt-[2px]" viewBox="0 0 48 48">
@@ -129,7 +173,7 @@ export function Main() {
             </div>
 
 
-            <div class={["flex hover:bg-secondary hover:bg-opacity-20 w-full pl-[6px] pr-[17px]", loadOpenCategory === 'midi' && 'bg-secondary bg-opacity-20 text-primary']}
+            <div class={["cursor-pointer flex hover:bg-secondary hover:bg-opacity-20 w-full pl-[6px] pr-[17px]", loadOpenCategory === 'midi' && 'bg-secondary bg-opacity-20 text-primary']}
               onmousedown={() => state.loadOpenCategory = 'midi'}
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-[16px] h-[18px] mt-[.6px]" viewBox="0 0 256 256">
@@ -149,6 +193,7 @@ export function Main() {
               </ul>
             </div>
           </div>
+
         </section>
       )
     }
@@ -188,7 +233,7 @@ export function Main() {
               <Btn onclick={() => {
                 state.isLoadOpen = !state.isLoadOpen
               }} icon={
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-[20px] w-[20px] mt-[0px]" viewBox="0 2 20 20">
+                <svg xmlns="http://www.w3.org/2000/svg" class={() => ["h-[20px] w-[20px] mt-[0px]", state.isLoadOpen && "text-primary"]} viewBox="0 2 20 20">
                   <path fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 20h12m-6-4V4m0 0l3.5 3.5M12 4L8.5 7.5" />
                 </svg>
               }>load</Btn>

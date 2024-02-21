@@ -30,6 +30,10 @@ class State {
   isLoadOpen = false
   loadOpenCategory = 'synths'
 
+  isHoveringToolbar = false
+
+  focusedBox = null as null | any
+
   benchIsRunning = false
   benchTasks: Task[] = []
 

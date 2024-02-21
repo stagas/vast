@@ -1,5 +1,5 @@
 import { Signal } from 'signal-jsx'
-import { state } from '../state.ts'
+import { log, state } from '../state.ts'
 import { Grid } from './grid.ts'
 import { Surface } from '../surface.ts'
 import { Point, Rect } from 'std'
@@ -16,18 +16,28 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
 
   const textView = $(new Rect, { pr: state.$.pr }).set(view)
   const hitArea = $(new Rect)
+  const r = $(new Rect)
+
+  const padX = 50
 
   const mousePos = $(new Point)
-  $.fx(() => dom.on(window, 'mousemove', (e) => {
-    mousePos.x = ((e.pageX - textView.x_pr) * state.pr) // + textView.x // * state.pr// state.pr
-    mousePos.y = (e.pageY - 44) * state.pr
+  $.fx(() => dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
+    if (!grid?.info.focusedBox) {
+      state.isHoveringToolbar = false
+      return
+    }
+    mousePos.x = e.pageX * state.pr
+    mousePos.y = e.pageY * state.pr
     if (mousePos.withinRect(hitArea)) {
-      console.log('yes')
+      e.stopImmediatePropagation()
+      grid.updateHoveringBox(grid.info.focusedBox)
+      state.isHoveringToolbar = true
     }
     else {
-      // console.log('no')
+      state.isHoveringToolbar = false
     }
-  }))
+  }), { capture: true }))
+
   // textView.h -= 2
   const canvas = Canvas({ view: textView })
   canvas.style.position = 'absolute'
@@ -120,6 +130,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     const m = surface.viewMatrix
     c.translate(-textView.x * state.pr, 0)
     c.beginPath()
+
     const data = grid.info.focusedBox!
     const x = data.x * m.a * 2 + m.e * 2 //+ 40
     let y = data.y * m.d * 2 + m.f * 2 + 46 * 2
@@ -135,7 +146,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     //   c.rect(x, y + h, metrics.width + 12, bh)
     // }
     // else {
-    const padX = 50
+
     hitArea.x = x
     hitArea.y = y - bh
     // if (hitArea.y < 0) {

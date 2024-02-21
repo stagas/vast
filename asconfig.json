@@ -12,9 +12,9 @@
       "textFile": "./as/build/assembly.wat",
       "sourceMap": true,
       "debug": false,
-      "optimizeLevel": 3,
+      "optimizeLevel": 0,
       "shrinkLevel": 0,
-      "converge": true,
+      "converge": false,
       "noAssert": true
     }
   },
