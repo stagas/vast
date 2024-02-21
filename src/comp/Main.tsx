@@ -91,6 +91,51 @@ export function Main() {
   let codeDraw: CodeDraw
   const code = Code()
 
+  const loadDiv = <div />
+  $.fx(() => {
+    const { isLoadOpen } = state
+    $()
+    if (isLoadOpen) {
+      loadDiv.replaceChildren(
+        <section class="absolute cursor-pointer bottom-[56px] z-30 w-[350px] h-[29%] flex p-2 box-border bg-base-200">
+          <div class="w-[136px] border-r-2 border-primary border-opacity-80">
+            <div class="mt-1 flex text-primary bg-secondary bg-opacity-20 hover:bg-secondary hover:bg-opacity-20 w-full pl-[6px] pr-[17px]">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-[16px] h-[18px] mt-[.6px] hover:text-rose" viewBox="0 0 256 256">
+                <path fill="currentColor" d="M212.92 25.69a8 8 0 0 0-6.86-1.45l-128 32A8 8 0 0 0 72 64v110.08A36 36 0 1 0 88 204v-85.75l112-28v51.83A36 36 0 1 0 216 172V32a8 8 0 0 0-3.08-6.31M52 224a20 20 0 1 1 20-20a20 20 0 0 1-20 20m36-122.25v-31.5l112-28v31.5ZM180 192a20 20 0 1 1 20-20a20 20 0 0 1-20 20" />
+              </svg>
+              <span class="text-sm ml-1 tracking-tight">sounds</span>
+            </div>
+            <div class="flex w-full pl-[6px] pr-[9px] hover:bg-secondary hover:bg-opacity-20">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-[16px] h-[16px] mt-[2px] hover:text-rose" viewBox="0 0 48 48">
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3.5">
+                  <path d="M24 17V31" />
+                  <path d="M33 11V37" />
+                  <path d="M6 17V31" />
+                  <path d="M42 18V30" />
+                  <path d="M15 4V44" />
+                </g>
+              </svg>
+
+              <span class="text-sm ml-1 tracking-tight">effects</span>
+            </div>
+          </div>
+          <div class="border-l-4 border-primary-content text-sm tracking-tight w-full">
+            <div class="sounds">
+              <ul>
+                {['kick 909', 'snare 808', 'hh open'].map(sound =>
+                  <li class={(sound === 'hh open' ? 'text-primary bg-secondary bg-opacity-20' : '') + ' hover:bg-secondary hover:bg-opacity-20 pl-3'}>{sound}</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </section>
+      )
+    }
+    else {
+      loadDiv.innerHTML = ''
+    }
+  })
+
   $.fx(() => {
     const { path } = state
     $()
@@ -101,6 +146,7 @@ export function Main() {
 
         default:
           return <div>
+            {loadDiv}
             {code.canvas}
             {code.textarea}
 
@@ -115,7 +161,9 @@ export function Main() {
                   <path fill="currentColor" d="M26 6V2h-2v4h-4v2h4v4h2V8h4V6z" />
                 </svg>
               }>new</Btn>
-              <Btn onclick={() => { }} icon={
+              <Btn onclick={() => {
+                state.isLoadOpen = !state.isLoadOpen
+              }} icon={
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-[20px] w-[20px] mt-[0px]" viewBox="0 2 20 20">
                   <path fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 20h12m-6-4V4m0 0l3.5 3.5M12 4L8.5 7.5" />
                 </svg>
@@ -201,7 +249,7 @@ export function Main() {
     $()
     navbar.replaceChildren(...[
       <div class={`lg:min-w-[350px] mt-[1px]`}>
-        <a class="btn hover:bg-base-100 border-none bg-transparent text-lg text-primary font-bold h-10 min-h-10 px-3">
+        <a class="btn hover:bg-base-100 border-none bg-transparent text-[1.135rem] text-primary font-bold h-10 min-h-10 px-3">
           {state.name}
         </a>
       </div>,
@@ -222,7 +270,7 @@ export function Main() {
       minimapDiv,
 
       <MainBtn label="take" icon={
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-[26px] w-[26px] -ml-[5.5px] mt-[1.33px]" preserveAspectRatio="xMidYMid slice" viewBox="0 0 16 16">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-[23px] w-[23px] -ml-[.5px] mt-[1.33px]" preserveAspectRatio="xMidYMid slice" viewBox="0 0 16 16">
           <path fill="currentColor" d="m 10.878 0.282 l 0.348 1.071 a 2.205 2.205 0 0 0 1.398 1.397 l 1.072 0.348 l 0.021 0.006 a 0.423 0.423 0 0 1 0 0.798 l -1.071 0.348 a 2.208 2.208 0 0 0 -1.399 1.397 l -0.348 1.07 a 0.423 0.423 0 0 1 -0.798 0 l -0.348 -1.07 a 2.204 2.204 0 0 0 -1.399 -1.403 l -1.072 -0.348 a 0.423 0.423 0 0 1 0 -0.798 l 1.072 -0.348 a 2.208 2.208 0 0 0 1.377 -1.397 l 0.348 -1.07 a 0.423 0.423 0 0 1 0.799 0 m 4.905 7.931 l -0.765 -0.248 a 1.577 1.577 0 0 1 -1 -0.999 l -0.248 -0.764 a 0.302 0.302 0 0 0 -0.57 0 l -0.25 0.764 a 1.576 1.576 0 0 1 -0.983 0.999 l -0.765 0.248 a 0.303 0.303 0 0 0 0 0.57 l 0.765 0.249 a 1.578 1.578 0 0 1 1 1.002 l 0.248 0.764 a 0.302 0.302 0 0 0 0.57 0 l 0.249 -0.764 a 1.576 1.576 0 0 1 0.999 -0.999 l 0.765 -0.248 a 0.303 0.303 0 0 0 0 -0.57 z M 10.402 11.544 H 3.973 A 1.5 1.5 0 0 1 2.455 10.629 v -5.089 A 1.5 1.5 0 0 1 3.527 4.713 h 3.728 c 1.165 0.022 -1.161 -0 -1.116 -1.317 H 3.339 A 2.5 2.5 0 0 0 1 5.5 v 5 A 2.5 2.5 0 0 0 3.5 13 h 9 a 2.5 2.5 0 0 0 2.5 -2.5 v -0.178 a 0.54 0.54 0 0 0 -0.022 0.055 l -0.371 1.201 c -0.962 0.995 -1.937 0.635 -2.61 -0.198" />
           {/* <path fill={state.colors.secondary} d="m10.878.282l.348 1.071a2.205 2.205 0 0 0 1.398 1.397l1.072.348l.021.006a.423.423 0 0 1 0 .798l-1.071.348a2.208 2.208 0 0 0-1.399 1.397l-.348 1.07a.423.423 0 0 1-.798 0l-.348-1.07a2.204 2.204 0 0 0-1.399-1.403l-1.072-.348a.423.423 0 0 1 0-.798l1.072-.348a2.208 2.208 0 0 0 1.377-1.397l.348-1.07a.423.423 0 0 1 .799 0m4.905 7.931l-.765-.248a1.577 1.577 0 0 1-1-.999l-.248-.764a.302.302 0 0 0-.57 0l-.25.764a1.576 1.576 0 0 1-.983.999l-.765.248a.303.303 0 0 0 0 .57l.765.249a1.578 1.578 0 0 1 1 1.002l.248.764a.302.302 0 0 0 .57 0l.249-.764a1.576 1.576 0 0 1 .999-.999l.765-.248a.303.303 0 0 0 0-.57zM13.502 12H3.5A1.5 1.5 0 0 1 2 10.5v-5A1.5 1.5 0 0 1 3.5 4h2.59A1.418 1.418 0 0 1 6 3.496c0-.173.03-.34.088-.496H3.5A2.5 2.5 0 0 0 1 5.5v5A2.5 2.5 0 0 0 3.5 13h9a2.5 2.5 0 0 0 2.5-2.5v-.178a.54.54 0 0 0-.022.055l-.25.762c-.1.28-.26.49-.48.65c-.22.16-.478.21-.746.211" /> */}
         </svg>

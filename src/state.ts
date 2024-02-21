@@ -27,6 +27,8 @@ class State {
   page = '' //this.pages[0]
   path = location.pathname
 
+  isLoadOpen = false
+
   benchIsRunning = false
   benchTasks: Task[] = []
 
