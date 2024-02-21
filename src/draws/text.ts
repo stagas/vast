@@ -1,6 +1,6 @@
 import { Signal } from 'signal-jsx'
 import { Point, Rect } from 'std'
-import { dom } from 'utils'
+import { dom, luminate } from 'utils'
 import { Canvas } from '../comp/Canvas.tsx'
 import { CODE_WIDTH } from '../constants.ts'
 import { state } from '../state.ts'
@@ -31,11 +31,14 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     r.set(hitArea)
     r.zoomLinear(5)
     if (mousePos.withinRect(r)) {
+      canvas.style.pointerEvents = 'all'
       e.stopImmediatePropagation()
+      e.preventDefault()
       grid.updateHoveringBox(grid.info.focusedBox)
       state.isHoveringToolbar = true
     }
     else {
+      canvas.style.pointerEvents = 'none'
       state.isHoveringToolbar = false
     }
     surface.anim.info.epoch++
@@ -133,15 +136,15 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     // @ts-ignore
     c.letterSpacing = '-.035em'
     let snapText = '32'
-    let beatText = '4b'
+    let beatText = '4'
 
     hitArea.x = x
     hitArea.y = y - bh
-    hitArea.w = 420
+
     hitArea.h = bh
     hitArea.path(c)
     c.lineWidth = state.pr * 2
-    c.fillStyle = state.colors['base-300']
+    c.fillStyle = luminate(state.colors['base-100'], -0.04)
 
     c.fill()
 
@@ -162,12 +165,12 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     }
 
     function put(item: any, w: number, y: number, xOffset: number = 0) {
-      const isHovering = state.isHoveringToolbar && mousePos.x >= ix - 15 && mousePos.x < ix + w
+      const isHovering = state.isHoveringToolbar && mousePos.x >= ix - 15 && mousePos.x < ix - 15 + w
       if (isHovering) {
-        c.fillStyle = state.colors['base-100'] //+ '22'
+        c.fillStyle = state.colors['base-100']
         c.fillRect(ix - 10, hitArea.y, w, hitArea.h)
       }
-      c.fillStyle = isHovering ? state.colors.primary : state.colors['base-content']
+      c.fillStyle = /* isHovering ? state.colors.primary :  */state.colors['base-content']
       c.drawImage(isHovering ? item.img_hover : item.img, ix + xOffset, y)
       ix += w
     }
@@ -175,11 +178,13 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     if (icons?.snap) put(icons.snap, iw * 1.95, y - bh + 6)
     c.fillText(snapText, tx + iw * 0.7, y - bh / 2 + 3.5)
     tx = ix
-    if (icons?.beat) put(icons.beat, iw * 1.85, y - bh + 4.4)
+    if (icons?.beat) put(icons.beat, iw * 1.2 + beatText.length * 16, y - bh + 4.4)
     c.fillText(beatText, tx + iw * 0.55, y - bh / 2 + 3.5)
     if (icons?.shuffle) put(icons.shuffle, iw * 1.50, y - bh - 1.5, 3.5)
     if (icons?.quantize) put(icons.quantize, iw * 1.50, y - bh + 4, 9)
     if (icons?.duplicate) put(icons.duplicate, iw * 1.50, y - bh + 4, 1)
+
+    hitArea.w = ix - hitArea.x - 10
 
     c.restore()
     c.save()

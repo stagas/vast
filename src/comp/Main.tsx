@@ -109,7 +109,7 @@ export function Main() {
     $()
     if (isLoadOpen) {
       loadDiv.replaceChildren(
-        <section class="absolute bottom-[56px] z-30 w-[350px] h-[29%] flex items-stretch justify-items-center p-2 box-border bg-base-200">
+        <section class="absolute select-none bottom-[56px] z-30 w-[350px] h-[29%] flex items-stretch justify-items-center p-2 box-border bg-base-200">
 
           {/* <div class="flex flex-col items-center justify-items-center w-[67px] border-r-2 border-primary border-opacity-80 pt-[2px] overflow-hidden">
             <div class="flex-1 min-h-8">
