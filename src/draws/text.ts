@@ -15,9 +15,6 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   using $ = Signal()
 
   const textView = $(new Rect, { pr: state.$.pr }).set(view)
-  textView.w -= CODE_WIDTH
-  textView.x += CODE_WIDTH
-
   const hitArea = $(new Rect)
 
   const mousePos = $(new Point)
@@ -37,7 +34,20 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   canvas.style.pointerEvents = 'none'
   canvas.style.imageRendering = 'pixelated'
   canvas.style.left = CODE_WIDTH + 'px'
-  canvas.style.top = '46px'
+  canvas.style.top = '0px'
+  $.fx(() => {
+    const { mode } = state
+    $()
+    textView.set(view)
+    if (mode === 'edit' || mode === 'dev') {
+      canvas.style.left = CODE_WIDTH + 'px'
+      textView.w -= CODE_WIDTH
+      textView.x += CODE_WIDTH
+    }
+    else {
+      canvas.style.left = '0px'
+    }
+  })
 
   const c = canvas.getContext('2d', { alpha: true })!
   c.imageSmoothingEnabled = false
@@ -112,7 +122,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     c.beginPath()
     const data = grid.info.focusedBox!
     const x = data.x * m.a * 2 + m.e * 2 //+ 40
-    const y = data.y * m.d * 2 + m.f * 2
+    let y = data.y * m.d * 2 + m.f * 2 + 46 * 2
     // const w = (data.w * m.a * 2)
     const h = (data.h * m.d * 2)
     const bh = 45
@@ -128,6 +138,10 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     const padX = 50
     hitArea.x = x
     hitArea.y = y - bh
+    // if (hitArea.y < 0) {
+    //   y = hitArea.y = y + h
+    //   y += bh
+    // }
     hitArea.w = 370 + padX
     hitArea.h = bh
     hitArea.path(c)

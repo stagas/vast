@@ -29,11 +29,14 @@ export function Grid(surface: Surface) {
 
   const targetView = $(new Rect)
   $.fx(() => {
+    const { mode } = state
     const { w, h } = view
     $()
     targetView.set(view)
-    targetView.x += CODE_WIDTH
-    targetView.w -= CODE_WIDTH
+    if (mode === 'edit' || mode === 'dev') {
+      targetView.x += CODE_WIDTH
+      targetView.w -= CODE_WIDTH
+    }
   })
 
   const boxes = Boxes(ROWS, COLS, SCALE_X)
@@ -55,7 +58,7 @@ export function Grid(surface: Surface) {
     if (intentMatrix.a === 1) {
       viewMatrix.a = intentMatrix.a = Math.max(7.27, targetView.w / (COLS * SCALE_X))
       viewMatrix.d = intentMatrix.d = targetView.h / ROWS
-      viewMatrix.e = intentMatrix.e = CODE_WIDTH
+      viewMatrix.e = intentMatrix.e = state.mode === 'wide' ? 0 : CODE_WIDTH
       lastFarMatrix.set(viewMatrix)
       $.fx(function scale_rows_to_fit_height() {
         const { h } = targetView
@@ -321,9 +324,9 @@ export function Grid(surface: Surface) {
     const padX = 10
     Matrix.viewBox(m, targetView, {
       x: box.x - w / (padX * 2) - ox,
-      y: box.y - (box.y ? padY : 0),
+      y: box.y - (box.y ? padY : padY / 2),
       w: w + w / padX,
-      h: box.h + padY * 2 - (box.y && box.y < boxes.rows.length - 1 ? 0 : padY),
+      h: box.h + padY * 2 - (box.y && box.y < boxes.rows.length - 1 ? padY / 2 : padY),
     })
   }
 

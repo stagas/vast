@@ -28,6 +28,7 @@ class State {
   path = location.pathname
 
   isLoadOpen = false
+  loadOpenCategory = 'synths'
 
   benchIsRunning = false
   benchTasks: Task[] = []
