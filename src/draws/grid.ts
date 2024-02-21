@@ -363,7 +363,7 @@ export function Grid(surface: Surface) {
   })
 
   mouse.targets.add(ev => {
-    if (state.isHoveringToolbar) return
+    if (ev.type !== 'wheel' && state.isHoveringToolbar) return
 
     isZooming = false
     if (ev.type === 'mouseout' || ev.type === 'mouseleave') {
@@ -638,7 +638,7 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
   const rows = Array.from({ length: rowsLength }, (_, ry) => {
     const mul = (ry % 2 === 1 ? 4 : 1)
     return Array.from({ length: cols * mul }, (_, rx) => {
-      const x = (rx + Math.round(Math.random() * 0)) * (scaleX / mul)
+      const x = (rx + Math.round(Math.random() * 4)) * (scaleX / mul)
       const y = ry
       const w = scaleX / mul // w
       const h = 1 // h

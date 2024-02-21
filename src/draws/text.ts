@@ -11,14 +11,13 @@ import { dom } from 'utils'
 
 const DEBUG = true
 
+export type TextDraw = ReturnType<typeof TextDraw>
+
 export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   using $ = Signal()
 
   const textView = $(new Rect, { pr: state.$.pr }).set(view)
   const hitArea = $(new Rect)
-  const r = $(new Rect)
-
-  const padX = 50
 
   const mousePos = $(new Point)
   $.fx(() => dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
@@ -36,9 +35,9 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     else {
       state.isHoveringToolbar = false
     }
+    surface.anim.info.epoch++
   }), { capture: true }))
 
-  // textView.h -= 2
   const canvas = Canvas({ view: textView })
   canvas.style.position = 'absolute'
   canvas.style.pointerEvents = 'none'
@@ -63,14 +62,28 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   c.imageSmoothingEnabled = false
   c.save()
 
-  async function fromSvg(svg: string) {
-    const markup = svg.trim().replaceAll('currentColor', state.colors['base-content'])
+  async function svgToImg(svg: string, color: string) {
+    const markup = svg.trim().replaceAll('currentColor', color)
     const img = new Image()
     await new Promise(resolve => {
       img.onload = resolve
       img.src = 'data:image/svg+xml,' + encodeURIComponent(markup)
     })
-    return { markup, img }
+    return img
+  }
+  async function fromSvg(svg: string) {
+    const img = await svgToImg(svg, state.colors['base-content']
+    )
+    const img_hover = await svgToImg(svg, state.colors['primary'])
+
+    // const markup = svg.trim().replaceAll('currentColor', state.colors['base-content'])
+    // const img = new Image()
+    // await new Promise(resolve => {
+    //   img.onload = resolve
+    //   img.src = 'data:image/svg+xml,' + encodeURIComponent(markup)
+    // })
+
+    return { img, img_hover }
   }
 
   const icons = $({
@@ -115,7 +128,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     surface.anim.info.epoch++
   })
 
-  surface.anim.ticks.add(() => {
+  const tick = () => {
     c.restore()
 
     c.save()
@@ -140,7 +153,8 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     c.font = '31px Mono'
     // @ts-ignore
     c.letterSpacing = '-.035em'
-    const text = '  32   4b'
+    let snapText = '32'
+    let beatText = '4b'
     // const metrics = c.measureText(text)
     // if (data.y === 0) {
     //   c.rect(x, y + h, metrics.width + 12, bh)
@@ -153,13 +167,13 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     //   y = hitArea.y = y + h
     //   y += bh
     // }
-    hitArea.w = 370 + padX
+    hitArea.w = 420
     hitArea.h = bh
     hitArea.path(c)
     // c.rect(x, y - bh, metrics.width + padX, bh)
     // }
     c.lineWidth = state.pr * 2
-    c.fillStyle = state.colors['base-100']
+    c.fillStyle = state.colors['base-300']
 
 
     c.fill()
@@ -171,18 +185,44 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     // }
     // else {
 
-    let ix = x
+    let ix = x + 13 //+ padX / 2
     let iw = 50
-    if (icons?.snap) c.drawImage(icons.snap.img, ix += padX / 2, y - bh + 6)
-    if (icons?.beat) c.drawImage(icons.beat.img, ix += iw * 2, y - bh + 4.4)
-    if (icons?.shuffle) c.drawImage(icons.shuffle.img, ix += iw * 1.75, y - bh - 1.5)
-    if (icons?.quantize) c.drawImage(icons.quantize.img, ix += iw * 1.45, y - bh + 4)
-    if (icons?.duplicate) c.drawImage(icons.duplicate.img, ix + iw * 1.15, y - bh + 4)
 
-    c.fillText(text, x + padX / 2, y - bh / 2 + 3.5)
+    function hoverImg(cond: boolean, x: any) {
+      if (cond) return x.img_hover
+      else return x.img
+    }
+
+    function put(item: any, w: number, y: number, xOffset: number = 0) {
+      const isHovering = state.isHoveringToolbar && mousePos.x > ix && mousePos.x < ix + w
+      if (isHovering) {
+        c.fillStyle = state.colors['base-100'] //+ '22'
+        c.fillRect(ix - 10, hitArea.y, w, hitArea.h)
+      }
+      c.fillStyle = isHovering ? state.colors.primary : state.colors['base-content']
+      c.drawImage(isHovering ? item.img_hover : item.img, ix + xOffset, y)
+      ix += w
+    }
+    let tx = ix
+    if (icons?.snap) put(icons.snap, iw * 1.95, y - bh + 6)
+    c.fillText(snapText, tx + iw * 0.7, y - bh / 2 + 3.5)
+    tx = ix
+    if (icons?.beat) put(icons.beat, iw * 1.85, y - bh + 4.4)
+    c.fillText(beatText, tx + iw * 0.55, y - bh / 2 + 3.5)
+    if (icons?.shuffle) put(icons.shuffle, iw * 1.50, y - bh - 1.5, 3.5)
+    if (icons?.quantize) put(icons.quantize, iw * 1.50, y - bh + 4, 9)
+    if (icons?.duplicate) put(icons.duplicate, iw * 1.50, y - bh + 4, 1)
+
     // }
     c.restore()
     c.save()
+  }
+
+  $.fx(() => {
+    surface.anim.ticks.add(tick)
+    return () => {
+      surface.anim.ticks.delete(tick)
+    }
   })
 
   return { canvas, hitArea }

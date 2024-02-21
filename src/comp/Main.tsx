@@ -80,6 +80,7 @@ export function Main() {
 
   let surface: Surface | undefined
   let grid: Grid | undefined
+  let textDraw: TextDraw | undefined
 
   const view = $(new Rect, { pr: state.$.pr })
 
@@ -90,6 +91,17 @@ export function Main() {
   const codeView = $(new Rect, { w: 300, h: 300, pr: state.$.pr })
   let codeDraw: CodeDraw
   const code = Code()
+
+  $.fx(() => {
+    const { isHoveringToolbar } = state
+    $()
+    if (isHoveringToolbar) {
+      document.body.style.cursor = 'pointer'
+    }
+    else {
+      document.body.style.cursor = ''
+    }
+  })
 
   const loadDiv = <div />
   $.fx(() => {
@@ -143,9 +155,9 @@ export function Main() {
             </div>
           </div> */}
 
-          <div class="w-[136px] border-r-2 border-primary border-opacity-80 pt-[2px]">
+          <div class="w-[136.5px] border-r-2 border-primary border-opacity-80 pt-[2px] text-base-content">
 
-            <div class={["cursor-pointer flex w-full pl-[6px] pr-[9px] hover:bg-secondary hover:bg-opacity-20", loadOpenCategory === 'synths' && 'bg-secondary bg-opacity-20 text-primary']}
+            <div class={["cursor-pointer flex w-full pl-[6px] pr-[9px] hover:bg-secondary", loadOpenCategory === 'synths' ? 'bg-secondary bg-opacity-20 text-primary hover:bg-opacity-20' : 'hover:bg-opacity-15']}
               onmousedown={() => state.loadOpenCategory = 'synths'}
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-[16px] h-[20px]" viewBox="0 0 256 256">
@@ -157,7 +169,7 @@ export function Main() {
               <span class="text-sm ml-1 tracking-tight">synths</span>
             </div>
 
-            <div class={["cursor-pointer flex w-full pl-[6px] pr-[9px] hover:bg-secondary hover:bg-opacity-20", loadOpenCategory === 'effects' && 'bg-secondary bg-opacity-20 text-primary ']}
+            <div class={["cursor-pointer flex w-full pl-[6px] pr-[9px] hover:bg-secondary", loadOpenCategory === 'effects' ? 'bg-secondary bg-opacity-20 text-primary hover:bg-opacity-20' : 'hover:bg-opacity-15']}
               onmousedown={() => state.loadOpenCategory = 'effects'}
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-[16px] h-[16px] mt-[2px]" viewBox="0 0 48 48">
@@ -172,8 +184,7 @@ export function Main() {
               <span class="text-sm ml-1 tracking-tight">effects</span>
             </div>
 
-
-            <div class={["cursor-pointer flex hover:bg-secondary hover:bg-opacity-20 w-full pl-[6px] pr-[17px]", loadOpenCategory === 'midi' && 'bg-secondary bg-opacity-20 text-primary']}
+            <div class={["cursor-pointer flex w-full pl-[6px] pr-[17px] hover:bg-secondary", loadOpenCategory === 'midi' ? 'bg-secondary bg-opacity-20 text-primary hover:bg-opacity-20' : 'hover:bg-opacity-15']}
               onmousedown={() => state.loadOpenCategory = 'midi'}
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="w-[16px] h-[18px] mt-[.6px]" viewBox="0 0 256 256">
@@ -188,7 +199,7 @@ export function Main() {
             <div class="sounds">
               <ul>
                 {['kick 909', 'snare 808', 'hh open'].map(sound =>
-                  <li class={(sound === 'hh open' ? 'text-primary bg-secondary bg-opacity-20' : '') + ' hover:bg-secondary hover:bg-opacity-20 pl-3'}>{sound}</li>
+                  <li class={['cursor-pointer hover:bg-secondary pl-3', sound === 'hh open' ? 'bg-secondary text-primary bg-opacity-20 hover:bg-opacity-20' : 'hover:bg-opacity-15']}>{sound}</li>
                 )}
               </ul>
             </div>
@@ -287,7 +298,7 @@ export function Main() {
           grid ??= Grid(surface)
           grid.write()
 
-          const textDraw = TextDraw(surface, grid, view)
+          textDraw ??= TextDraw(surface, grid, view)
 
           minimap ??= Minimap(grid)
           minimapDiv.append(minimap.canvas)
