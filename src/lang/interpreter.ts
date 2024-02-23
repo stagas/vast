@@ -1,31 +1,32 @@
-// import { dspGens } from '../../generated/dsp-gens.ts'
-// import { DspContext } from '../rave/dsp.ts'
-// import { getAllPropsReverse } from '../rave/util.ts'
+import { dspGens } from '../../generated/typescript/dsp-gens.ts'
+import { Sound } from '../dsp/dsp.ts'
+import { getAllPropsReverse } from '../dsp/util.ts'
 import { Token } from './tokenize.ts'
 import { parseNumber } from './util.ts'
 
-namespace Value {
-  export enum Type {
-    Proc = 'Proc',
-    Result = 'Result',
-  }
-  export enum ProcKind {
-    Native = 'Native',
-  }
-}
+// namespace Value {
+//   export enum Type {
+//     Proc = 'Proc',
+//     Result = 'Result',
+//   }
+//   export enum ProcKind {
+//     Native = 'Native',
+//   }
+// }
 
-namespace Block {
-  export enum Type {
-    ProcCall = 'ProcCall',
-    Procedure = 'Procedure',
-    List = 'List',
-  }
-}
-const Blocks = {
-  '[': Block.Type.ProcCall,
-  '{': Block.Type.Procedure,
-  '(': Block.Type.List,
-}
+// namespace Block {
+//   export enum Type {
+//     ProcCall = 'ProcCall',
+//     Procedure = 'Procedure',
+//     List = 'List',
+//   }
+// }
+
+// const Blocks = {
+//   '[': Block.Type.ProcCall,
+//   '{': Block.Type.Procedure,
+//   '(': Block.Type.List,
+// }
 
 // const Procs = {
 //   sin: ['hz'],
@@ -141,12 +142,12 @@ const ConsumeTypes = [
 
 const ScopeNatives = Object.fromEntries(
   [
-    // ...Object.entries(dspGens).map(([id]) =>
-    //   [id, new AstNode(AstNode.Type.Proc, { id, kind: AstNode.ProcKind.Gen })]
-    // ),
-    // ...Object.entries(dspGens).filter(([, g]) => 'hasStereoOut' in g && g.hasStereoOut).map(([id]) =>
-    //   [id + '_st', new AstNode(AstNode.Type.Proc, { id, kind: AstNode.ProcKind.GenStereo })]
-    // ),
+    ...Object.entries(dspGens).map(([id]) =>
+      [id, new AstNode(AstNode.Type.Proc, { id, kind: AstNode.ProcKind.Gen })]
+    ),
+    ...Object.entries(dspGens).filter(([, g]) => 'hasStereoOut' in g && g.hasStereoOut).map(([id]) =>
+      [id + '_st', new AstNode(AstNode.Type.Proc, { id, kind: AstNode.ProcKind.GenStereo })]
+    ),
   ]
 )
 
@@ -157,7 +158,8 @@ const ScopeSpecial = {
 const BinOps = new Set('+ * - / ^'.split(' '))
 const AssignOps = new Set('= += *= -= /= ^='.split(' '))
 
-export function interpret(g: DspContext, data: Record<string, any>, tokens: Token[]) {
+export function interpret(sound: Sound, data: Record<string, any>, tokens: Token[]) {
+  const g = sound.api
   const scope: Scope = new Scope(null, { ...ScopeNatives, ...ScopeSpecial, ...data })
   const results: (Record<string, any> & { result: AstNode })[] = []
   const tokensAstNode: Map<Token, AstNode> = new Map()

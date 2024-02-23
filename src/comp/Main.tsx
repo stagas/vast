@@ -14,7 +14,12 @@ import { Code } from './Code.tsx'
 import { CodeDraw } from '../draws/code.ts'
 import { CODE_WIDTH } from '../constants.ts'
 import { TextDraw } from '../draws/text.ts'
-import { createDspController } from '../dsp/dsp-controller.ts'
+import { Dsp } from '../dsp/dsp.ts'
+import { SoundValueKind } from '../../as/assembly/dsp/vm/dsp-shared.ts'
+import { dspGens } from '../../generated/typescript/dsp-gens.ts'
+import { getAllProps } from '../dsp/util.ts'
+import { Floats } from '../util/floats.ts'
+import { tokenize } from '../lang/tokenize.ts'
 
 const DEBUG = true
 
@@ -72,11 +77,20 @@ export function Main() {
     }
   }, { times: 100_000, raf: true })
 
-  // const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
-  // const dspController = createDspController({ sampleRate: ctx.sampleRate })
-  // const dsp = dspController.Dsp()
-  // const sound = dspController.Sound()
-  // // console.log(dsp, sound)
+  const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
+  const dsp = Dsp(ctx)
+  const sound = dsp.Sound()
+  $.fx(() => {
+    const { tokens } = state.source
+    $()
+    //[...tokenize({ code: '[sin 130]' })]
+    const out = sound.process(tokens)
+    console.log(out)
+    // const out = sound.api.gen.ramp({ hz: 130 })
+    // sound.commit()
+    sound.data.end = 2048
+    sound.run()
+  })
 
   let surface: Surface | undefined
   let grid: Grid | undefined
@@ -296,6 +310,8 @@ export function Main() {
           // codeDraw.write()
 
           grid ??= Grid(surface)
+          const floats = Floats(sound.getAudio(0).subarray(0, 2048))
+          grid.waves.data = new Float32Array(grid.waves.update(floats.ptr))
           grid.write()
 
           textDraw ??= TextDraw(surface, grid, view)
@@ -352,7 +368,6 @@ export function Main() {
       <MainBtn label="take" icon={
         <svg xmlns="http://www.w3.org/2000/svg" class="h-[23px] w-[23px] -ml-[.5px] mt-[1.33px]" preserveAspectRatio="xMidYMid slice" viewBox="0 0 16 16">
           <path fill="currentColor" d="m 10.878 0.282 l 0.348 1.071 a 2.205 2.205 0 0 0 1.398 1.397 l 1.072 0.348 l 0.021 0.006 a 0.423 0.423 0 0 1 0 0.798 l -1.071 0.348 a 2.208 2.208 0 0 0 -1.399 1.397 l -0.348 1.07 a 0.423 0.423 0 0 1 -0.798 0 l -0.348 -1.07 a 2.204 2.204 0 0 0 -1.399 -1.403 l -1.072 -0.348 a 0.423 0.423 0 0 1 0 -0.798 l 1.072 -0.348 a 2.208 2.208 0 0 0 1.377 -1.397 l 0.348 -1.07 a 0.423 0.423 0 0 1 0.799 0 m 4.905 7.931 l -0.765 -0.248 a 1.577 1.577 0 0 1 -1 -0.999 l -0.248 -0.764 a 0.302 0.302 0 0 0 -0.57 0 l -0.25 0.764 a 1.576 1.576 0 0 1 -0.983 0.999 l -0.765 0.248 a 0.303 0.303 0 0 0 0 0.57 l 0.765 0.249 a 1.578 1.578 0 0 1 1 1.002 l 0.248 0.764 a 0.302 0.302 0 0 0 0.57 0 l 0.249 -0.764 a 1.576 1.576 0 0 1 0.999 -0.999 l 0.765 -0.248 a 0.303 0.303 0 0 0 0 -0.57 z M 10.402 11.544 H 3.973 A 1.5 1.5 0 0 1 2.455 10.629 v -5.089 A 1.5 1.5 0 0 1 3.527 4.713 h 3.728 c 1.165 0.022 -1.161 -0 -1.116 -1.317 H 3.339 A 2.5 2.5 0 0 0 1 5.5 v 5 A 2.5 2.5 0 0 0 3.5 13 h 9 a 2.5 2.5 0 0 0 2.5 -2.5 v -0.178 a 0.54 0.54 0 0 0 -0.022 0.055 l -0.371 1.201 c -0.962 0.995 -1.937 0.635 -2.61 -0.198" />
-          {/* <path fill={state.colors.secondary} d="m10.878.282l.348 1.071a2.205 2.205 0 0 0 1.398 1.397l1.072.348l.021.006a.423.423 0 0 1 0 .798l-1.071.348a2.208 2.208 0 0 0-1.399 1.397l-.348 1.07a.423.423 0 0 1-.798 0l-.348-1.07a2.204 2.204 0 0 0-1.399-1.403l-1.072-.348a.423.423 0 0 1 0-.798l1.072-.348a2.208 2.208 0 0 0 1.377-1.397l.348-1.07a.423.423 0 0 1 .799 0m4.905 7.931l-.765-.248a1.577 1.577 0 0 1-1-.999l-.248-.764a.302.302 0 0 0-.57 0l-.25.764a1.576 1.576 0 0 1-.983.999l-.765.248a.303.303 0 0 0 0 .57l.765.249a1.578 1.578 0 0 1 1 1.002l.248.764a.302.302 0 0 0 .57 0l.249-.764a1.576 1.576 0 0 1 .999-.999l.765-.248a.303.303 0 0 0 0-.57zM13.502 12H3.5A1.5 1.5 0 0 1 2 10.5v-5A1.5 1.5 0 0 1 3.5 4h2.59A1.418 1.418 0 0 1 6 3.496c0-.173.03-.34.088-.496H3.5A2.5 2.5 0 0 0 1 5.5v5A2.5 2.5 0 0 0 3.5 13h9a2.5 2.5 0 0 0 2.5-2.5v-.178a.54.54 0 0 0-.022.055l-.25.762c-.1.28-.26.49-.48.65c-.22.16-.478.21-.746.211" /> */}
         </svg>
       } onclick={() => {
       }}>

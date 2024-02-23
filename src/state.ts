@@ -6,6 +6,7 @@ import { Task } from 'tinybench'
 import { Token, tokenize } from './lang/tokenize.ts'
 import { Source } from './source.ts'
 import { LerpMatrix } from './util/geometry.ts'
+import { hexToInt } from './util/rgb.ts'
 import { Mesh } from './webgl.ts'
 import { AnimMode } from './world/anim.ts'
 
@@ -15,10 +16,13 @@ class State {
   name = 'ravescript'
 
   pr = window.devicePixelRatio
-  theme = storage<Theme>('sunset')
+  theme = storage<Theme>('dim')
   get colors() {
     // console.log(themes[state.theme] )
     return themes[state.theme]
+  }
+  get primaryColorInt() {
+    return hexToInt(state.colors.primary)
   }
 
   mode = storage('edit')

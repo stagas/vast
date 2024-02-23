@@ -148,7 +148,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     const pr = state.pr
     const w = (data.w * m.a * pr)
     let x = data.x * m.a * pr + m.e * pr //+ 40
-    if (mousePos.x >= x + w / 2) x += w - hitArea.w
+    // if (mousePos.x >= x + w / 2) x += w - hitArea.w
     let y = data.y * m.d * pr + m.f * pr + 45.5 * pr
     const h = (data.h * m.d * pr)
     const bh = 45

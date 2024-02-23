@@ -4,7 +4,7 @@
       "outFile": "./as/build/assembly.wasm",
       "textFile": "./as/build/assembly.wat",
       "sourceMap": true,
-      "debug": false,
+      "debug": true,
       "noAssert": true
     },
     "release": {
@@ -24,8 +24,8 @@
       "relaxed-simd",
       "threads"
     ],
-    "initialMemory": 40000,
-    "maximumMemory": 40000,
+    "initialMemory": 20000,
+    "maximumMemory": 20000,
     "bindings": "raw",
     "runtime": "incremental",
     "exportRuntime": true

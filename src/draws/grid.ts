@@ -1,6 +1,6 @@
 import { $, Signal } from 'signal-jsx'
 import { Matrix, Point, Rect, RectLike } from 'std'
-import { clamp, debounce, dom } from 'utils'
+import { clamp, debounce, dom, hexToRgb, luminate, saturate } from 'utils'
 import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
 import { CODE_WIDTH } from '../constants.ts'
 import { ShapeData } from '../gl/sketch.ts'
@@ -9,6 +9,7 @@ import { Surface } from '../surface.ts'
 import { Floats } from '../util/floats.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { waveform } from '../util/waveform.ts'
+import { hexToInt } from '../util/rgb.ts'
 
 const DEBUG = true
 const SCALE_X = 1
@@ -262,6 +263,11 @@ export function Grid(surface: Surface) {
     const hn = info.hoveringNoteN
     const { x, y } = notePos
 
+    if (isZooming) {
+      info.hoveringNote = null
+      return
+    }
+
     let found = false
     for (let i = notes.length - 1; i >= 0; i--) {
       const note = notes[i]
@@ -286,7 +292,14 @@ export function Grid(surface: Surface) {
         viewMatrix.speed = ZOOM_SPEED_NORMAL
         log(intentMatrix.d)
         if (intentMatrix.d < 100) {
+          if (info.focusedBox) info.hoveringBox = info.focusedBox
           info.focusedBox = null
+
+          if (lastFloats) {
+            info.waves.data = new Float32Array(info.waves.update(lastFloats))
+            write()
+            lastFloats = null
+          }
         }
         const amt = Math.min(.5, Math.abs(e.deltaY / ((viewMatrix.a * 0.08) ** 1.12) * ((targetMatrix.a * 0.1) ** 1.15) * .85) * .004)
         lerpMatrix(intentMatrix, lastFarMatrix, amt)
@@ -492,6 +505,7 @@ export function Grid(surface: Surface) {
   const KEY_NAMES = [
     'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'
   ]
+  let lastFloats: any
   $.fx(() => {
     const { focusedBox, hoveringNoteN } = $.of(info)
     const { hoveringNote, draggingNote } = info
@@ -499,6 +513,36 @@ export function Grid(surface: Surface) {
       const { n, time, length, vel } = draggingNote
     }
     $()
+    if (focusedBox.floats) {
+      const { x: cx, y: cy, w: cw, h: ch } = focusedBox
+
+      // console.log('YO', focusedBox)
+
+      info.waves.data = new Float32Array([
+        [
+          ShapeOpts.Box,
+          cx,
+          cy,
+          cw,
+          ch,
+          1, // lw
+          1, // ptr
+          0, // len
+          0x001144,
+          .62 // alpha
+        ] as ShapeData.Box,
+        info.waves.update(lastFloats = focusedBox.floats[6], focusedBox)
+      ].flat())
+
+      write()
+    }
+    else {
+      if (lastFloats) {
+        info.waves.data = new Float32Array(info.waves.update(lastFloats))
+        write()
+        lastFloats = null
+      }
+    }
     if (focusedBox.notes) {
       const { notes } = focusedBox
       const scale = notes.scale = getNotesScale(notes)
@@ -602,8 +646,9 @@ export function Grid(surface: Surface) {
             1, // ptr
             0, // len
             isHovering
-              ? 0xffffff
-              : focusedBox.color,
+              ? state.primaryColorInt
+              : focusedBox.colorBright
+            ,
             isHovering ? 1 : .45 + (.55 * vel) // alpha
           ] as ShapeData.Box
         }).filter(Boolean).flat()
@@ -622,14 +667,30 @@ export function Grid(surface: Surface) {
   // info.focusedBox = boxes.rows[0][1].data
   // zoomBox(info.focusedBox)
 
-  return { info, write, view, mouse, mousePos, intentMatrix, lastFarMatrix, handleWheelScaleX, updateHoveringBox, handleWheelZoom }
+  return {
+    info,
+    waves,
+    write,
+    view,
+    mouse,
+    mousePos,
+    intentMatrix,
+    lastFarMatrix,
+    handleWheelZoom,
+    handleWheelScaleX,
+    updateHoveringBox,
+  }
 }
 
 type BoxData = RectLike & {
   ptr: number
   color: number
+  hexColor: string
+  colorBright: number
+  colorBrighter: number
   setColor: (color: number) => void
   notes?: BoxNotes
+  floats?: number[]
 }
 
 const boxesHitmap = new Map<string, BoxData>()
@@ -651,8 +712,16 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
       const color = Math.floor((0x990000 + 0xfff * (Math.sin(ry * 10) * 0.5 + 0.5)) % 0xffffff)
       // const color = Math.floor((0xdd0000 + 0xfffff * (Math.sin(ry * 10) * 0.5 + 0.5)) % 0xffffff)
 
+      const hexColor = '#' + color.toString(16).padStart(6, '0')
+
       const boxData: BoxData = {
-        x, y, w, h, ptr, color, setColor(color: number) {
+        x, y, w, h,
+        ptr,
+        color,
+        hexColor,
+        colorBright: hexToInt(saturate(luminate(hexColor, .1), 2.)),
+        colorBrighter: hexToInt(saturate(luminate(hexColor, .15), 3.)),
+        setColor(color: number) {
           setColor(this.ptr, color)
         }
       }
@@ -694,23 +763,36 @@ function Waves(boxes: ReturnType<typeof Boxes>) {
     floats = Floats(waveform)
   }
 
-  const data = new Float32Array(boxes.rows
-    .filter((_, y) => y % 2 === 1)
-    .map(cols =>
-      cols.map(([, x, y, w, h]) =>
-        [
-          ShapeOpts.Wave,
-          x, y, w, h, // same dims as the box
-          1, // lw
-          floats.ptr, // ptr
-          waveform.length, // len
-          0x0, //0ffff, // color
-          1.0, // alpha
-        ] as ShapeData.Wave
+  function update(ptr: number, highlightBox?: BoxData) {
+    return boxes.rows
+      .filter((_, y) => y % 2 === 1)
+      .map(cols =>
+        cols.map(box => {
+          const [, x, y, w, h] = box
+          let color: number = 0x0
+          if (box.data) {
+            color = highlightBox === box.data
+              ? box.data.colorBrighter
+              : 0x0
+          }
+          const f = [
+            ShapeOpts.Wave,
+            x, y, w, h, // same dims as the box
+            1, // lw
+            ptr, // ptr
+            waveform.length, // len
+            color, // color
+            1.0, // alpha
+          ] as ShapeData.Wave
+          box.data.floats = f
+          return f
+        }).flat()
       ).flat()
-    ).flat())
+  }
 
-  return { data }
+  const data = new Float32Array(update(floats.ptr))
+
+  return { data, update }
 }
 
 interface Note {
@@ -736,7 +818,7 @@ function createDemoNotes(
 
     for (let n = 0; n < count; n++) {
       const note = {
-        n: y + n * (2 + Math.round(Math.random() * 2)), ///* i === 0 ? 127 - n * 3 :  */base + i + n * 3,
+        n: y + n * (2 + Math.round(Math.random() * 2)),
         time,
         length,
         vel: Math.random()

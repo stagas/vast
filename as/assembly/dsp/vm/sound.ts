@@ -38,7 +38,7 @@ export class Sound {
 
   literals: StaticArray<f32> = new StaticArray<f32>(MAX_LITERALS)
   scalars: StaticArray<f32> = new StaticArray<f32>(MAX_SCALARS)
-  audios: StaticArray<f32>[] = []
+  audios: Array<StaticArray<f32> | null> = []
   lists: StaticArray<i32> = new StaticArray<i32>(MAX_LISTS)
   floats: StaticArray<i32> = new StaticArray<i32>(MAX_FLOATS)
 

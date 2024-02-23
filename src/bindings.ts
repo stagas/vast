@@ -22,7 +22,7 @@ else {
 
 const wasm = await instantiate(mod, {
   env: {
-    log,
+    log: console.log,
   }
 })
 
@@ -51,6 +51,7 @@ function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
       return Object.assign(arr as TypedArray<T>, { ptr })
     }
     catch (err) {
+      console.error(err)
       console.error('Failed alloc:', bytes, ' - will attempt to free memory.')
       const [first, ...rest] = lru
       lru = new Set(rest)
@@ -63,8 +64,11 @@ function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   // NOTE: We can't allocate any wasm memory.
   //  This is a catastrophic error so we choose to _refresh_ the page.
   //  Might not be ideal in all situations.
-  //
-  location.href = location.href
+  // We shouldn't refresh if the failure is right after a new refresh,
+  // otherwise we enter into infinite refreshes loop.
+  if (+new Date() - +new Date(performance.timeOrigin) > 10_000) {
+    location.href = location.href
+  }
 
   throw new Error('Cannot allocate wasm memory.')
 }

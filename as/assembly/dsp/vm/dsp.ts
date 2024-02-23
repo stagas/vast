@@ -1,5 +1,6 @@
 import { Factory } from '../../../../generated/assembly/dsp-factory'
 import { Offsets } from '../../../../generated/assembly/dsp-offsets'
+import { logi } from '../../env'
 import { modWrap } from '../../util'
 import { BUFFER_SIZE } from '../constants'
 import { fill } from '../graph/fill'

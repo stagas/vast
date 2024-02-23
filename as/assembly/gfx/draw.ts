@@ -169,39 +169,41 @@ export function draw(
         let n: f32 = 0
         let n_len = wave.len
 
-        if (ma < 10) {
-          p_index += i32(wave.len)
-          n_len = Mathf.floor(wave.len / 16.0)
+        // if (ma < 10) {
+        //   p_index += i32(wave.len)
+        //   n_len = Mathf.floor(wave.len / 16.0)
 
-          if (ma < 2) {
-            p_index += i32(n_len * 2.0)
-            n_len = Mathf.floor(((wave.len / 16.0) * 2.0) / 4.0)
+        //   if (ma < 2) {
+        //     p_index += i32(n_len * 2.0)
+        //     n_len = Mathf.floor(((wave.len / 16.0) * 2.0) / 4.0)
 
-            if (ma < 1) {
-              p_index += i32(n_len)
-              // logf(111)
-              x_step = 1
-              coeff = 1
-              n_len = 2
-            }
-            else {
-              // logf(222)
-              x_step **= 1.5
-              // x_step = .01
-              x_step = Mathf.max(0.0085, x_step)
-              coeff = sample_coeff / (8.0 / x_step)
-              // logf2(x_step, coeff)
-            }
-          }
-          else {
-            // logf(333)
-            x_step **= 1.5
-            x_step = Mathf.max(0.03, x_step)
-            coeff = sample_coeff / (4.0 / x_step)
-          }
+        //     if (ma < 1) {
+        //       p_index += i32(n_len)
+        //       // logf(111)
+        //       x_step = 1
+        //       coeff = 1
+        //       n_len = 2
+        //     }
+        //     else {
+        //       // logf(222)
+        //       x_step **= 1.5
+        //       // x_step = .01
+        //       x_step = Mathf.max(0.0085, x_step)
+        //       coeff = sample_coeff / (8.0 / x_step)
+        //       // logf2(x_step, coeff)
+        //     }
+        //   }
+        //   else {
+        //     // logf(333)
+        //     x_step **= 1.5
+        //     x_step = Mathf.max(0.03, x_step)
+        //     // x_step = .1
+        //     coeff = sample_coeff / (4.0 / x_step)
+        //     // n_len = wave.len
+        //   }
 
-          p += p_index << 2
-        }
+        //   p += p_index << 2
+        // }
 
         // logf(f32(p))
         // logf(f32(ma))
@@ -268,6 +270,7 @@ export function draw(
         const n_step = coeff
 
         if (x_step === 1 && ma < 10) {
+          // logf(555555)
           // n = 0
           let nx: f32 = 0 //(n * coeff) % n_len
           let s = f32.load(p + (i32(nx) << 2))
@@ -355,6 +358,8 @@ export function draw(
 
           // draw for every pixel step
           // right -= 2
+
+          right -= f32(x_step * (0.002 * ma))
 
           do {
             cx += x_step

@@ -46,7 +46,6 @@ const api = [
   ...fns.map(({ fn, args }) => `${fn}(${args.map(([name, type]) =>
     `${name}: ${numericTypes.has(type) ? type : 'usize'}`).join(', ')}): void {
   ops_u32[i++] = Op.${fn}
-  ops_u32[i++] = ctx$
 ${indent(2, args.map(([name, type]) => `ops_${numericTypes.has(type) ? type : 'u32'}[i++] = ${name}`).join('\n'))}
 }`
   )
@@ -59,12 +58,17 @@ import { Op } from '../assembly/dsp-op.ts'
 
 ${[...numericTypes].map(x => `type ${x} = number`).join('\n')}
 
-export function createVm(ctx$: number, ops: Int32Array) {
+export type DspVm = ReturnType<typeof createVm>
+
+export function createVm(ops: Int32Array) {
   const ops_i32 = ops
   const ops_u32 = new Uint32Array(ops.buffer, ops.byteOffset, ops.length)
   const ops_f32 = new Float32Array(ops.buffer, ops.byteOffset, ops.length)
   let i = 0
   return {
+    get index() {
+      return i
+    },
 ${indent(4, api.join(',\n'))}
   }
 }
@@ -92,16 +96,17 @@ ${indent(2, fns.map(({ fn }) => `${fn}`).join(',\n'))}
 import { Op } from './dsp-op'
 import { Dsp, DspBinaryOp } from '../../as/assembly/dsp/vm/dsp'
 import { Sound } from '../../as/assembly/dsp/vm/sound'
+import { logi } from '../../as/assembly/env'
 
-export function run(dsp$: usize, ctx$: usize, ops$: usize, begin: i32, end: i32): void {
-  const dsp = changetype<Dsp>(dsp$)
-  const ctx = changetype<Sound>(ctx$)
+const dsp = new Dsp()
+
+export function run(ctx: Sound, ops$: usize): void {
   const ops = changetype<StaticArray<i32>>(ops$)
 
-  let i: i32 = begin
+  let i: i32 = 0
   let op: i32 = 0
 
-  while (i < end && unchecked(op = ops[i++])) {
+  while (unchecked(op = ops[i++])) {
     switch (op) {
 
 ${indent(6, fns.map(({ fn, args }) =>
