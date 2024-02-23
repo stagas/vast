@@ -49,4 +49,11 @@ export class Sound {
       gen._reset()
     })
   }
+
+  clear(): void {
+    this.gens = []
+    this.offsets = []
+    this.values = []
+    this.audios = []
+  }
 }

@@ -9,6 +9,7 @@ import { LerpMatrix } from './util/geometry.ts'
 import { hexToInt } from './util/rgb.ts'
 import { Mesh } from './webgl.ts'
 import { AnimMode } from './world/anim.ts'
+import { Track } from './dsp/track.ts'
 
 const DEBUG = true
 
@@ -59,27 +60,50 @@ class State {
 
   meshes = new Set<Mesh>()
 
+  tracks = [] as Track[]
+
   hoveringBoxToolbar = false
 
   source = $(new Source<Token>(tokenize), {
-    code: `; square after bass
-[sqr (90 104 90 127) t ?
- [sqr 8 co* t .5*] norm 13 *
- [tri 12 co* t .5*] norm 7 *
- + + t]
+    code: `[saw 232.01]
+1 [inc .083 co* t 4*] clip - *`
+//     `[saw 22.01]
+// 1 [inc .1 co* t 4*] clip - *`
+    //`[saw 22.01] 1 [inc .1 co* t] clip - *`
+    //`[saw 22.01] [exp 2 co*] *` //`[inc .01]`
 
- [exp 16 co* t] 2.0^ [lp 8] *
- [exp .5 co* t] .01^ [lp 4] *
+// `; techno kick
+// 1 [inc .185 t 4*]
+//  clip - 4.2^
+//  env=
+// [inc 5.5 t 4*]
+//  clip 55^
+// [inc .17 t 4*]
+//  clip 8.85^ 1- *
+//  env2=
+// [sin 86 112 env* + t 4*]
+//  env2*
+// .50*
+// `
+    //  `; square after bass
+    // [sqr (90 104 90 127) t ?
+    //  [sqr 8 co* t .5*] norm 13 *
+    //  [tri 12 co* t .5*] norm 7 *
+    //  + + t]
 
-[slp 3000 4000 [tri 1] *
- [exp 16 co* t] .57^ [lp 42] *
- + 0.75]
+    //  [exp 16 co* t] 2.0^ [lp 8] *
+    //  [exp .5 co* t] .01^ [lp 4] *
 
-[inc .11 t 4*] clip 50.15^
- .3 + clip *
+    // [slp 3000 4000 [tri 1] *
+    //  [exp 16 co* t] .57^ [lp 42] *
+    //  + 0.75]
 
- .6*
-` })
+    // [inc .11 t 4*] clip 50.15^
+    //  .3 + clip *
+
+    //  .6*
+    // `
+  })
 
 }
 

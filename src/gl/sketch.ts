@@ -312,6 +312,17 @@ export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
   const { info, range, write, writeGL, shapes, shape, draw: sketchDraw } = sketch
   const { use } = info
 
+  wasm.setFlushSketchFn(() => {
+    DEBUG && log('[sketch] draw', shapes.count)
+
+    writeGL()
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, range.count)
+
+    range.begin =
+      range.end =
+      range.count = 0
+  })
+
   function draw() {
     use()
 
@@ -319,35 +330,37 @@ export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
       range.end =
       range.count = 0
 
-    let index = 0
-    let lastIndex = -2
-    let previousLastIndex = -3
-    while (index = sketchDraw(
+    // let index = 0
+    // let lastIndex = -2
+    // let previousLastIndex = -3
+    // while (index =
+    sketchDraw(
       mat2d,
       view,
-      index,
+      0,
       shapes.count
-    )) {
-      if (previousLastIndex === index) {
-        // we're in an infinite loop, so stop drawing
-        break
-      }
+    )
+    // ) {
+    //   if (previousLastIndex === index) {
+    //     // we're in an infinite loop, so stop drawing
+    //     break
+    //   }
 
-      DEBUG && log('[sketch] draw', index, index >= 0 ? shapes.count - index : '---')
+    //   DEBUG && log('[sketch] draw', index, index >= 0 ? shapes.count - index : '---')
 
-      writeGL()
+    //   writeGL()
 
-      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, range.count)
+    //   gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, range.count)
 
-      if (index === -1) break
+    //   if (index === -1) break
 
-      previousLastIndex = lastIndex
-      lastIndex = index
+    //   previousLastIndex = lastIndex
+    //   lastIndex = index
 
-      range.begin =
-        range.end =
-        range.count = 0
-    }
+    //   range.begin =
+    //     range.end =
+    //     range.count = 0
+    // }
   }
 
   return { draw, shapes, shape, info, write }

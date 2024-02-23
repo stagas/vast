@@ -1,3 +1,4 @@
+// TypeScript + AssemblyScript Ops Enum
 // auto-generated from scripts
 export enum Op {
   End,

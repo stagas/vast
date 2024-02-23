@@ -1,4 +1,4 @@
-import { logf, logf2, logf3, logf4, logf6 } from '../env'
+import { flushSketch, logf, logf2, logf3, logf4, logf6, logi } from '../env'
 import { Sketch } from './sketch-class'
 import { Box, SHAPE_LENGTH, MAX_GL_INSTANCES, Matrix, VertOpts, Wave, ShapeOpts, Shape, Line } from './sketch-shared'
 import { Floats } from '../util'
@@ -12,7 +12,7 @@ export function draw(
 
   begin: i32,
   end: i32,
-): i32 {
+): void {
   const sketch = changetype<Sketch>(sketch$)
   const range = sketch.range
   const shapes$ = sketch.shapes$
@@ -34,6 +34,9 @@ export function draw(
   // let wave_step: f32 = Mathf.max(0.01, Mathf.min(1.0, .005 * ma ** 1.1))
   // logf(wave_step)
   const x_gap: f32 = ma > 5 ? 1 : 0 //ma > .5 ? ma / 5 : 0
+
+  let px: f32 = 0
+  let py: f32 = 0
 
   for (let i = begin, next_i: i32; i < end; i = next_i) {
     next_i = i + 1
@@ -75,7 +78,10 @@ export function draw(
         if (count === MAX_GL_INSTANCES && next_i < end) {
           range.end = ptr
           range.count = count
-          return next_i // we've drawn this shape, go to next shape in the next iteration
+          flushSketch()
+          ptr = 0
+          count = 0
+          // return next_i // we've drawn this shape, go to next shape in the next iteration
         }
         continue
       }
@@ -122,7 +128,10 @@ export function draw(
         if (count === MAX_GL_INSTANCES && next_i < end) {
           range.end = ptr
           range.count = count
-          return next_i // we've drawn this shape, go to next shape in the next iteration
+          flushSketch()
+          ptr = 0
+          count = 0
+          // return next_i // we've drawn this shape, go to next shape in the next iteration
         }
         continue
       }
@@ -153,8 +162,8 @@ export function draw(
         // determine sampling coeff based on
         // the horizontal zoom level (m.a).
         //
-        const MAX_ZOOM: f32 = 4
-        const BASE_SAMPLES: f32 = 2048
+        const MAX_ZOOM: f32 = 1
+        const BASE_SAMPLES: f32 = 8192
         const NUM_SAMPLES: f32 = BASE_SAMPLES / MAX_ZOOM
         const sample_coeff: f32 = f32(NUM_SAMPLES / ma)
         let coeff: f32 = sample_coeff / (1.0 / x_step)
@@ -254,10 +263,13 @@ export function draw(
         // logf(f32(cw))
         // logf4(f32(steps), x_step, cx, cw)
         // do we have enough lines to draw?
-        if (count + steps >= MAX_GL_INSTANCES) {
+        if (count + steps + 1 >= MAX_GL_INSTANCES) {
           range.end = ptr
           range.count = count
-          return i // repeat this shape in the next iteration
+          flushSketch()
+          ptr = 0
+          count = 0
+          // return i // repeat this shape in the next iteration
         }
 
         const hh: f32 = h / 2
@@ -278,6 +290,18 @@ export function draw(
           // move to v0
           // let x0 = cx
           let y0 = y + hh + s * hh // TODO: hh in shader?
+
+          if (opts & ShapeOpts.Join) {
+            sketch.putLine(
+              ptr,
+              px, py,
+              cx, y0,
+              wave.color, wave.alpha,
+              1.5
+            )
+            ptr++
+            count++
+          }
 
           // cx += x_step
           nx += n_step
@@ -301,6 +325,9 @@ export function draw(
 
             cx += 1.0
           } while (cx < right)
+
+          px = cx
+          py = y0
         }
         else if (n_step > x_step * 4.0) {
           // logf(66666)
@@ -313,10 +340,22 @@ export function draw(
           let y0 = y + hh + s * hh // TODO: hh in shader?
 
           // draw for every pixel step
-          right -= 1
+          // right -= 1
 
           const lw: f32 = 1.4 + f32(x_step * 0.85)
           // logf(lw)
+
+          if (opts & ShapeOpts.Join) {
+            sketch.putLine(
+              ptr,
+              px, py,
+              x0, y0,
+              wave.color, wave.alpha,
+              lw
+            )
+            ptr++
+            count++
+          }
 
           do {
             cx += x_step
@@ -343,6 +382,9 @@ export function draw(
             x0 = x1
             y0 = y1
           } while (cx < right)
+
+          px = x0
+          py = y0
         }
         else {
           // logf(777777)
@@ -356,8 +398,20 @@ export function draw(
           let x0 = cx
           let y0 = y + hh + s * hh // TODO: hh in shader?
 
+          if (opts & ShapeOpts.Join) {
+            sketch.putLine(
+              ptr,
+              px, py,
+              x0, y0,
+              wave.color, wave.alpha,
+              1.5
+            )
+            ptr++
+            count++
+          }
+
           // draw for every pixel step
-          // right -= 2
+          // right -= 1
 
           right -= f32(x_step * (0.002 * ma))
 
@@ -387,6 +441,9 @@ export function draw(
             x0 = x1
             y0 = y1
           } while (cx < right)
+
+          px = x0
+          py = y0
         }
 
         if (next_i < end) {
@@ -399,7 +456,8 @@ export function draw(
 
   range.end = ptr
   range.count = count
-  return -1
+  flushSketch()
+  // return -1
 }
 
 // @ts-ignore

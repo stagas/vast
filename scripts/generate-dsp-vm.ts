@@ -37,24 +37,29 @@ const fns = [...code.matchAll(parseFuncsRegExp)].map(m => ({
 
 const api = [
   `Begin(): void {
+  DEBUG && console.log('Begin')
   i = 0
 }`,
   `End(): number {
+  DEBUG && console.log('End')
   ops_u32[i++] = 0
   return i
 }`,
   ...fns.map(({ fn, args }) => `${fn}(${args.map(([name, type]) =>
     `${name}: ${numericTypes.has(type) ? type : 'usize'}`).join(', ')}): void {
+  DEBUG && console.log('${fn}', ${args.map(([name, type]) => name).join(', ')})
   ops_u32[i++] = Op.${fn}
 ${indent(2, args.map(([name, type]) => `ops_${numericTypes.has(type) ? type : 'u32'}[i++] = ${name}`).join('\n'))}
 }`
   )
 ]
 
-{ // TypeScript VM Producer Factory
+{
   const out = /*ts*/`\
+// TypeScript VM Producer Factory
 // auto-generated from scripts
 import { Op } from '../assembly/dsp-op.ts'
+import { DEBUG } from '../../src/constants.ts'
 
 ${[...numericTypes].map(x => `type ${x} = number`).join('\n')}
 
@@ -77,8 +82,9 @@ ${indent(4, api.join(',\n'))}
   writeIfNotEqual(outFilename, out)
 }
 
-{ // TypeScript + AssemblyScript Ops Enum
+{
   const out = /*ts*/`\
+// TypeScript + AssemblyScript Ops Enum
 // auto-generated from scripts
 export enum Op {
   End,
@@ -90,8 +96,9 @@ ${indent(2, fns.map(({ fn }) => `${fn}`).join(',\n'))}
   writeIfNotEqual(outFilename, out)
 }
 
-{ // AssemblyScript VM Runner
+{
   const out = /*ts*/`\
+// AssemblyScript VM Runner
 // auto-generated from scripts
 import { Op } from './dsp-op'
 import { Dsp, DspBinaryOp } from '../../as/assembly/dsp/vm/dsp'

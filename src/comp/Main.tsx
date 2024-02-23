@@ -20,49 +20,14 @@ import { dspGens } from '../../generated/typescript/dsp-gens.ts'
 import { getAllProps } from '../dsp/util.ts'
 import { Floats } from '../util/floats.ts'
 import { tokenize } from '../lang/tokenize.ts'
+import { Track } from '../dsp/track.ts'
+import { Source } from '../source.ts'
 
 const DEBUG = true
 
 export function Main() {
   DEBUG && console.log('[main] create')
   using $ = Signal()
-
-  const dir = `./`
-  // const fontFilename = 'Brass.woff2'
-  // const fontFilename = 'CascadiaCode.woff2'
-  // const fontFilename = 'CascadiaMono.woff2'
-  // const fontFilename = 'Cousine-Regular.woff2'
-  // const fontFilename = 'FantasqueSansMono-Regular.woff2'
-  // const fontFilename = 'hack-regular.woff2'
-  // const fontFilename = 'halflings-regular.woff2'
-  const fontFilename = 'Hermit-Regular.woff2'
-  // const fontFilename = 'Iosevka-Term.woff2'
-  // const fontFilename = 'JuliaMono-Regular.woff2'
-  // const fontFilename = 'Monocraft.woff2'
-  // const fontFilename = 'Monoid-Regular.woff2'
-  // const fontFilename = 'Monoid-Retina.woff2'
-  // const fontFilename = 'MonoMusic-Regular.woff2'
-  // const fontFilename = 'mplus-1m-regular.woff2'
-  // const fontFilename = 'MPlus.woff2'
-  // const fontFilename = 'SpaceMono-Regular.woff2'
-  // const fontFilename = 'Miracode.ttf'
-  function makeCss() {
-    return /*css*/`
-      @font-face {
-        font-family: 'Mono';
-        src: url('${dir}${fontFilename}');
-        src: url('${dir}${fontFilename}') format('woff2');
-        font-weight: normal;
-        font-style: normal;
-      }
-
-      .mono { font-family: 'Mono', monospace; }
-      .hidden { display: none !important; }
-    `
-  }
-  const style = <style />
-  style.textContent = makeCss()
-  document.head.append(style)
 
   const sidebar = <aside />
   const article = <article />
@@ -88,21 +53,19 @@ export function Main() {
   const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
   const dsp = Dsp(ctx)
   const sound = dsp.Sound()
+  const t0 = Track(dsp, state.source) //$(new Source(tokenize), { code: '[saw 330]' }))
+  state.tracks = [t0]
+  t0.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 0, w: 16, h: 1 }), shape: null })]
   $.fx(() => {
     const { grid } = $.of(info)
-    const { tokens } = state.source
+    const { boxes, floats } = t0.info
+    for (const box of boxes) {
+      if (!box.shape) return
+    }
     $()
-    //[...tokenize({ code: '[sin 130]' })]
-    const out = sound.process(tokens)
-    console.log(out)
-    // const out = sound.api.gen.ramp({ hz: 130 })
-    // sound.commit()
-    sound.data.end = 2048
-    sound.run()
-
-    const floats = Floats(sound.getAudio(out.LR.audio$).subarray(0, 2048))
-    grid.waves.data = new Float32Array(grid.waves.update(floats.ptr))
-    grid.write()
+    // for (const box of boxes) {
+    //   console.log(box.shape, floats)
+    // }
   })
 
   const view = $(new Rect, { pr: state.$.pr })

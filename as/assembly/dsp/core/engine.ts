@@ -1,16 +1,8 @@
-import { allocF32, rateToPhaseStep } from '../../util'
-import { BUFFER_SIZE } from '../constants'
+import { rateToPhaseStep } from '../../util'
 import { Clock } from './clock'
 import { WAVETABLE_SIZE } from './constants'
 import { Wavetable } from './wavetable'
 
-export class Signal {
-  L: StaticArray<f32> = new StaticArray<f32>(BUFFER_SIZE)
-  R: StaticArray<f32> = new StaticArray<f32>(BUFFER_SIZE)
-  LR: StaticArray<f32> = new StaticArray<f32>(BUFFER_SIZE)
-}
-
-// @unmanaged
 export class Core {
   wavetable: Wavetable
   constructor(public sampleRate: u32) {
@@ -18,11 +10,9 @@ export class Core {
   }
 }
 
-// @unmanaged
 export class Engine {
   wavetable: Wavetable
   clock: Clock
-  signal: Signal = new Signal()
 
   rateSamples: u32
   rateSamplesRecip: f64
@@ -42,9 +32,5 @@ export class Engine {
     this.rateSamplesRecip = (1.0 / f64(sampleRate))
     this.rateStep = rateToPhaseStep(sampleRate)
     this.samplesPerMs = f64(sampleRate) / 1000
-  }
-
-  createBlock(blockSize: u32): StaticArray<f32> {
-    return allocF32(blockSize)
   }
 }

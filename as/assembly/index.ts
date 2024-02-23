@@ -4,6 +4,7 @@ export * from './gfx/sketch'
 export * from '../../generated/assembly/dsp-factory'
 export { run as dspRun } from '../../generated/assembly/dsp-runner'
 
+import { Clock } from './dsp/core/clock'
 import { Core, Engine } from './dsp/core/engine'
 import { Sound } from './dsp/vm/sound'
 import { logf, logi } from './env'
@@ -20,8 +21,26 @@ export function getEngineClock(engine: Engine): usize {
   return changetype<usize>(engine.clock)
 }
 
+export function resetClock(clock$: usize): void {
+  const clock = changetype<Clock>(clock$)
+  clock.reset()
+}
+
+export function updateClock(clock$: usize): void {
+  const clock = changetype<Clock>(clock$)
+  clock.update()
+}
+
 export function createSound(engine: Engine): Sound {
   return new Sound(engine)
+}
+
+export function resetSound(sound: Sound): void {
+  sound.reset()
+}
+
+export function clearSound(sound: Sound): void {
+  sound.clear()
 }
 
 export function getSoundData(sound: Sound): usize {

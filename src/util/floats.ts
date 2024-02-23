@@ -24,7 +24,10 @@ export function Floats(waveform: Float32Array) {
   const pxPtr = tinyPtr + tinySize // when < 1 pixel in width
   const size = pxPtr + pxSize
 
-  const floats = wasm.alloc(Float32Array, size)
+  const floats = Object.assign(
+    wasm.alloc(Float32Array, size),
+    { len: waveformLength }
+  )
   floats.set(waveform)
 
   for (let n = 0; n < smallLength; n++) {

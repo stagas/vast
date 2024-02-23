@@ -9,6 +9,7 @@ import { Value } from './value.ts'
 import { Token, tokenize } from '../lang/tokenize.ts'
 import { AstNode, interpret } from '../lang/interpreter.ts'
 import { parseNumber } from '../lang/util.ts'
+import { $ } from 'signal-jsx'
 
 const DEBUG = true
 
@@ -83,6 +84,11 @@ export function Dsp({
   const clock$ = wasm.getEngineClock(engine$)
   const clock = Clock(wasm.memory.buffer, clock$)
 
+  const info = $({
+    tokensAstNode: new Map<Token, AstNode>(),
+    error: null as null | Error,
+  })
+
   const view = getMemoryView(wasm.memory)
 
   preludeTokens ??= [...tokenize({
@@ -119,6 +125,10 @@ export function Dsp({
     preset.set()
 
     function reset() {
+      wasm.resetSound(sound$)
+    }
+
+    function prepare() {
       context.gens =
         context.audios =
         context.literals =
@@ -444,6 +454,9 @@ export function Dsp({
           [Token.Type.Id, Token.Type.Op].includes(t.type)
         ).map(t => t.text).join('')
 
+      const isNew = hashId !== prevHashId
+      prevHashId = hashId
+
       // replace number tokens with literal references ids
       // and populate initial scope for those ids.
       for (const t of tokensCopy) {
@@ -459,7 +472,10 @@ export function Dsp({
 
       vm.Begin()
       setup_vm.Begin()
-      reset()
+      prepare()
+      if (isNew) {
+        wasm.clearSound(sound$)
+      }
 
       globals.sr = sound.Value.Scalar.create()
       globals.t = sound.Value.Scalar.create()
@@ -472,15 +488,16 @@ export function Dsp({
       scope.rt = new AstNode(AstNode.Type.Result, { value: rt })
       scope.co = new AstNode(AstNode.Type.Result, { value: co })
 
-      scalars[sr.ptr] = clock.sampleRate
-      scalars[t.ptr] = clock.barTime
-      scalars[rt.ptr] = clock.time
-      scalars[co.ptr] = clock.coeff
-      console.log(scalars)
+      function updateClock() {
+        scalars[sr.ptr] = clock.sampleRate
+        scalars[t.ptr] = clock.barTime
+        scalars[rt.ptr] = clock.time
+        scalars[co.ptr] = clock.coeff
+      }
+
+      updateClock()
 
       const program = interpret(sound, scope, tokensCopy)
-      // state.tokensAstNode = program.value.tokensAstNode
-      // state.error = null
 
       let L = program.scope.data['L']
       let R = program.scope.data['R']
@@ -503,12 +520,11 @@ export function Dsp({
 
       commit()
 
-      if (hashId !== prevHashId) {
+      if (isNew) {
         setup()
-        prevHashId = hashId
       }
 
-      return out
+      return { program, out, updateClock, isNew }
     }
 
     const sound = {
@@ -522,6 +538,7 @@ export function Dsp({
       setup_ops,
       preset,
       run,
+      reset,
       commit,
       getAudio,
       createLiteralsPreset,
@@ -534,7 +551,7 @@ export function Dsp({
     return sound
   }
 
-  return { engine$, core$, Sound }
+  return { engine$, core$, clock, Sound }
 }
 
 const commutative = new Set([DspBinaryOp.Add, DspBinaryOp.Mul])

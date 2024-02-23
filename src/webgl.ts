@@ -22,7 +22,7 @@ export function WebGL(world: World, canvas: HTMLCanvasElement, alpha = false) {
   const { view } = world
 
   const GL = initGL(canvas, {
-    antialias: false,
+    antialias: true,
     alpha,
     preserveDrawingBuffer: true
   })

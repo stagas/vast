@@ -20,9 +20,17 @@ else {
   mod = await WebAssembly.compileStreaming(fetch(url))
 }
 
+let flushSketchFn = () => {}
+function setFlushSketchFn(fn: () => void) {
+  flushSketchFn = fn
+}
+
 const wasm = await instantiate(mod, {
   env: {
     log: console.log,
+    flushSketch() {
+      flushSketchFn()
+    }
   }
 })
 
@@ -47,8 +55,16 @@ function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
     try {
       const ptr = wasm.__pin(wasm.__new(bytes, 1))
       const arr = new ctor(wasm.memory.buffer, ptr, length)
-      reg.register(arr, ptr)
-      return Object.assign(arr as TypedArray<T>, { ptr })
+      const unreg = {}
+      reg.register(arr, ptr, unreg)
+      return Object.assign(arr as TypedArray<T>, {
+        ptr,
+        free() {
+          reg.unregister(unreg)
+          wasm.__unpin(ptr)
+          lru.delete(ptr)
+        }
+      })
     }
     catch (err) {
       console.error(err)
@@ -73,7 +89,7 @@ function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   throw new Error('Cannot allocate wasm memory.')
 }
 
-export default Object.assign(wasm, { alloc })
+export default Object.assign(wasm, { alloc, setFlushSketchFn })
 
 if (import.meta.vitest) {
   describe('alloc', () => {

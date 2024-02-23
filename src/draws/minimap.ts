@@ -4,6 +4,7 @@ import { dom } from 'utils'
 import { Canvas } from '../comp/Canvas.tsx'
 import { log, state } from '../state.ts'
 import { Grid } from './grid.ts'
+import { CODE_WIDTH } from '../constants.ts'
 
 const DEBUG = true
 
@@ -24,7 +25,7 @@ export function Minimap(grid: Grid) {
 
   $.fx(() => dom.on(handle, 'wheel', e => {
     const m = grid.intentMatrix
-    grid.mousePos.x = -m.e / m.a //+ grid.view.w / m.a / view.pr
+    grid.mousePos.x = -m.e / m.a - CODE_WIDTH //+ grid.view.w / m.a / view.pr
     grid.mousePos.y = -m.f / m.d //+ grid.view.h / m.d / view.pr
     grid.handleWheelScaleX(e)
     log('wheel', grid.mousePos.x, grid.mousePos.y)

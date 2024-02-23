@@ -1,3 +1,4 @@
+// AssemblyScript VM Runner
 // auto-generated from scripts
 import { Op } from './dsp-op'
 import { Dsp, DspBinaryOp } from '../../as/assembly/dsp/vm/dsp'

@@ -10,6 +10,7 @@ import { Floats } from '../util/floats.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { waveform } from '../util/waveform.ts'
 import { hexToInt } from '../util/rgb.ts'
+import { Track } from '../dsp/track.ts'
 
 const DEBUG = true
 const SCALE_X = 1
@@ -20,7 +21,7 @@ export function Grid(surface: Surface) {
   using $ = Signal()
 
   const { anim, mouse, keyboard, view, intentMatrix, viewMatrix, sketch } = surface
-  const { lastFarMatrix, targetMatrix } = state
+  const { lastFarMatrix, targetMatrix, tracks } = state
 
   // create Box data
   const ROWS = 9
@@ -40,15 +41,15 @@ export function Grid(surface: Surface) {
     }
   })
 
-  const boxes = Boxes(ROWS, COLS, SCALE_X)
+  const boxes = Boxes(tracks)
   const waves = Waves(boxes)
-  const notes = Notes(boxes)
+  // const notes = Notes(boxes)
   let pianorollData: Float32Array | null
 
   const info = $({
     boxes,
     waves,
-    notes,
+    // notes,
     focusedBox: null as null | BoxData,
     hoveringBox: null as null | BoxData,
     hoveringNoteN: -1,
@@ -59,13 +60,14 @@ export function Grid(surface: Surface) {
   $.untrack(function initial_scale() {
     if (intentMatrix.a === 1) {
       viewMatrix.a = intentMatrix.a = Math.max(7.27, targetView.w / (COLS * SCALE_X))
-      viewMatrix.d = intentMatrix.d = targetView.h / ROWS
+      viewMatrix.d = intentMatrix.d = targetView.h / Math.max(4, tracks.length)
       viewMatrix.e = intentMatrix.e = state.mode === 'wide' ? 0 : CODE_WIDTH
       lastFarMatrix.set(viewMatrix)
       $.fx(function scale_rows_to_fit_height() {
         const { h } = targetView
+        const { tracks } = state
         $()
-        intentMatrix.d = h / ROWS
+        intentMatrix.d = h / Math.max(4, tracks.length)
       })
     }
   })
@@ -74,7 +76,7 @@ export function Grid(surface: Surface) {
     sketch.shapes.count = 0
     sketch.write(info.boxes.data)
     sketch.write(info.waves.data)
-    sketch.write(info.notes.data)
+    // sketch.write(info.notes.data)
     if (pianorollData) sketch.write(pianorollData)
     anim.info.epoch++
   }
@@ -160,7 +162,7 @@ export function Grid(surface: Surface) {
 
   function handleWheelScaleX(ev: WheelEvent) {
     const { x, y } = mousePos
-    const minZoomX = view.w / info.boxes.right
+    const minZoomX = view.w / Math.max(view.w, info.boxes.right)
     const maxZoomX = 4000
 
     const m = intentMatrix
@@ -296,7 +298,7 @@ export function Grid(surface: Surface) {
           info.focusedBox = null
 
           if (lastFloats) {
-            info.waves.data = new Float32Array(info.waves.update(lastFloats))
+            // info.waves.data = new Float32Array(info.waves.update(lastFloats))
             write()
             lastFloats = null
           }
@@ -374,12 +376,12 @@ export function Grid(surface: Surface) {
     const w = box?.notes ? box.w + 1 : box.w
     const ox = box?.notes ? 1 : 0
     const padY = .082
-    const padX = 10
+    const padX = 0 //10
     Matrix.viewBox(m, targetView, {
-      x: box.x - w / (padX * 2) - ox,
+      x: box.x - ox, // - w / (padX * 2) - ox,
       y: box.y - (box.y ? padY : padY / 2),
-      w: w + w / padX,
-      h: box.h + padY * 2 - (box.y && box.y < boxes.rows.length - 1 ? padY / 2 : padY),
+      w: w - ox, // + w / padX,
+      h: box.h + padY * 1 - (box.y && box.y < boxes.rows.length - 1 ? padY / 2 : padY),
     })
   }
 
@@ -433,7 +435,7 @@ export function Grid(surface: Surface) {
             info.hoveringNote = null
             info.draggingNote = null
             if (info.focusedBox?.notes) {
-              info.notes = Notes(boxes, info.focusedBox.notes)
+              // info.notes = Notes(boxes, info.focusedBox.notes)
             }
             handleHoveringNote()
           }), { once: true })
@@ -518,27 +520,27 @@ export function Grid(surface: Surface) {
 
       // console.log('YO', focusedBox)
 
-      info.waves.data = new Float32Array([
-        [
-          ShapeOpts.Box,
-          cx,
-          cy,
-          cw,
-          ch,
-          1, // lw
-          1, // ptr
-          0, // len
-          0x001144,
-          .62 // alpha
-        ] as ShapeData.Box,
-        info.waves.update(lastFloats = focusedBox.floats[6], focusedBox)
-      ].flat())
+      // info.waves.data = new Float32Array([
+      //   [
+      //     ShapeOpts.Box,
+      //     cx,
+      //     cy,
+      //     cw,
+      //     ch,
+      //     1, // lw
+      //     1, // ptr
+      //     0, // len
+      //     0x001144,
+      //     .62 // alpha
+      //   ] as ShapeData.Box,
+      //   info.waves.update(lastFloats = focusedBox.floats[6], focusedBox)
+      // ].flat())
 
       write()
     }
     else {
       if (lastFloats) {
-        info.waves.data = new Float32Array(info.waves.update(lastFloats))
+        // info.waves.data = new Float32Array(info.waves.update(lastFloats))
         write()
         lastFloats = null
       }
@@ -667,9 +669,24 @@ export function Grid(surface: Surface) {
   // info.focusedBox = boxes.rows[0][1].data
   // zoomBox(info.focusedBox)
 
+  $.fx(() => {
+    const { tracks } = state
+    for (const track of tracks) {
+      track.info.floats
+    }
+    $()
+    info.boxes = Boxes(tracks)
+    info.waves = Waves(boxes)
+    DEBUG && console.log('[grid] updated boxes & waves')
+    write()
+    if (tracks.length === 1) {
+      zoomBox(tracks[0].info.boxes[0].rect)
+    }
+  })
+
   return {
     info,
-    waves,
+    // waves,
     write,
     view,
     mouse,
@@ -683,6 +700,7 @@ export function Grid(surface: Surface) {
 }
 
 type BoxData = RectLike & {
+  track: Track
   ptr: number
   color: number
   hexColor: string
@@ -697,53 +715,69 @@ const boxesHitmap = new Map<string, BoxData>()
 
 const BOX_HOVER_COLOR = 0x777777
 
-function Boxes(rowsLength: number, cols: number, scaleX: number) {
+function Boxes(tracks: Track[]) {
   boxesHitmap.clear()
 
   let right = 0
   let ptr = 0
-  const rows = Array.from({ length: rowsLength }, (_, ry) => {
-    const mul = (ry % 2 === 1 ? 4 : 1)
-    return Array.from({ length: cols * mul }, (_, rx) => {
-      const x = (rx + Math.round(Math.random() * 4)) * (scaleX / mul)
-      const y = ry
-      const w = scaleX / mul // w
-      const h = 1 // h
-      const color = Math.floor((0x990000 + 0xfff * (Math.sin(ry * 10) * 0.5 + 0.5)) % 0xffffff)
-      // const color = Math.floor((0xdd0000 + 0xfffff * (Math.sin(ry * 10) * 0.5 + 0.5)) % 0xffffff)
 
-      const hexColor = '#' + color.toString(16).padStart(6, '0')
+  function createBox(
+    track: Track,
+    x: number,
+    y: number,
+    w: number,
+    color = Math.floor((0x990000 + 0xfff * (Math.sin(18 + y * 1.85) * 0.5 + 0.5)) % 0xffffff)
+  ) {
+    const h = 1
+    const hexColor = '#' + color.toString(16).padStart(6, '0')
 
-      const boxData: BoxData = {
-        x, y, w, h,
-        ptr,
-        color,
-        hexColor,
-        colorBright: hexToInt(saturate(luminate(hexColor, .1), 2.)),
-        colorBrighter: hexToInt(saturate(luminate(hexColor, .15), 3.)),
-        setColor(color: number) {
-          setColor(this.ptr, color)
-        }
+    const boxData: BoxData = {
+      track,
+      x, y, w, h,
+      ptr,
+      color,
+      hexColor,
+      colorBright: hexToInt(saturate(luminate(hexColor, .1), 2.)),
+      colorBrighter: hexToInt(saturate(luminate(hexColor, .15), 3.)),
+      setColor(color: number) {
+        setColor(this.ptr, color)
       }
+    }
 
-      for (let i = x; i < x + w; i++) {
-        boxesHitmap.set(`${i}:${y}`, boxData)
-      }
+    for (let i = x; i < x + w; i++) {
+      boxesHitmap.set(`${i}:${y}`, boxData)
+    }
 
-      right = Math.max(right, x + w)
+    right = Math.max(right, x + w)
 
-      const shape = Object.assign([
-        ShapeOpts.Box,
-        x, y, w, h,
-        1, 1, 0, // lw, ptr, len
-        color, // color
-        1.0 // alpha
-      ] as ShapeData.Box, { ptr, data: boxData })
+    const shape = Object.assign([
+      ShapeOpts.Box,
+      x, y, w, h,
+      1, 1, 0, // lw, ptr, len
+      color, // color
+      1.0 // alpha
+    ] as ShapeData.Box, { ptr, data: boxData })
 
-      ptr += shape.length
+    ptr += shape.length
 
-      return shape
-    })
+    return shape
+  }
+
+  // const rows = Array.from({ length: rowsLength }, (_, ry) => {
+  //   const mul = (ry % 2 === 1 ? 4 : 1)
+  //   return Array.from({ length: cols * mul }, (_, rx) => {
+  //     return createBox(rx, ry, scaleX / mul)
+  //   })
+  // })
+
+  let rows = Array.from(tracks).map(track => {
+    const boxes: ReturnType<typeof createBox>[] = []
+    for (const box of track.info.boxes) {
+      const { x, y, w } = box.rect
+      const shape = box.shape = createBox(track, x, y, w)
+      boxes.push(shape)
+    }
+    return boxes
   })
 
   const data = new Float32Array(rows.flat(Infinity) as number[])
@@ -756,41 +790,50 @@ function Boxes(rowsLength: number, cols: number, scaleX: number) {
   return { rows, right, data, setColor }
 }
 
-let floats: Floats
+// let floats: Floats
 
 function Waves(boxes: ReturnType<typeof Boxes>) {
-  if (!floats) {
-    floats = Floats(waveform)
-  }
+  //   if (!floats) {
+  //     floats = Floats(waveform)
+  //   }
 
-  function update(ptr: number, highlightBox?: BoxData) {
+  function update(highlightBox?: BoxData) {
     return boxes.rows
-      .filter((_, y) => y % 2 === 1)
+      // .filter((_, y) => y % 2 === 1)
       .map(cols =>
         cols.map(box => {
           const [, x, y, w, h] = box
           let color: number = 0x0
+
           if (box.data) {
             color = highlightBox === box.data
               ? box.data.colorBrighter
               : 0x0
           }
+
+          const floats = box.data.track.info.floats
+          if (!floats?.length) return []
+
+          // console.log(floats)
+
           const f = [
             ShapeOpts.Wave,
             x, y, w, h, // same dims as the box
             1, // lw
-            ptr, // ptr
-            waveform.length, // len
+            floats.ptr, // ptr
+            floats.len, // len
             color, // color
             1.0, // alpha
           ] as ShapeData.Wave
+
           box.data.floats = f
+
           return f
         }).flat()
       ).flat()
   }
 
-  const data = new Float32Array(update(floats.ptr))
+  const data = new Float32Array(update())
 
   return { data, update }
 }
@@ -852,46 +895,46 @@ type BoxNotes = Note[] & {
   scale: ReturnType<typeof getNotesScale>
 }
 
-function Notes(boxes: ReturnType<typeof Boxes>, notes = createDemoNotes()) {
-  const scale = getNotesScale(notes)
+// function Notes(boxes: ReturnType<typeof Boxes>, notes = createDemoNotes()) {
+//   const scale = getNotesScale(notes)
 
-  let ptr = 0
-  const data = new Float32Array(boxes.rows
-    .filter((_, ry) => ry % 2 === 0)
-    .map(cols =>
-      cols.map(box => {
-        const [, cx, cy, cw, ch] = box
-        box.data.notes = Object.assign([...notes], { ptr, scale })
+//   let ptr = 0
+//   const data = new Float32Array(boxes.rows
+//     .filter((_, ry) => ry % 2 === 0)
+//     .map(cols =>
+//       cols.map(box => {
+//         const [, cx, cy, cw, ch] = box
+//         box.data.notes = Object.assign([...notes], { ptr, scale })
 
-        const boxNotes = notes.map(({ n, time, length, vel }) => {
-          const x = time * SCALE_X // x
-          if (x > cw) return
+//         const boxNotes = notes.map(({ n, time, length, vel }) => {
+//           const x = time * SCALE_X // x
+//           if (x > cw) return
 
-          const h = ch / scale.N
-          const y = ch - h * (n + 1 - scale.min) // y
+//           const h = ch / scale.N
+//           const y = ch - h * (n + 1 - scale.min) // y
 
-          let w = length * SCALE_X // w
-          if (x + w > cw) {
-            w = cw - x
-          }
+//           let w = length * SCALE_X // w
+//           if (x + w > cw) {
+//             w = cw - x
+//           }
 
-          return [
-            ShapeOpts.Box,
-            cx + x,
-            cy + y,
-            w,
-            h,
-            1, // lw
-            1, // ptr
-            0, // len
-            0x0,
-            .2 + (.8 * vel) // alpha
-          ] as ShapeData.Box
-        })
+//           return [
+//             ShapeOpts.Box,
+//             cx + x,
+//             cy + y,
+//             w,
+//             h,
+//             1, // lw
+//             1, // ptr
+//             0, // len
+//             0x0,
+//             .2 + (.8 * vel) // alpha
+//           ] as ShapeData.Box
+//         })
 
-        return boxNotes.filter(Boolean).flat()
-      }).flat()
-    ).flat())
+//         return boxNotes.filter(Boolean).flat()
+//       }).flat()
+//     ).flat())
 
-  return { data }
-}
+//   return { data }
+// }

@@ -1,5 +1,5 @@
 import { Signal } from 'signal-jsx'
-import { ShapeOpts } from '../../as/assembly/sketch-shared.ts'
+import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
 import { ShapeData } from '../gl/sketch.ts'
 import { Surface } from '../surface.ts'
 import { Floats } from '../util/floats.ts'
