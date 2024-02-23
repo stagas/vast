@@ -77,10 +77,19 @@ export function Main() {
     }
   }, { times: 100_000, raf: true })
 
+  let surface: Surface | undefined
+  // let grid: Grid | undefined
+  let textDraw: TextDraw | undefined
+
+  const info = $({
+    grid: null as null | Grid,
+  })
+
   const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
   const dsp = Dsp(ctx)
   const sound = dsp.Sound()
   $.fx(() => {
+    const { grid } = $.of(info)
     const { tokens } = state.source
     $()
     //[...tokenize({ code: '[sin 130]' })]
@@ -90,11 +99,11 @@ export function Main() {
     // sound.commit()
     sound.data.end = 2048
     sound.run()
-  })
 
-  let surface: Surface | undefined
-  let grid: Grid | undefined
-  let textDraw: TextDraw | undefined
+    const floats = Floats(sound.getAudio(out.LR.audio$).subarray(0, 2048))
+    grid.waves.data = new Float32Array(grid.waves.update(floats.ptr))
+    grid.write()
+  })
 
   const view = $(new Rect, { pr: state.$.pr })
 
@@ -309,14 +318,12 @@ export function Main() {
           // codeDraw ??= CodeDraw(codeSurface)
           // codeDraw.write()
 
-          grid ??= Grid(surface)
-          const floats = Floats(sound.getAudio(0).subarray(0, 2048))
-          grid.waves.data = new Float32Array(grid.waves.update(floats.ptr))
-          grid.write()
+          info.grid ??= Grid(surface)
+          info.grid.write()
 
-          textDraw ??= TextDraw(surface, grid, view)
+          textDraw ??= TextDraw(surface, info.grid, view)
 
-          minimap ??= Minimap(grid)
+          minimap ??= Minimap(info.grid)
           minimapDiv.append(minimap.canvas)
           minimapDiv.append(minimap.handle)
 
