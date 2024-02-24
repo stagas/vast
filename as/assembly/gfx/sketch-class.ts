@@ -1,22 +1,21 @@
-import { VertOpts, VertRange } from './sketch-shared'
+import { flushSketch } from '../env'
 import { Floats } from '../util'
+import { MAX_GL_INSTANCES, VertOpts } from './sketch-shared'
 
 export class Sketch {
-  range: VertRange
+  ptr: u32 = 0
   shapes: Floats
   a_opts: Floats
   a_vert: Floats
   a_color: Floats
   a_lineWidth: Floats
   constructor(
-    public range$: usize,
     public shapes$: usize,
     public a_opts$: usize,
     public a_vert$: usize,
     public a_color$: usize,
     public a_lineWidth$: usize,
   ) {
-    this.range = changetype<VertRange>(range$)
     this.shapes = changetype<Floats>(shapes$)
     this.a_opts = changetype<Floats>(a_opts$)
     this.a_vert = changetype<Floats>(a_vert$)
@@ -24,39 +23,52 @@ export class Sketch {
     this.a_lineWidth = changetype<Floats>(a_lineWidth$)
   }
   @inline
-  putBox(
-    ptr: i32,
+  flush(): void {
+    flushSketch(this.ptr)
+    this.ptr = 0
+  }
+  @inline
+  advance(): void {
+    if (++this.ptr === MAX_GL_INSTANCES) {
+      this.flush()
+    }
+  }
+  @inline
+  drawBox(
     x: f32, y: f32, w: f32, h: f32,
     color: f32,
     alpha: f32,
   ): void {
+    const ptr = this.ptr
     const ptr4 = (ptr * 4) << 2
     const ptr2 = (ptr * 2) << 2
     unchecked(this.a_opts[ptr] = f32(VertOpts.Box))
-    put4(this.a_vert$ + ptr4, x, y, w, h)
-    put2(this.a_color$ + ptr2, color, alpha)
+    store4(this.a_vert$ + ptr4, x, y, w, h)
+    store2(this.a_color$ + ptr2, color, alpha)
+    this.advance()
   }
   @inline
-  putLine(
-    ptr: i32,
+  drawLine(
     x0: f32, y0: f32,
     x1: f32, y1: f32,
     color: f32,
     alpha: f32,
     lineWidth: f32
   ): void {
+    const ptr = this.ptr
     const ptr4 = (ptr * 4) << 2
     const ptr2 = (ptr * 2) << 2
     unchecked(this.a_opts[ptr] = f32(VertOpts.Line))
-    put4(this.a_vert$ + ptr4, x0, y0, x1, y1)
-    put2(this.a_color$ + ptr2, color, alpha)
+    store4(this.a_vert$ + ptr4, x0, y0, x1, y1)
+    store2(this.a_color$ + ptr2, color, alpha)
     unchecked(this.a_lineWidth[ptr] = lineWidth)
+    this.advance()
   }
 }
 
 // @ts-ignore
 @inline
-function put4(ptr: usize, x: f32, y: f32, z: f32, w: f32): void {
+function store4(ptr: usize, x: f32, y: f32, z: f32, w: f32): void {
   f32.store(ptr, x)
   f32.store(ptr, y, 4)
   f32.store(ptr, z, 8)
@@ -65,7 +77,7 @@ function put4(ptr: usize, x: f32, y: f32, z: f32, w: f32): void {
 
 // @ts-ignore
 @inline
-function put2(ptr: usize, x: f32, y: f32): void {
+function store2(ptr: usize, x: f32, y: f32): void {
   f32.store(ptr, x)
   f32.store(ptr, y, 4)
 }

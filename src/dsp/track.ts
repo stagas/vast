@@ -31,10 +31,22 @@ export function Track(dsp: Dsp, source: Source<Token>) {
       }
       return max
     },
+    waveLength: 1,
+    get audioBuffer() {
+      return dsp.ctx.createBuffer(1, this.waveLength, dsp.ctx.sampleRate)
+    },
     tokensAstNode: new Map<Token, AstNode>(),
     error: null as Error | null,
     floats: null as Floats | null,
   })
+
+  function play() {
+    const { audioBuffer } = info
+    const bufferSource = dsp.ctx.createBufferSource()
+    bufferSource.buffer = audioBuffer
+    bufferSource.connect(dsp.ctx.destination)
+    bufferSource.start()
+  }
 
   $.fx(() => {
     const { tokens } = source
@@ -43,12 +55,21 @@ export function Track(dsp: Dsp, source: Source<Token>) {
     $()
     try {
       sound.reset()
-      clock.bpm = 60
-      wasm.updateClock(clock.ptr)
-      const { program, out, updateClock } = sound.process(tokens)
-      info.tokensAstNode = program.value.tokensAstNode
 
-      const f = new Float32Array(Math.floor(length * clock.sampleRate * clock.coeff))
+      clock.time = 0
+      clock.barTime = 0
+      clock.bpm = 120
+
+      let chunks = 0
+
+      wasm.updateClock(clock.ptr)
+      // console.warn(clock.timeStep * 64, clock.barTimeStep * 64)
+      const { program, out, updateClock } = sound.process(tokens)
+
+      info.tokensAstNode = program.value.tokensAstNode
+      info.waveLength = Math.floor(length * clock.sampleRate * clock.coeff * 4)
+      const f = new Float32Array(info.waveLength)
+
       sound.data.begin = 0
       sound.data.end = 0
       sound.run()
@@ -62,17 +83,21 @@ export function Track(dsp: Dsp, source: Source<Token>) {
             sound.data.end = i + 64 > end ? end - i : i + 64
             sound.run()
 
-            clock.time += 64 * clock.timeStep
-            clock.barTime += 64 * clock.barTimeStep
+            clock.time = (chunks * 64) * clock.timeStep
+            clock.barTime = (chunks * 64) * clock.barTimeStep
 
             updateClock()
+
+            chunks++
           }
 
-          f.set(sound.getAudio(out.LR.audio$).subarray(0, end), x)
+          const chunk = sound.getAudio(out.LR.audio$).subarray(0, end)
+          f.set(chunk, x)
         }
 
       info.floats?.free()
       info.floats = Floats(f)
+      info.audioBuffer.getChannelData(0).set(f)
     }
     catch (e) {
       if (e instanceof Error) {
@@ -84,7 +109,7 @@ export function Track(dsp: Dsp, source: Source<Token>) {
     }
   })
 
-  return { info }
+  return { info, play }
 }
 
 // function Waves(boxes: ReturnType<typeof Boxes>) {

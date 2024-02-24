@@ -71,16 +71,14 @@ function copyToken(token: Token) {
 
 let preludeTokens: Token[]
 
-export function Dsp({
-  sampleRate,
+export function Dsp(ctx: AudioContext, {
   core$
 }: {
-  sampleRate: number
   core$?: ReturnType<typeof wasm.createCore>
-}) {
-  core$ ??= wasm.createCore(sampleRate)
+} = {}) {
+  core$ ??= wasm.createCore(ctx.sampleRate)
   const pin = <T>(x: T): T => { wasm.__pin(+x); return x }
-  const engine$ = wasm.createEngine(sampleRate, core$)
+  const engine$ = wasm.createEngine(ctx.sampleRate, core$)
   const clock$ = wasm.getEngineClock(engine$)
   const clock = Clock(wasm.memory.buffer, clock$)
 
@@ -98,6 +96,8 @@ export function Dsp({
       `[nrate 1]`
       // some builtin procedures
       + `{ .5* .5+ } norm=`
+      + `{ n= p= sp= 1 [inc sp co* t n*] clip - p^ * } decay=
+`
   })]
 
   function Sound() {
@@ -259,6 +259,7 @@ export function Dsp({
       function handle(opt: any) {
         const gen$ = context.gens++
         setup_vm.CreateGen(kind_index)
+        DEBUG && console.log('CreateGen', name, gen$)
 
         for (let p in opt) {
           const prop = `${name}.${p}`
@@ -551,7 +552,7 @@ export function Dsp({
     return sound
   }
 
-  return { engine$, core$, clock, Sound }
+  return { ctx, engine$, core$, clock, Sound }
 }
 
 const commutative = new Set([DspBinaryOp.Add, DspBinaryOp.Mul])

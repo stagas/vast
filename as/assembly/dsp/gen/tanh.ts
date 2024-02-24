@@ -23,9 +23,7 @@ export class Tanh extends Gen {
     for (; i < end; i += 16) {
       unroll(16, () => {
         sample = f32.load(inp)
-
-        sample =  Mathf.tanh(sample * gain)
-
+        sample = Mathf.tanh(sample * gain)
         f32.store(out, sample)
         inp += 4
         out += 4

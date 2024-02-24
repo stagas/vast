@@ -1,6 +1,6 @@
 // @ts-ignore
 @external('env', 'flushSketch')
-export declare function flushSketch(): void
+export declare function flushSketch(count: i32): void
 // @ts-ignore
 @external('env', 'log')
 export declare function logi(x: i32): void

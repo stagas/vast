@@ -3,7 +3,7 @@ import { Floats } from '../util'
 // 4 float bytes per instance, so we fit into 1 page
 // (which might be better? TODO: bench)
 export const MAX_BYTES = 65536 * 32 // 1 page
-export const MAX_GL_INSTANCES = MAX_BYTES >> 1 >> 3
+export const MAX_GL_INSTANCES = MAX_BYTES >> 2
 export const MAX_SHAPES = 65536 * 32
 
 export enum VertOpts {
@@ -64,6 +64,7 @@ export class Line {
   alpha: f32 = 1.0
 }
 
+@unmanaged
 export class Wave {
   opts: f32 = f32(ShapeOpts.Wave)
   x: f32 = 0
@@ -89,12 +90,4 @@ export class Matrix {
   d: f64 = 0
   e: f64 = 0
   f: f64 = 0
-}
-
-@unmanaged
-export class VertRange {
-  constructor() { }
-  begin: i32 = 0
-  end: i32 = 0
-  count: i32 = 0
 }

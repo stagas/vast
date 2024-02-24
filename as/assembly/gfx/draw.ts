@@ -1,7 +1,17 @@
-import { flushSketch, logf, logf2, logf3, logf4, logf6, logi } from '../env'
+import { logf, logf2, logf3, logf4, logf6, logi } from '../env'
 import { Sketch } from './sketch-class'
-import { Box, SHAPE_LENGTH, MAX_GL_INSTANCES, Matrix, VertOpts, Wave, ShapeOpts, Shape, Line } from './sketch-shared'
-import { Floats } from '../util'
+import { Box, SHAPE_LENGTH, Matrix, Wave, ShapeOpts, Shape, Line } from './sketch-shared'
+
+const MAX_ZOOM: f32 = 0.5
+const BASE_SAMPLES: f32 = 48000
+const NUM_SAMPLES: f32 = BASE_SAMPLES / MAX_ZOOM
+
+const enum WaveMode {
+  Scaled,
+  Normal,
+  Far,
+  VeryFar,
+}
 
 export function draw(
   sketch$: usize,
@@ -14,11 +24,7 @@ export function draw(
   end: i32,
 ): void {
   const sketch = changetype<Sketch>(sketch$)
-  const range = sketch.range
   const shapes$ = sketch.shapes$
-
-  let ptr = range.end
-  let count = range.count
 
   const m = changetype<Matrix>(matrix$)
   const ma: f64 = m.a
@@ -38,9 +44,7 @@ export function draw(
   let px: f32 = 0
   let py: f32 = 0
 
-  for (let i = begin, next_i: i32; i < end; i = next_i) {
-    next_i = i + 1
-
+  for (let i = begin; i < end; i++) {
     const shape$ = shapes$ + ((i * SHAPE_LENGTH) << 2)
     const opts = i32(changetype<Shape>(shape$).opts)
 
@@ -64,25 +68,11 @@ export function draw(
           || y + h < 0
         ) continue
 
-        // draw box
-        sketch.putBox(
-          ptr,
+        sketch.drawBox(
           x, y, w, h,
           box.color, box.alpha
         )
 
-        ptr++
-        count++
-
-        // did we reach the limit before the end?
-        if (count === MAX_GL_INSTANCES && next_i < end) {
-          range.end = ptr
-          range.count = count
-          flushSketch()
-          ptr = 0
-          count = 0
-          // return next_i // we've drawn this shape, go to next shape in the next iteration
-        }
         continue
       }
 
@@ -112,27 +102,13 @@ export function draw(
           )
         ) continue
 
-        // draw box
-        sketch.putLine(
-          ptr,
+        sketch.drawLine(
           x0, y0,
           x1, y1,
           line.color, line.alpha,
           line.lw,
         )
 
-        ptr++
-        count++
-
-        // did we reach the limit before the end?
-        if (count === MAX_GL_INSTANCES && next_i < end) {
-          range.end = ptr
-          range.count = count
-          flushSketch()
-          ptr = 0
-          count = 0
-          // return next_i // we've drawn this shape, go to next shape in the next iteration
-        }
         continue
       }
 
@@ -155,20 +131,10 @@ export function draw(
           || y + h < 0
         ) continue
 
-        // const w_step: f32 = f32(.0025 * (ma ** .85))
-        let x_step: f32 = Mathf.max(0.05, Mathf.min(1.0, f32(0.005 * ma))) //Mathf.max(0.9, Mathf.min(1.0, w_step))
-
         //
-        // determine sampling coeff based on
-        // the horizontal zoom level (m.a).
+        // sample coeff for zoom level
         //
-        const MAX_ZOOM: f32 = 1
-        const BASE_SAMPLES: f32 = 8192
-        const NUM_SAMPLES: f32 = BASE_SAMPLES / MAX_ZOOM
         const sample_coeff: f32 = f32(NUM_SAMPLES / ma)
-        let coeff: f32 = sample_coeff / (1.0 / x_step)
-
-        // logf2(x_step, coeff)
 
         //
         // setup wave pointers
@@ -177,6 +143,125 @@ export function draw(
         let p_index: i32 = 0
         let n: f32 = 0
         let n_len = wave.len
+
+        //
+        // determine right edge
+        //
+        let right = x + w
+
+        //
+        // determine left edge (cx)
+        //
+        let cx: f32 = x
+        let ox: f32 = 0
+        // if left edge is offscreen
+        if (cx < 0) {
+          ox = -x
+          cx = 0
+        }
+
+        //
+        // determine width (cw)
+        //
+        let cw: f32 = w
+        let ow: f32 = 0
+        // if right edge if offscreen
+        if (right > width) {
+          // logf(444)
+          ow = right - width
+          cw = width - cx
+          right = width
+        }
+        // or if left edge is offscreen
+        else if (x < 0) {
+          cw -= ox
+        }
+
+        let x_step: f32 = f32(ma / NUM_SAMPLES) * 8.0
+        let mul: f32 = 1.0
+        let lw: f32 = 1.5
+
+        // logf(f32(ma))
+
+        let waveMode: WaveMode = WaveMode.Scaled
+
+        // if (ma < 5000) {
+        if (ma < 1500) {
+          if (ma < 500) {
+            if (ma < 150) {
+              if (ma < 70) {
+                p_index += i32(wave.len)
+                n_len = Mathf.floor(wave.len / 16.0)
+                mul = 8.0
+                if (ma < 20) {
+                  if (ma < 10) {
+                    // if (ma < 5) {
+                    //   p_index += i32(n_len)
+                    //   n_len = Mathf.floor(n_len / 4.0)
+                    //   mul = 16
+
+                    //   if (ma < 1) {
+                    //     p_index += i32(n_len)
+                    //     x_step = 1
+                    //     n_len = 2
+                    //     waveMode = WaveMode.VeryFar
+                    //   }
+                    //   else {
+                    //     waveMode = WaveMode.Normal
+                    //     x_step = 0.00125
+                    //   }
+                    // }
+                    // else {
+                    waveMode = WaveMode.Normal
+                    x_step = 0.125
+                    // }
+                  }
+                  else {
+                    waveMode = WaveMode.Normal
+                    x_step = 0.125
+                  }
+                }
+                else {
+                  waveMode = WaveMode.Normal
+                  x_step = 0.5
+                }
+              }
+              else {
+                waveMode = WaveMode.Normal
+                // x_step = 0.0125
+                x_step = 0.5
+              }
+            }
+            else {
+              waveMode = WaveMode.Normal
+              x_step = 0.5
+            }
+          }
+          else {
+            waveMode = WaveMode.Normal
+            x_step = 0.5
+          }
+        }
+        //   else {
+        //     waveMode = WaveMode.Normal
+        //     x_step = 0.5
+        //   }
+        // }
+
+        p += p_index << 2
+
+        // x_step *= 0.05
+
+        //
+        // determine sampling coeff based on
+        // the horizontal zoom level (m.a).
+        //
+        let coeff: f32 = sample_coeff / (mul / x_step)
+
+        // logf2(f32(ma), coeff)
+        // logf3(x_step, coeff, f32(ma))
+        // logf2(x_step, coeff)
+
 
         // if (ma < 10) {
         //   p_index += i32(wave.len)
@@ -218,246 +303,193 @@ export function draw(
         // logf(f32(ma))
         // logf2(n_coeff, n_step)
 
-        let right = x + w
-
-        //
-        // determine left edge (cx)
-        //
-        let cx: f32 = x
-        let ox: f32 = 0
-        // if left edge is offscreen
-        if (x < 0) {
-          ox = -x
-          cx = 0
-        }
-
-        //
-        // determine width (cw)
-        //
-        let cw: f32 = w
-        let ow: f32 = 0
-        // if right edge if offscreen
-        if (right > width) {
-          // logf(444)
-          ow = right - width
-          cw = width - cx
-          right = width
-        }
-        // or if left edge is offscreen
-        else if (x < 0) {
-          cw -= ox
-        }
-
+        // logf(f32(ma))
         // if (cw <= 1.0) {
         //   x_step = .15
         // }
 
-        let steps = i32(cw / x_step)
-        if (steps > i32(width) && ma > 100) {
-          // logf2(666, f32(ma))
-          coeff *= 1 / x_step
-          x_step = 1
-          steps = i32(cw)
-        }
-        // logf(f32(coeff))
-        // logf(f32(cw))
-        // logf4(f32(steps), x_step, cx, cw)
-        // do we have enough lines to draw?
-        if (count + steps + 1 >= MAX_GL_INSTANCES) {
-          range.end = ptr
-          range.count = count
-          flushSketch()
-          ptr = 0
-          count = 0
-          // return i // repeat this shape in the next iteration
-        }
+        // let steps = i32(cw / x_step)
+        // if (steps > i32(width) && ma > 200) {
+        //   // logf2(666, f32(ma))
+        //   coeff *= 1.0 / x_step
+        //   x_step = 1.0
+        //   steps = i32(cw)
+        // }
 
         const hh: f32 = h / 2
 
         // advance the pointer if left edge is offscreen
         if (ox) {
-          n += ox / x_step // 2.0 // TODO: why / 2.0 ? found by chance
+          n += ox / x_step
         }
 
-        const n_step = coeff
+        // coeff *= 0.125
+        let n_step = coeff
 
-        if (x_step === 1 && ma < 10) {
-          // logf(555555)
-          // n = 0
-          let nx: f32 = 0 //(n * coeff) % n_len
-          let s = f32.load(p + (i32(nx) << 2))
+        switch (waveMode) {
+          case WaveMode.Scaled: {
+            // interpolate 2 samples
+            let nx = (n * coeff) % n_len
+            let nfrac = nx - Mathf.floor(nx)
+            let s = readSampleLerp(p, nx, nfrac)
 
-          // move to v0
-          // let x0 = cx
-          let y0 = y + hh + s * hh // TODO: hh in shader?
+            // move to v0
+            let x0 = cx
+            let y0 = y + hh + s * hh // TODO: hh in shader?
 
-          if (opts & ShapeOpts.Join) {
-            sketch.putLine(
-              ptr,
-              px, py,
-              cx, y0,
-              wave.color, wave.alpha,
-              1.5
-            )
-            ptr++
-            count++
+            if (opts & ShapeOpts.Join) {
+              sketch.drawLine(
+                px, py,
+                x0, y0,
+                wave.color, wave.alpha,
+                lw
+              )
+            }
+
+            let step_i: i32 = 0
+            let bcx = cx
+            let bnx = nx
+
+            do {
+              step_i++
+
+              cx = f32(f64(bcx) + f64(step_i) * f64(x_step))
+              nx = f32((f64(bnx) + f64(step_i) * f64(n_step)) % n_len)
+
+              nfrac = nx - Mathf.floor(nx)
+              s = readSampleLerp(p, nx, nfrac)
+
+              const x1 = cx
+              const y1 = y + hh + s * hh
+
+              sketch.drawLine(
+                x0, y0,
+                x1, y1,
+                wave.color, wave.alpha,
+                lw
+              )
+
+              x0 = x1
+              y0 = y1
+            } while (cx < right)
+
+            px = x0
+            py = y0
+
+            break
           }
 
-          // cx += x_step
-          nx += n_step
+          case WaveMode.Normal: {
+            // read first sample
+            let nx = (n * coeff) % n_len
+            let s = f32.load(p + (i32(nx) << 2))
 
-          s = f32.load(p + (i32(nx) << 2))
-          // logf(s)
-          // let x1 = cx //+ x_step
-          const y1 = y + hh + s * hh
+            // move to v0
+            let x0 = cx
+            let y0 = y + hh + s * hh // TODO: hh in shader?
 
-          do {
-            sketch.putLine(
-              ptr,
-              cx, y0,
-              cx, y1,
-              wave.color, wave.alpha,
-              1.0
-            )
+            // draw for every pixel step
+            // right -= 1
 
-            ptr++
-            count++
+            // const lw: f32 = 1.5 + f32(30.0 / ma)
+            // logf2(lw, x_step)
+            // x_step *= 0.125
+            // n_step *= 0.125
 
-            cx += 1.0
-          } while (cx < right)
+            if (opts & ShapeOpts.Join) {
+              sketch.drawLine(
+                px, py,
+                x0, y0,
+                wave.color, wave.alpha,
+                lw
+              )
+            }
 
-          px = cx
-          py = y0
-        }
-        else if (n_step > x_step * 4.0) {
-          // logf(66666)
-          // read first sample
-          let nx = (n * coeff) % n_len
-          let s = f32.load(p + (i32(nx) << 2))
+            let step_i: i32 = 0
+            let bcx = cx
+            let bnx = nx
 
-          // move to v0
-          let x0 = cx
-          let y0 = y + hh + s * hh // TODO: hh in shader?
+            do {
+              step_i++
 
-          // draw for every pixel step
-          // right -= 1
+              cx = f32(f64(bcx) + f64(step_i) * f64(x_step))
+              nx = f32((f64(bnx) + f64(step_i) * f64(n_step)) % n_len)
 
-          const lw: f32 = 1.4 + f32(x_step * 0.85)
-          // logf(lw)
+              s = f32.load(p + (i32(nx) << 2))
 
-          if (opts & ShapeOpts.Join) {
-            sketch.putLine(
-              ptr,
-              px, py,
-              x0, y0,
-              wave.color, wave.alpha,
-              lw
-            )
-            ptr++
-            count++
+              const x1 = cx
+              const y1 = y + hh + s * hh
+
+              sketch.drawLine(
+                x0, y0,
+                x1, y1,
+                wave.color, wave.alpha,
+                lw
+              )
+
+              x0 = x1
+              y0 = y1
+            } while (cx < right)
+
+            px = x0
+            py = y0
+
+            break
           }
 
-          do {
-            cx += x_step
-            nx += n_step
+          // case WaveMode.VeryFar: {
+          //   let nx: f32 = 0 //(n * coeff) % n_len
+          //   let s = f32.load(p + (i32(nx) << 2))
 
-            s = f32.load(p + (i32(nx) << 2))
-            // logf(s)
-            const x1 = cx + x_step
-            const y1 = y + hh + s * hh
+          //   // move to v0
+          //   // let x0 = cx
+          //   let y0 = y + hh + s * hh // TODO: hh in shader?
 
-            sketch.putLine(
-              ptr,
-              x0, y0,
-              x1, y1,
-              wave.color, wave.alpha,
-              lw
-            )
+          //   if (opts & ShapeOpts.Join) {
+          //     sketch.drawLine(
+          //       px, py,
+          //       cx, y0,
+          //       wave.color, wave.alpha,
+          //       1.5
+          //     )
+          //   }
 
-            ptr++
-            count++
+          //   // cx += x_step
+          //   nx += 1.0 //n_step
 
-            if (nx >= n_len) nx -= n_len
+          //   s = f32.load(p + (i32(nx) << 2))
 
-            x0 = x1
-            y0 = y1
-          } while (cx < right)
+          //   // logf(s)
+          //   // let x1 = cx //+ x_step
+          //   const y1 = y + hh + s * hh
 
-          px = x0
-          py = y0
-        }
-        else {
-          // logf(777777)
-          // interpolate 2 samples
-          let nx = (n * coeff) % n_len
-          // logf(nx)
-          let nfrac = nx - Mathf.floor(nx)
-          let s = readSampleLerp(p, nx, nfrac)
+          //   do {
+          //     sketch.drawLine(
+          //       cx, y0,
+          //       cx, y1,
+          //       wave.color, wave.alpha,
+          //       1.0
+          //     )
 
-          // move to v0
-          let x0 = cx
-          let y0 = y + hh + s * hh // TODO: hh in shader?
+          //     cx += 1.0
+          //   } while (cx < right)
 
-          if (opts & ShapeOpts.Join) {
-            sketch.putLine(
-              ptr,
-              px, py,
-              x0, y0,
-              wave.color, wave.alpha,
-              1.5
-            )
-            ptr++
-            count++
-          }
+          //   px = cx
+          //   py = y0
 
-          // draw for every pixel step
-          // right -= 1
-
-          right -= f32(x_step * (0.002 * ma))
-
-          do {
-            cx += x_step
-            nx += n_step
-
-            nfrac = nx - Mathf.floor(nx)
-            s = readSampleLerp(p, nx, nfrac)
-
-            const x1 = cx + x_step
-            const y1 = y + hh + s * hh
-
-            sketch.putLine(
-              ptr,
-              x0, y0,
-              x1, y1,
-              wave.color, wave.alpha,
-              1.5
-            )
-
-            ptr++
-            count++
-
-            if (nx >= n_len) nx -= n_len
-
-            x0 = x1
-            y0 = y1
-          } while (cx < right)
-
-          px = x0
-          py = y0
+          //   break
+          // }
         }
 
-        if (next_i < end) {
-          continue
-        }
+        continue
       }
 
     } // end switch
   } // end for
 
-  range.end = ptr
-  range.count = count
-  flushSketch()
-  // return -1
+  if (sketch.ptr) {
+    sketch.flush()
+  }
 }
 
 // @ts-ignore

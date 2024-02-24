@@ -54,15 +54,26 @@ export function Main() {
   const dsp = Dsp(ctx)
   const sound = dsp.Sound()
   const t0 = Track(dsp, state.source) //$(new Source(tokenize), { code: '[saw 330]' }))
-  state.tracks = [t0]
-  t0.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 0, w: 16, h: 1 }), shape: null })]
+  const t1 = Track(dsp, state.t1_source)
+  state.tracks = [t0, t1]
+  t0.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 0, w: 1, h: 1 }), shape: null })]
+  t1.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 1, w: 1, h: 1 }), shape: null })]
   $.fx(() => {
     const { grid } = $.of(info)
-    const { boxes, floats } = t0.info
-    for (const box of boxes) {
-      if (!box.shape) return
+    {
+      const { boxes, floats } = t0.info
+      for (const box of boxes) {
+        if (!box.shape) return
+      }
+    }
+    {
+      const { boxes, floats } = t1.info
+      for (const box of boxes) {
+        if (!box.shape) return
+      }
     }
     $()
+    // console.log(floats?.len)
     // for (const box of boxes) {
     //   console.log(box.shape, floats)
     // }

@@ -47,7 +47,11 @@ export class Buffer {
     this.col = Math.min(coli, lines[this.line]?.length ?? 0)
   }
   @fx trim_line_endings() {
-    const { lines, line } = of(this)
+    const { line } = of(this)
+    $()
+    const { lines } = this
+    if (!lines) return
+
     for (let i = 0; i < lines.length; i++) {
       if (i === line) continue
       lines[i] = lines[i].trimEnd()

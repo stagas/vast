@@ -25,8 +25,8 @@ export function Minimap(grid: Grid) {
 
   $.fx(() => dom.on(handle, 'wheel', e => {
     const m = grid.intentMatrix
-    grid.mousePos.x = -m.e / m.a - CODE_WIDTH //+ grid.view.w / m.a / view.pr
-    grid.mousePos.y = -m.f / m.d //+ grid.view.h / m.d / view.pr
+    grid.mousePos.x = ((state.mode === 'wide' ? 0 : CODE_WIDTH) - m.e) / m.a  //Math.floor(-m.e / m.a) //- CODE_WIDTH //+ grid.view.w / m.a / view.pr
+    grid.mousePos.y = 0 //Math.floor(-m.f / m.d) //+ grid.view.h / m.d / view.pr
     grid.handleWheelScaleX(e)
     log('wheel', grid.mousePos.x, grid.mousePos.y)
   }))

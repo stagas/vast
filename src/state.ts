@@ -64,27 +64,64 @@ class State {
 
   hoveringBoxToolbar = false
 
+  t1_source = $(new Source<Token>(tokenize), {
+    code: `;;;kick
+{ x=
+[sin 52.01
+  500 [decay .45 8 x] +
+  t x*
+] [decay .015 20 x]
+} kick=
+
+[kick 4]
+`
+  })
+
   source = $(new Source<Token>(tokenize), {
-    code: `[saw 232.01]
-1 [inc .083 co* t 4*] clip - *`
-//     `[saw 22.01]
-// 1 [inc .1 co* t 4*] clip - *`
+    code: `;;;bass
+{ tt= x=
+[saw (42.01 84 120) tt x * ?
+ 1000 [decay 1.25 8 x] +
+ tt x*
+] [decay .015 20 x]
+} bass=
+
+[bass 9 t .5*]
+`
+
+    //     `;;;kick
+    // { x=
+    // [sin 52.01
+    //  500 [decay .45 8 x] +
+    //  t x*
+    // ] [decay .095 20 x]
+    // } kick=
+
+    // [kick 4]
+    // `
+
+    //     `[saw 232.01]
+    // [decay .05 5 16]`
+    //     `[saw 232.01]
+    // 1 [inc .083 co* t 4*] clip - *`
+    //     `[saw 22.01]
+    // 1 [inc .1 co* t 4*] clip - *`
     //`[saw 22.01] 1 [inc .1 co* t] clip - *`
     //`[saw 22.01] [exp 2 co*] *` //`[inc .01]`
 
-// `; techno kick
-// 1 [inc .185 t 4*]
-//  clip - 4.2^
-//  env=
-// [inc 5.5 t 4*]
-//  clip 55^
-// [inc .17 t 4*]
-//  clip 8.85^ 1- *
-//  env2=
-// [sin 86 112 env* + t 4*]
-//  env2*
-// .50*
-// `
+    // `; techno kick
+    // 1 [inc .185 t 4*]
+    //  clip - 4.2^
+    //  env=
+    // [inc 5.5 t 4*]
+    //  clip 55^
+    // [inc .17 t 4*]
+    //  clip 8.85^ 1- *
+    //  env2=
+    // [sin 86 112 env* + t 4*]
+    //  env2*
+    // .50*
+    // `
     //  `; square after bass
     // [sqr (90 104 90 127) t ?
     //  [sqr 8 co* t .5*] norm 13 *

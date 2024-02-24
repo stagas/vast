@@ -1,6 +1,7 @@
 import { TypedArray, TypedArrayConstructor } from 'gl-util'
 import { instantiate } from '../as/build/assembly.js'
 import { log } from './state.ts'
+import { wasmSourceMap } from 'utils'
 
 const DEBUG = false
 
@@ -13,23 +14,29 @@ if (import.meta.env) {
       parseInt(byte, 16)
     )
   )
-  mod = await WebAssembly.compile(fromHexString(hex))
+  const wasmMapUrl = new URL('/as/build/assembly.wasm.map', location.origin).href
+  console.log(wasmMapUrl.toString())
+  const uint8 = fromHexString(hex)
+  const buffer = wasmSourceMap.setSourceMapURL(uint8.buffer, wasmMapUrl)
+  const binary = new Uint8Array(buffer)
+  console.log(wasmSourceMap.getSourceMapURL(binary))
+  mod = await WebAssembly.compile(binary)
 }
 else {
   const url = (await import('../as/build/assembly.wasm?url')).default
   mod = await WebAssembly.compileStreaming(fetch(url))
 }
 
-let flushSketchFn = () => {}
-function setFlushSketchFn(fn: () => void) {
+let flushSketchFn = (count: number) => {}
+function setFlushSketchFn(fn: (count: number) => void) {
   flushSketchFn = fn
 }
 
 const wasm = await instantiate(mod, {
   env: {
     log: console.log,
-    flushSketch() {
-      flushSketchFn()
+    flushSketch(count: number) {
+      flushSketchFn(count)
     }
   }
 })

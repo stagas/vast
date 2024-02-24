@@ -1,5 +1,6 @@
 // https://github.com/ed-25519/vite-plugin-assemblyscript-asc/blob/main/src/index.ts
 import asc from 'assemblyscript/dist/asc'
+import fs from 'fs'
 import { join, resolve, sep } from 'path'
 import type { Plugin } from 'vite'
 
@@ -33,6 +34,15 @@ async function compile(entryFile: string, mode: 'debug' | 'release') {
   else {
     console.log(stdout.toString())
     console.log(stats.toString())
+    const mapFile = join(__dirname, '..', 'as', 'build', 'assembly.wasm.map')
+    const mapJson = fs.readFileSync(mapFile, 'utf-8')
+    const map = JSON.parse(mapJson)
+
+    // This is the magic that makes paths work for open-in-editor from devtools console.
+    // TODO: should be made configurable.
+    map.sourceRoot = '/'
+
+    fs.writeFileSync(mapFile, JSON.stringify(map), 'utf-8')
   }
 }
 

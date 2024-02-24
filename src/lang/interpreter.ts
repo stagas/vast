@@ -249,6 +249,7 @@ export function interpret(sound: Sound, data: Record<string, any>, tokens: Token
         const allProps = getAllPropsReverse(genId) as any
 
         for (const p of allProps) {
+          console.log(p)
           let item = node.scope.lookup(p)
           if (!item) {
             item = node.scope.stackUnshiftOfTypes(ConsumeTypes)

@@ -3,7 +3,7 @@ import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { Struct } from 'utils'
-import { Box, Line, MAX_GL_INSTANCES, MAX_SHAPES, SHAPE_LENGTH, ShapeOpts, VertOpts, VertRange, Wave } from '../../as/assembly/gfx/sketch-shared.ts'
+import { Box, Line, MAX_GL_INSTANCES, MAX_SHAPES, SHAPE_LENGTH, ShapeOpts, VertOpts, Wave } from '../../as/assembly/gfx/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
 import { log } from '../state.ts'
 import { WasmMatrix } from '../util/wasm-matrix.ts'
@@ -219,13 +219,6 @@ function SketchInfo(GL: GL, view: Rect) {
   const line = Line(wasm.memory.buffer, shapes.ptr) satisfies Line
   const wave = Wave(wasm.memory.buffer, shapes.ptr) satisfies Wave
 
-  const range$ = wasm.createVertRange() // TODO: __pin and free structs
-  const range = Struct({
-    begin: 'i32',
-    end: 'i32',
-    count: 'i32',
-  })(wasm.memory.buffer, +range$) satisfies VertRange
-
   const {
     a_opts,
     a_vert,
@@ -234,7 +227,6 @@ function SketchInfo(GL: GL, view: Rect) {
   } = info.attribs
 
   const sketch$ = wasm.createSketch(
-    range.ptr,
     shapes.ptr,
     a_opts.ptr,
     a_vert.ptr,
@@ -258,7 +250,10 @@ function SketchInfo(GL: GL, view: Rect) {
     )
   }
 
-  function writeGL() {
+  const range = { begin: 0, end: 0, count: 0 }
+
+  function writeGL(count: number) {
+    range.end = range.count = count
     GL.writeAttribRange(a_opts, range)
     GL.writeAttribRange(a_vert, range)
     GL.writeAttribRange(a_color, range)
@@ -312,11 +307,11 @@ export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
   const { info, range, write, writeGL, shapes, shape, draw: sketchDraw } = sketch
   const { use } = info
 
-  wasm.setFlushSketchFn(() => {
+  wasm.setFlushSketchFn(count => {
     DEBUG && log('[sketch] draw', shapes.count)
 
-    writeGL()
-    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, range.count)
+    writeGL(count)
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count)
 
     range.begin =
       range.end =
