@@ -1,20 +1,21 @@
 import wasm from 'assembly'
-import { Signal } from 'signal-jsx'
+import { $, Signal } from 'signal-jsx'
 import { Rect } from 'std'
+import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
 import { Dsp } from '../dsp/dsp.ts'
+import { ShapeData } from '../gl/sketch.ts'
 import { AstNode } from '../lang/interpreter.ts'
 import { Token } from '../lang/tokenize.ts'
 import { Source } from '../source.ts'
+import { state } from '../state.ts'
 import { Floats } from '../util/floats.ts'
-import { Box } from '../../as/assembly/gfx/sketch-shared.ts'
-import { ShapeData } from '../gl/sketch.ts'
-import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
+import { BoxData } from '../draws/grid.ts'
 
 const DEBUG = true
 
 export type Track = ReturnType<typeof Track>
 
-export function Track(dsp: Dsp, source: Source<Token>, y: number) {
+export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
   DEBUG && console.log('[track] create')
 
   using $ = Signal()
@@ -23,6 +24,13 @@ export function Track(dsp: Dsp, source: Source<Token>, y: number) {
 
   const info = $({
     y,
+    get sy() {
+      const { y } = this
+      const { pr } = state
+      const { d, f } = state.viewMatrix
+      $()
+      return y * d * pr + f * pr
+    },
     boxes: [] as { rect: Rect, shape?: ShapeData.Box | null }[],
     get length() {
       let max = 0
@@ -38,6 +46,7 @@ export function Track(dsp: Dsp, source: Source<Token>, y: number) {
     tokensAstNode: new Map<Token, AstNode>(),
     error: null as Error | null,
     floats: null as Floats | null,
+    shape: null as (ShapeData.Box & { data: BoxData }) | null,
   })
 
   function play() {
@@ -60,10 +69,8 @@ export function Track(dsp: Dsp, source: Source<Token>, y: number) {
       clock.barTime = 0
       clock.bpm = 120
 
-      let chunks = 0
-
       wasm.updateClock(clock.ptr)
-      // console.warn(clock.timeStep * 64, clock.barTimeStep * 64)
+
       const { program, out, updateClock } = sound.process(tokens)
 
       info.tokensAstNode = program.value.tokensAstNode
@@ -74,6 +81,8 @@ export function Track(dsp: Dsp, source: Source<Token>, y: number) {
       sound.data.end = 0
       sound.run()
 
+      let chunkCount = 0
+
       if (out.LR)
         for (let x = 0; x < f.length; x += BUFFER_SIZE) {
           const end = x + BUFFER_SIZE > f.length ? f.length - x : BUFFER_SIZE
@@ -83,12 +92,12 @@ export function Track(dsp: Dsp, source: Source<Token>, y: number) {
             sound.data.end = i + 64 > end ? end - i : i + 64
             sound.run()
 
-            clock.time = (chunks * 64) * clock.timeStep
-            clock.barTime = (chunks * 64) * clock.barTimeStep
+            clock.time = (chunkCount * 64) * clock.timeStep
+            clock.barTime = (chunkCount * 64) * clock.barTimeStep
 
             updateClock()
 
-            chunks++
+            chunkCount++
           }
 
           const chunk = sound.getAudio(out.LR.audio$).subarray(0, end)
@@ -109,48 +118,5 @@ export function Track(dsp: Dsp, source: Source<Token>, y: number) {
     }
   })
 
-  return { info, play }
+  return { info, source, play }
 }
-
-// function Waves(boxes: ReturnType<typeof Boxes>) {
-//   if (!floats) {
-//     floats = Floats(waveform)
-//   }
-
-//   function update(ptr: number, highlightBox?: BoxData) {
-//     return boxes.rows
-//       .filter((_, y) => y % 2 === 1)
-//       .map(cols =>
-//         cols.map(box => {
-
-//           const [, x, y, w, h] = box
-
-//           let color: number = 0x0
-
-//           if (box.data) {
-//             color = highlightBox === box.data
-//               ? box.data.colorBrighter
-//               : 0x0
-//           }
-
-//           const f = [
-//             ShapeOpts.Wave,
-//             x, y, w, h, // same dims as the box
-//             1, // lw
-//             ptr, // ptr
-//             2048, // len
-//             color, // color
-//             1.0, // alpha
-//           ] as ShapeData.Wave
-
-//           box.data.floats = f
-
-//           return f
-//         }).flat()
-//       ).flat()
-//   }
-
-//   const data = new Float32Array(update(floats.ptr))
-
-//   return { data, update }
-// }

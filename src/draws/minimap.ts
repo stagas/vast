@@ -14,7 +14,7 @@ export function Minimap(grid: Grid) {
   using $ = Signal()
 
   const view = $(new Rect, { w: 250, h: 34, pr: state.$.pr })
-  const handleView = $(new Rect, { w: 250, h: 37, pr: state.$.pr })
+  const handleView = $(new Rect, { w: 250, h: 38, pr: state.$.pr })
 
   const canvas = Canvas({ view })
   const handle = Canvas({ view: handleView })
@@ -79,8 +79,8 @@ export function Minimap(grid: Grid) {
       c.beginPath()
       let color
       for (const box of row) {
-        const [, x, y, w, h, , , , boxColor] = box
-        color = boxColor
+        const { x, y, w, h } = box.data
+        color = box.data.color
         c.rect(x, y + 1 * (1 / view.h), w, h - 2 * (1 / view.h))
       }
       c.fillStyle = '#' + (color ?? 0x0).toString(16).padStart(6, '0')
@@ -98,19 +98,20 @@ export function Minimap(grid: Grid) {
     c.save()
     c.scale(pr, pr)
     handleView.clear(c)
-    c.translate(.5, .5)
+    c.translate(.5, 2.5)
     c.beginPath()
-    const x = -(e / a / pr) * matrix.a
-    const y = -(f / d / pr) * matrix.d
-    const w = (vw / a / pr) * matrix.a
-    const h = (vh / d / pr) * matrix.d
+    const padX = state.mode === 'wide' ? 0 : CODE_WIDTH + 55.5
+    const x = -( (e - padX) / a / pr) * matrix.a
+    const y = -( (f) / d / pr) * matrix.d
+    const w = ( (vw - padX - 5) / a / pr) * matrix.a
+    const h = (vh / d / pr) * matrix.d - 2
     // c.rect(x, y, w, h - .5)
     c.moveTo(x, y + h)
     c.lineTo(x, y)
     c.lineTo(x + w, y) //, w, h - .5)
     c.fillStyle = '#fff3'
     c.fill()
-    c.strokeStyle = '#fffa'
+    c.strokeStyle = '#fff'
     c.lineWidth = 2.1
     c.stroke()
 

@@ -20,6 +20,7 @@ export namespace ShapeData {
     lw: number,
     ptr: number,
     len: number,
+    offset: number,
     color: number,
     alpha: number,
   ]
@@ -33,6 +34,7 @@ export namespace ShapeData {
     lw: number,
     ptr: number,
     len: number,
+    offset: number,
     color: number,
     alpha: number,
   ]
@@ -46,6 +48,7 @@ export namespace ShapeData {
     lw: number,
     ptr: number,
     len: number,
+    offset: number,
     color: number,
     alpha: number,
   ]
@@ -176,6 +179,7 @@ function SketchInfo(GL: GL, view: Rect) {
     lw: 'f32',
     ptr: 'f32',
     len: 'f32',
+    offset: 'f32',
     color: 'i32',
     alpha: 'f32',
   })
@@ -189,6 +193,7 @@ function SketchInfo(GL: GL, view: Rect) {
     lw: 'f32',
     ptr: 'f32',
     len: 'f32',
+    offset: 'f32',
     color: 'i32',
     alpha: 'f32',
   })
@@ -202,6 +207,7 @@ function SketchInfo(GL: GL, view: Rect) {
     lw: 'f32',
     ptr: 'f32',
     len: 'f32',
+    offset: 'f32',
     color: 'i32',
     alpha: 'f32',
   })

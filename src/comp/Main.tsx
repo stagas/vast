@@ -1,4 +1,4 @@
-import { Signal } from 'signal-jsx'
+import { $, Signal } from 'signal-jsx'
 import { state } from '../state.ts'
 import { Bench, BenchResults } from './Bench.tsx'
 import { Grid } from '../draws/grid.ts'
@@ -55,31 +55,29 @@ export function Main() {
   const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
   const dsp = Dsp(ctx)
   const sound = dsp.Sound()
-  const t0 = Track(dsp, state.source, 0) //$(new Source(tokenize), { code: '[saw 330]' }))
-  const t1 = Track(dsp, state.t1_source, 1)
-  state.tracks = [t0, t1]
-  t0.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 0, w: 1, h: 1 }), shape: null })]
-  t1.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 1, w: 1, h: 1 }), shape: null })]
-  $.fx(() => {
-    const { grid } = $.of(info)
-    {
-      const { boxes, floats } = t0.info
-      for (const box of boxes) {
-        if (!box.shape) return
-      }
-    }
-    {
-      const { boxes, floats } = t1.info
-      for (const box of boxes) {
-        if (!box.shape) return
-      }
-    }
-    $()
-    // console.log(floats?.len)
-    // for (const box of boxes) {
-    //   console.log(box.shape, floats)
-    // }
+
+  function addTrack(source: $<Source<any>>) {
+    const y = state.tracks.length
+    const t = Track(dsp, source, y)
+    t.info.boxes = [$({ rect: $(new Rect, { x: 0, y, w: 1, h: 1 }), shape: null })]
+    state.tracks = [...state.tracks, t]
+  }
+
+  $.batch(() => {
+    if (state.tracks.length) return
+    addTrack(state.source)
+    addTrack(state.t1_source)
+    addTrack(state.t1_source)
+    addTrack(state.t1_source)
+    addTrack(state.t1_source)
+    addTrack(state.t1_source)
   })
+
+  // const t0 = Track(dsp, state.source, 0) //$(new Source(tokenize), { code: '[saw 330]' }))
+  // const t1 = Track(dsp, state.t1_source, 1)
+  // state.tracks = [t0, t1]
+  // t0.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 0, w: 1, h: 1 }), shape: null })]
+  // t1.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 1, w: 1, h: 1 }), shape: null })]
 
   const view = $(new Rect, { pr: state.$.pr })
 
@@ -89,7 +87,34 @@ export function Main() {
   let codeSurface: Surface | undefined
   const codeView = $(new Rect, { w: 300, h: 300, pr: state.$.pr })
   let codeDraw: CodeDraw
+
   const code = Code()
+  const editors: ReturnType<typeof code['createEditorView']>[] = []
+
+  $.fx(() => {
+    const { tracks } = state
+    $()
+    const offs = []
+    for (const track of tracks) {
+      const editor = (editors[track.info.y] ??= code.createEditorView($(new Rect, { x: 0, y: track.info.y, w: 1, h: 1 })))
+      offs.push($.fx(() => {
+        const { shape } = $.of(track.info)
+        $()
+        editor.editorInfo.brand = shape.data.hexColorBrighter ?? '#aaa'
+      }))
+      editor.editor.buffer.source = track.source
+    }
+    // console.log(editors)
+    return offs
+  })
+
+  // $.fx(() => {
+  //   const { grid } = $.of(info)
+  //   const { hoveringBox } = $.of(grid.info)
+  //   $()
+  //   state.source = hoveringBox.track.source
+  //   code.info.brand = hoveringBox.hexColorBrighter
+  // })
 
   $.fx(() => {
     const { isHoveringToolbar } = state
@@ -229,41 +254,43 @@ export function Main() {
             {code.canvas}
             {code.textarea}
 
-            <div class={`absolute flex bottom-0 left-0 bg-base-300 border-t-black border-t-2 text-primary z-50 h-14 items-center justify-items-center w-[349px]`}>
-              <Btn onclick={() => { }} icon={
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-[20px] w-[20px] mt-[1px]" viewBox="0 0 32 32">
-                  <defs>
-                    <path id="carbonNewTab0" fill="currentColor" d="M26 26H6V6h10V4H6a2.002 2.002 0 0 0-2 2v20a2.002 2.002 0 0 0 2 2h20a2.002 2.002 0 0 0 2-2V16h-2Z" />
-                  </defs>
-                  <use href="#carbonNewTab0" />
-                  <use href="#carbonNewTab0" />
-                  <path fill="currentColor" d="M26 6V2h-2v4h-4v2h4v4h2V8h4V6z" />
-                </svg>
-              }>new</Btn>
-              <Btn onclick={() => {
-                state.isLoadOpen = !state.isLoadOpen
-              }} icon={
-                <svg xmlns="http://www.w3.org/2000/svg" class={() => ["h-[20px] w-[20px] mt-[0px]", state.isLoadOpen && "text-primary"]} viewBox="0 2 20 20">
-                  <path fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 20h12m-6-4V4m0 0l3.5 3.5M12 4L8.5 7.5" />
-                </svg>
-              }>load</Btn>
-              <Btn onclick={() => { }} icon={
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-[22px] w-[22px] mt-[-.5px]" viewBox="0 0 32 32">
-                  <path fill="currentColor" d="m27.71 9.29l-5-5A1 1 0 0 0 22 4H6a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2V10a1 1 0 0 0-.29-.71M12 6h8v4h-8Zm8 20h-8v-8h8Zm2 0v-8a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8H6V6h4v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6.41l4 4V26Z" />
-                </svg>
-              }>save</Btn>
-              <Btn onclick={() => { }} icon={
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-[20px] w-[20px] mt-[0px]" viewBox="0 0 512 512">
-                  <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M83 384c-13-33-35-93.37-35-128C48 141.12 149.33 48 256 48s208 93.12 208 208c0 34.63-23 97-35 128" />
-                  <path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="m108.39 270.13l-13.69 8c-30.23 17.7-31.7 72.41-3.38 122.2s75.87 75.81 106.1 58.12l13.69-8a16.16 16.16 0 0 0 5.78-21.87L130 276a15.74 15.74 0 0 0-21.61-5.87Zm295.22 0l13.69 8c30.23 17.69 31.74 72.4 3.38 122.19s-75.87 75.81-106.1 58.12l-13.69-8a16.16 16.16 0 0 1-5.78-21.87L382 276a15.74 15.74 0 0 1 21.61-5.87Z" />
-                </svg>
-              }>solo</Btn>
-              <Btn onclick={() => { }} icon={
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-[22px] w-[22px] mt-[-1.5px]" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.285-4.805A.75.75 0 0 1 12 3.75M6.255 9.305a.748.748 0 0 1-.505.195h-3a.25.25 0 0 0-.25.25v4.5c0 .138.112.25.25.25h3c.187 0 .367.069.505.195l4.245 3.86V5.445ZM16.28 8.22a.75.75 0 1 0-1.06 1.06L17.94 12l-2.72 2.72a.75.75 0 1 0 1.06 1.06L19 13.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L20.06 12l2.72-2.72a.75.75 0 0 0-1.06-1.06L19 10.94z" />
-                </svg>
-              }>mute</Btn>
-            </div>
+            {false &&
+              <div class={`absolute flex bottom-0 left-0 bg-base-300 border-t-black border-t-2 text-primary z-50 h-14 items-center justify-items-center w-[349px]`}>
+                <Btn onclick={() => { }} icon={
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-[20px] w-[20px] mt-[1px]" viewBox="0 0 32 32">
+                    <defs>
+                      <path id="carbonNewTab0" fill="currentColor" d="M26 26H6V6h10V4H6a2.002 2.002 0 0 0-2 2v20a2.002 2.002 0 0 0 2 2h20a2.002 2.002 0 0 0 2-2V16h-2Z" />
+                    </defs>
+                    <use href="#carbonNewTab0" />
+                    <use href="#carbonNewTab0" />
+                    <path fill="currentColor" d="M26 6V2h-2v4h-4v2h4v4h2V8h4V6z" />
+                  </svg>
+                }>new</Btn>
+                <Btn onclick={() => {
+                  state.isLoadOpen = !state.isLoadOpen
+                }} icon={
+                  <svg xmlns="http://www.w3.org/2000/svg" class={() => ["h-[20px] w-[20px] mt-[0px]", state.isLoadOpen && "text-primary"]} viewBox="0 2 20 20">
+                    <path fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 20h12m-6-4V4m0 0l3.5 3.5M12 4L8.5 7.5" />
+                  </svg>
+                }>load</Btn>
+                <Btn onclick={() => { }} icon={
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-[22px] w-[22px] mt-[-.5px]" viewBox="0 0 32 32">
+                    <path fill="currentColor" d="m27.71 9.29l-5-5A1 1 0 0 0 22 4H6a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2V10a1 1 0 0 0-.29-.71M12 6h8v4h-8Zm8 20h-8v-8h8Zm2 0v-8a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8H6V6h4v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6.41l4 4V26Z" />
+                  </svg>
+                }>save</Btn>
+                <Btn onclick={() => { }} icon={
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-[20px] w-[20px] mt-[0px]" viewBox="0 0 512 512">
+                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M83 384c-13-33-35-93.37-35-128C48 141.12 149.33 48 256 48s208 93.12 208 208c0 34.63-23 97-35 128" />
+                    <path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="m108.39 270.13l-13.69 8c-30.23 17.7-31.7 72.41-3.38 122.2s75.87 75.81 106.1 58.12l13.69-8a16.16 16.16 0 0 0 5.78-21.87L130 276a15.74 15.74 0 0 0-21.61-5.87Zm295.22 0l13.69 8c30.23 17.69 31.74 72.4 3.38 122.19s-75.87 75.81-106.1 58.12l-13.69-8a16.16 16.16 0 0 1-5.78-21.87L382 276a15.74 15.74 0 0 1 21.61-5.87Z" />
+                  </svg>
+                }>solo</Btn>
+                <Btn onclick={() => { }} icon={
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-[22px] w-[22px] mt-[-1.5px]" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.285-4.805A.75.75 0 0 1 12 3.75M6.255 9.305a.748.748 0 0 1-.505.195h-3a.25.25 0 0 0-.25.25v4.5c0 .138.112.25.25.25h3c.187 0 .367.069.505.195l4.245 3.86V5.445ZM16.28 8.22a.75.75 0 1 0-1.06 1.06L17.94 12l-2.72 2.72a.75.75 0 1 0 1.06 1.06L19 13.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L20.06 12l2.72-2.72a.75.75 0 0 0-1.06-1.06L19 10.94z" />
+                  </svg>
+                }>mute</Btn>
+              </div>
+            }
           </div>
       }
     })())
@@ -281,6 +308,23 @@ export function Main() {
             view.w = window.innerWidth
             view.h = window.innerHeight - 44
             view.pr = state.pr
+          })
+
+          const redrawEditors = () => {
+            code.clearCanvas()
+            code.drawBigScrollbar()
+            editors.forEach(editor => {
+              editor.drawText()
+            })
+          }
+
+          surface.anim.ticks.add(redrawEditors)
+
+          $.fx(() => {
+            const { redraw } = code.info
+            $()
+            if (!surface!.anim.info.isRunning) redrawEditors()
+            surface!.anim.info.epoch++
           })
 
           // codeSurface ??= Surface(codeView, state.codeMatrix, state.codeViewMatrix, () => {
@@ -328,7 +372,7 @@ export function Main() {
     const { mode } = state
     $()
     navbar.replaceChildren(...[
-      <div class={`lg:min-w-[349px] mt-[1px]`}>
+      <div class={`lg:min-w-[348px] mt-[1px]`}>
         <a class="btn hover:bg-base-100 border-none bg-transparent text-[1.135rem] text-primary font-bold h-10 min-h-10 px-3">
           {state.name}
         </a>

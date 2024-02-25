@@ -30,6 +30,7 @@ export function CodeDraw(surface: Surface) {
       .1, // lw
       floats.ptr, // ptr
       waveform.length, // len
+      0, // offset
       0xff00ff, // color
       1.0, // alpha
     ] as ShapeData.Wave).flat()

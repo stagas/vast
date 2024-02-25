@@ -23,7 +23,7 @@ export enum ShapeOpts {
 
 // Note: All shapes must have equal 32bit size.
 // and this must match count of shapes 32bit elements.
-export const SHAPE_LENGTH = 10
+export const SHAPE_LENGTH = 11
 
 @unmanaged
 export class Shape {
@@ -42,6 +42,7 @@ export class Box {
 
   ptr: f32 = 0 // unused
   len: f32 = 0 // unused
+  offset: f32 = 0 // unused
 
   color: f32 = 255
   alpha: f32 = 1.0
@@ -59,6 +60,7 @@ export class Line {
 
   ptr: f32 = 0 // unused
   len: f32 = 0 // unused
+  offset: f32 = 0 // unused
 
   color: f32 = 255
   alpha: f32 = 1.0
@@ -76,6 +78,7 @@ export class Wave {
 
   ptr: f32 = 0
   len: f32 = 0
+  offset: f32 = 0
 
   color: f32 = 255
   alpha: f32 = 1.0

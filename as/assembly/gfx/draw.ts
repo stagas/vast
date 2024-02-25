@@ -192,7 +192,7 @@ export function draw(
               if (ma < 70) {
                 p_index += i32(wave.len)
                 n_len = Mathf.floor(wave.len / 16.0)
-                mul = 8.0
+                mul = 4.0
                 if (ma < 20) {
                   if (ma < 10) {
                     // if (ma < 5) {

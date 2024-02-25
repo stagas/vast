@@ -10,8 +10,12 @@ export async function svgToImg(svg: string, color: string) {
   return img
 }
 
-export async function fromSvg(svg: string) {
-  const img = await svgToImg(svg, state.colors['base-content'])
-  const img_hover = await svgToImg(svg, state.colors['base-content'])
+export async function fromSvg(
+  svg: string,
+  color = state.colors['base-content'],
+  hoverColor = state.colors['base-content']
+) {
+  const img = await svgToImg(svg, color)
+  const img_hover = await svgToImg(svg, hoverColor)
   return { img, img_hover }
 }

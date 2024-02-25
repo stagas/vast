@@ -36,6 +36,7 @@ class State {
   loadOpenCategory = 'synths'
 
   isHoveringToolbar = false
+  isHoveringHeads = false
 
   focusedBox = null as null | any
 
@@ -62,7 +63,6 @@ class State {
 
   tracks = [] as Track[]
 
-  hoveringBoxToolbar = false
 
   t1_source = $(new Source<Token>(tokenize), {
     code: `;;;kick

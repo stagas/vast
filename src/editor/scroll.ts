@@ -38,7 +38,7 @@ export class Scroll extends Comp {
 
     const viewTop = -targetScroll.top
     // Note: this determines caret bottom limit
-    const viewBottom = viewTop + view.h
+    const viewBottom = viewTop + view.h / 2 // TODO: this is weird
 
     let y = lineTops[line]!
 
@@ -104,7 +104,7 @@ export class Scroll extends Comp {
     const top = -h
       + Math.min(
         lineBottoms.at(-1) || 0,
-        view.h - 3.5
+        view.h / 2 // TODO: this is weird //- lineHeight //- 3.5
       )
     const left = -Math.max(0, (w - view.w) + overscrollX)
 

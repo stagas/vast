@@ -63,14 +63,14 @@ export function Grid(surface: Surface) {
         n.info.boxes.reduce((p, n) => Math.max(p, n.rect.x + n.rect.w), 1))
         , 1)
       )
-      viewMatrix.d = intentMatrix.d = targetView.h / Math.max(4, tracks.length)
+      viewMatrix.d = intentMatrix.d = targetView.h / Math.max(3, tracks.length)
       viewMatrix.e = intentMatrix.e = state.mode === 'wide' ? 0 : CODE_WIDTH
       lastFarMatrix.set(viewMatrix)
       $.fx(function scale_rows_to_fit_height() {
         const { h } = targetView
         const { tracks } = state
         $()
-        intentMatrix.d = h / Math.max(4, tracks.length)
+        intentMatrix.d = h / Math.max(3, tracks.length)
       })
     }
   })
@@ -218,7 +218,7 @@ export function Grid(surface: Surface) {
         if (!state.isHoveringToolbar) {
           applyBoxMatrix(targetMatrix, box)
           info.hoveringBox = box
-          box.setColor(info.hoveringBox.color + 0x1fffff)
+          box.setColor(info.hoveringBox.colorBright)
         }
         write()
       }
@@ -229,7 +229,8 @@ export function Grid(surface: Surface) {
   }
 
   function handleHoveringBox() {
-    if (state.hoveringBoxToolbar) return
+    if (state.isHoveringHeads) return
+    if (state.isHoveringToolbar) return
     if (info.draggingNote) return
 
     let { x, y } = mouse.screenPos
@@ -385,9 +386,9 @@ export function Grid(surface: Surface) {
     const padX = 0 //10
     Matrix.viewBox(m, targetView, {
       x: box.x - ox, // - w / (padX * 2) - ox,
-      y: box.y - (box.y ? padY : padY / 2),
+      y: box.y - padY,
       w: w - ox, // + w / padX,
-      h: box.h + padY * 1 - (box.y && box.y < boxes.rows.length - 1 ? padY / 2 : padY),
+      h: box.h + padY * 2,
     })
   }
 
@@ -397,9 +398,9 @@ export function Grid(surface: Surface) {
     viewMatrix.isRunning = true
     viewMatrix.speed = ZOOM_SPEED_SLOW
     applyBoxMatrix(intentMatrix, box)
-    if (box.track) {
-      box.track.play()
-    }
+    // if (box.track) {
+    //   box.track.play()
+    // }
   })
 
   keyboard.targets.add(ev => {
@@ -573,6 +574,7 @@ export function Grid(surface: Surface) {
           1, // lw
           1, // ptr
           0, // len
+          0, // offset
           0x0,
           .92 // alpha
         ] as ShapeData.Box,
@@ -593,6 +595,7 @@ export function Grid(surface: Surface) {
             1, // lw
             1, // ptr
             0, // len
+            0, // offset
             hoveringNoteN === n
               ? 0x00aaff
               : focusedBox.color,
@@ -608,6 +611,7 @@ export function Grid(surface: Surface) {
             1, // lw
             1, // ptr
             0, // len
+            0, // offset
             isBlack ? 0x0 : 0xffffff,
             1.0 // alpha
           ] as ShapeData.Box
@@ -625,6 +629,7 @@ export function Grid(surface: Surface) {
             col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0, // lw
             1, // ptr
             0, // len
+            0, // offset
             0x0,
             1 // alpha
           ] as ShapeData.Line
@@ -656,6 +661,7 @@ export function Grid(surface: Surface) {
             1, // lw
             1, // ptr
             0, // len
+            0, // offset
             isHovering
               ? state.primaryColorInt
               : focusedBox.colorBright
@@ -711,11 +717,13 @@ export function Grid(surface: Surface) {
   }
 }
 
-type BoxData = RectLike & {
+export type BoxData = RectLike & {
   track: Track
   ptr: number
   color: number
   hexColor: string
+  hexColorBright: string
+  hexColorBrighter: string
   colorBright: number
   colorBrighter: number
   setColor: (color: number) => void
@@ -723,6 +731,7 @@ type BoxData = RectLike & {
   floats?: number[]
 }
 
+const intToHex = (x: number) => '#' + x.toString(16).padStart(6, '0')
 const boxesHitmap = new Map<string, BoxData>()
 
 const BOX_HOVER_COLOR = 0x777777
@@ -738,19 +747,25 @@ function Boxes(tracks: Track[]) {
     x: number,
     y: number,
     w: number,
-    color = Math.floor((0x990000 + 0xfff * (Math.sin(18 + y * 1.85) * 0.5 + 0.5)) % 0xffffff)
+    color =
+      hexToInt(saturate(intToHex(Math.floor((0xbb0000 + 0xfff * (Math.sin(5 + y * 155.85) * .5 + 0.5)) % 0xffffff)), 0.05))
   ) {
     const h = 1
-    const hexColor = '#' + color.toString(16).padStart(6, '0')
-
+    const hexColor = intToHex(color)
+    const hexColorBright =  saturate(luminate(hexColor, .015), 0.1)
+    const hexColorBrighter = saturate(luminate(hexColor, .030), 0.2)
+    const colorBright = hexToInt(hexColorBright)
+    const colorBrighter = hexToInt(hexColorBrighter)
     const boxData: BoxData = {
       track,
       x, y, w, h,
       ptr,
       color,
       hexColor,
-      colorBright: hexToInt(saturate(luminate(hexColor, .1), 2.)),
-      colorBrighter: hexToInt(saturate(luminate(hexColor, .15), 3.)),
+      hexColorBright,
+      hexColorBrighter,
+      colorBright,
+      colorBrighter,
       setColor(color: number) {
         setColor(this.ptr, color)
       }
@@ -765,12 +780,14 @@ function Boxes(tracks: Track[]) {
     const shape = Object.assign([
       ShapeOpts.Box,
       x, y, w, h,
-      1, 1, 0, // lw, ptr, len
+      1, 1, 0, 0, // lw, ptr, len, offset
       color, // color
       1.0 // alpha
     ] as ShapeData.Box, { ptr, data: boxData })
 
     ptr += shape.length
+
+    track.info.shape ??= shape
 
     return shape
   }
@@ -784,6 +801,7 @@ function Boxes(tracks: Track[]) {
 
   let rows = Array.from(tracks).map(track => {
     const boxes: ReturnType<typeof createBox>[] = []
+    track.info.shape = null
     for (const box of track.info.boxes) {
       const { x, y, w } = box.rect
       const shape = box.shape = createBox(track, x, y, w)
@@ -796,7 +814,7 @@ function Boxes(tracks: Track[]) {
 
   function setColor(ptr: number, color: number) {
     // TODO: sketch.shape.box.color
-    data[ptr + 8] = color
+    data[ptr + 9] = color
   }
 
   return { rows, right, data, setColor }
@@ -834,6 +852,7 @@ function Waves(boxes: ReturnType<typeof Boxes>) {
             1, // lw
             floats.ptr, // ptr
             floats.len, // len
+            0, // offset
             color, // color
             1.0, // alpha
           ] as ShapeData.Wave

@@ -25,8 +25,8 @@ export function lerpMatrix(src: MatrixLike, dst: MatrixLike, speed = 0.3, thresh
     || Math.abs(db) > threshold
     || Math.abs(dc) > threshold
     || Math.abs(dd) > threshold
-    || Math.abs(de / src.a) > threshold
-    || Math.abs(df / src.d) > threshold
+    || Math.abs(de) > threshold
+    || Math.abs(df) > threshold
   ) {
     src.a += da * speed
     src.b += db * speed

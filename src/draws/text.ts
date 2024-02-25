@@ -73,7 +73,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     textView.set(view)
     textView.h = window.innerHeight
     if (mode === 'edit' || mode === 'dev') {
-      canvas.style.left = CODE_WIDTH + 'px'
+      canvas.style.left = (CODE_WIDTH - 1) + 'px'
       textView.w -= CODE_WIDTH
       textView.x += CODE_WIDTH
     }
