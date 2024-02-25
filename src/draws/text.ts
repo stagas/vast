@@ -71,6 +71,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     const { mode } = state
     $()
     textView.set(view)
+    textView.h = window.innerHeight
     if (mode === 'edit' || mode === 'dev') {
       canvas.style.left = CODE_WIDTH + 'px'
       textView.w -= CODE_WIDTH
@@ -148,6 +149,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     const pr = state.pr
     const w = (data.w * m.a * pr)
     let x = data.x * m.a * pr + m.e * pr //+ 40
+    if (x < (CODE_WIDTH + 55) * pr) x = (CODE_WIDTH + 55) * pr
     // if (mousePos.x >= x + w / 2) x += w - hitArea.w
     let y = data.y * m.d * pr + m.f * pr + 45.5 * pr
     const h = (data.h * m.d * pr)
@@ -231,5 +233,5 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     }
   })
 
-  return { canvas, hitArea }
+  return { canvas, c, hitArea }
 }

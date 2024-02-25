@@ -36,8 +36,8 @@ export function Grid(surface: Surface) {
     $()
     targetView.set(view)
     if (mode === 'edit' || mode === 'dev') {
-      targetView.x += CODE_WIDTH
-      targetView.w -= CODE_WIDTH
+      targetView.x += CODE_WIDTH + 55
+      targetView.w -= CODE_WIDTH + 55
     }
   })
 
@@ -106,7 +106,7 @@ export function Grid(surface: Surface) {
     const m = viewMatrix.dest
     m.set(intentMatrix)
     // log('m.e', -info.boxes.right * m.a + mouse.pos.x, mouse.pos.x, m.e)
-    m.e = clamp(-(info.boxes.right * m.a - view.w), mode === 'wide' ? 0 : CODE_WIDTH, m.e) //clamp(-info.boxes.right * m.a + mouse.pos.x, 405, m.e)
+    m.e = clamp(-(info.boxes.right * m.a - view.w), mode === 'wide' ? 0 : CODE_WIDTH + 55, m.e) //clamp(-info.boxes.right * m.a + mouse.pos.x, 405, m.e)
     intentMatrix.a = m.a
     intentMatrix.e = m.e
     // log('m.e', m.e)
@@ -165,7 +165,7 @@ export function Grid(surface: Surface) {
   const point = $(new Point)
 
   function handleWheelScaleX(ev: WheelEvent) {
-    const { x, y } = mousePos
+    let { x, y } = mousePos
     const minZoomX = view.w / Math.max(view.w, info.boxes.right)
     const maxZoomX = 64000
 
@@ -182,6 +182,7 @@ export function Grid(surface: Surface) {
       if (delta_a === 1) return
     }
 
+    x = Math.max(0, x)
     m.translate(x, y)
     m.scale(delta_a, 1)
     m.translate(-x, -y)

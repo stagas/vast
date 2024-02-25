@@ -22,6 +22,7 @@ import { Floats } from '../util/floats.ts'
 import { tokenize } from '../lang/tokenize.ts'
 import { Track } from '../dsp/track.ts'
 import { Source } from '../source.ts'
+import { Heads } from '../draws/heads.ts'
 
 const DEBUG = true
 
@@ -45,6 +46,7 @@ export function Main() {
   let surface: Surface | undefined
   // let grid: Grid | undefined
   let textDraw: TextDraw | undefined
+  let headsDraw: Heads | undefined
 
   const info = $({
     grid: null as null | Grid,
@@ -53,8 +55,8 @@ export function Main() {
   const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
   const dsp = Dsp(ctx)
   const sound = dsp.Sound()
-  const t0 = Track(dsp, state.source) //$(new Source(tokenize), { code: '[saw 330]' }))
-  const t1 = Track(dsp, state.t1_source)
+  const t0 = Track(dsp, state.source, 0) //$(new Source(tokenize), { code: '[saw 330]' }))
+  const t1 = Track(dsp, state.t1_source, 1)
   state.tracks = [t0, t1]
   t0.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 0, w: 1, h: 1 }), shape: null })]
   t1.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 1, w: 1, h: 1 }), shape: null })]
@@ -296,6 +298,7 @@ export function Main() {
           info.grid.write()
 
           textDraw ??= TextDraw(surface, info.grid, view)
+          headsDraw ??= Heads(textDraw.c, surface, info.grid, view)
 
           minimap ??= Minimap(info.grid)
           minimapDiv.append(minimap.canvas)
@@ -325,7 +328,7 @@ export function Main() {
     const { mode } = state
     $()
     navbar.replaceChildren(...[
-      <div class={`lg:min-w-[350px] mt-[1px]`}>
+      <div class={`lg:min-w-[349px] mt-[1px]`}>
         <a class="btn hover:bg-base-100 border-none bg-transparent text-[1.135rem] text-primary font-bold h-10 min-h-10 px-3">
           {state.name}
         </a>

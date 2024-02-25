@@ -14,7 +14,7 @@ const DEBUG = true
 
 export type Track = ReturnType<typeof Track>
 
-export function Track(dsp: Dsp, source: Source<Token>) {
+export function Track(dsp: Dsp, source: Source<Token>, y: number) {
   DEBUG && console.log('[track] create')
 
   using $ = Signal()
@@ -22,7 +22,7 @@ export function Track(dsp: Dsp, source: Source<Token>) {
   const sound = dsp.Sound()
 
   const info = $({
-    y: 0,
+    y,
     boxes: [] as { rect: Rect, shape?: ShapeData.Box | null }[],
     get length() {
       let max = 0

@@ -14,18 +14,18 @@ export function Minimap(grid: Grid) {
   using $ = Signal()
 
   const view = $(new Rect, { w: 250, h: 34, pr: state.$.pr })
-  const handleView = $(new Rect, { w: 250, h: 38, pr: state.$.pr })
+  const handleView = $(new Rect, { w: 250, h: 37, pr: state.$.pr })
 
   const canvas = Canvas({ view })
   const handle = Canvas({ view: handleView })
   handle.style.position = 'absolute'
   handle.style.left = '0'
-  handle.style.top = '0'
+  handle.style.top = '-2px'
   canvas.style.marginBottom = '-1px'
 
   $.fx(() => dom.on(handle, 'wheel', e => {
     const m = grid.intentMatrix
-    grid.mousePos.x = ((state.mode === 'wide' ? 0 : CODE_WIDTH) - m.e) / m.a  //Math.floor(-m.e / m.a) //- CODE_WIDTH //+ grid.view.w / m.a / view.pr
+    grid.mousePos.x = ((state.mode === 'wide' ? 0 : CODE_WIDTH + 55) - m.e) / m.a  //Math.floor(-m.e / m.a) //- CODE_WIDTH //+ grid.view.w / m.a / view.pr
     grid.mousePos.y = 0 //Math.floor(-m.f / m.d) //+ grid.view.h / m.d / view.pr
     grid.handleWheelScaleX(e)
     log('wheel', grid.mousePos.x, grid.mousePos.y)
@@ -69,7 +69,7 @@ export function Minimap(grid: Grid) {
       x: 0,
       y: 0,
       w: boxes.right / view.pr,
-      h: boxes.rows.length / view.pr + .08,
+      h: boxes.rows.length / view.pr - (1 / view.h),
     })
     c.save()
     c.scale(pr, pr)
@@ -81,7 +81,7 @@ export function Minimap(grid: Grid) {
       for (const box of row) {
         const [, x, y, w, h, , , , boxColor] = box
         color = boxColor
-        c.rect(x, y + .15, w, h - .2)
+        c.rect(x, y + 1 * (1 / view.h), w, h - 2 * (1 / view.h))
       }
       c.fillStyle = '#' + (color ?? 0x0).toString(16).padStart(6, '0')
       c.fill()
