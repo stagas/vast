@@ -1,6 +1,6 @@
 import { $, Signal } from 'signal-jsx'
 import { Matrix, Point, Rect, RectLike } from 'std'
-import { clamp, debounce, dom, hexToRgb, luminate, saturate } from 'utils'
+import { clamp, debounce, dom, hexToRgb, hueshift, luminate, rgbToHsl, saturate } from 'utils'
 import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
 import { CODE_WIDTH } from '../constants.ts'
 import { ShapeData } from '../gl/sketch.ts'
@@ -11,6 +11,7 @@ import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { waveform } from '../util/waveform.ts'
 import { hexToInt } from '../util/rgb.ts'
 import { Track } from '../dsp/track.ts'
+import { oklchToHex } from '../util/oklch.ts'
 
 const DEBUG = true
 const SCALE_X = 1
@@ -513,6 +514,13 @@ export function Grid(surface: Surface) {
     handleHoveringBox()
   })
 
+  $.fx(() => {
+    const { theme, colors } = state
+    $()
+    info.waves.data = new Float32Array(info.waves.update())
+    write()
+  })
+
   const BLACK_KEYS = new Set([1, 3, 6, 8, 10])
   const KEY_NAMES = [
     'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'
@@ -741,6 +749,12 @@ const BOX_HOVER_COLOR = 0x777777
 
 const seed = Math.random() * 1000
 
+const palette = [
+  0xff5555,
+  0x1188ff,
+  0xbb55b0,
+  0x44aa99,
+]
 function Boxes(tracks: Track[]) {
   boxesHitmap.clear()
 
@@ -753,24 +767,25 @@ function Boxes(tracks: Track[]) {
     y: number,
     w: number,
     color =
-      hexToInt(
-        saturate(
-          luminate(
-            intToHex(
-              Math.floor(
-                0xdd0000 + 0xffff * Math.sin(seed + track.info.y * 99999)
-              )
-            ), 0.05
-          ), 0.2
-        )
+      // hexToInt(
+      //   saturate(
+      //     luminate(
+      //       intToHex(
+      Math.floor(
+        palette[track.info.y % palette.length]
+        // 0xdd0000 + 0xffff * Math.sin(seed + track.info.y * 99999)
       )
+    //       ), 0.05
+    //     ), 0.2
+    //   )
+    // )
   ) {
     const h = 1
     const hexColor = intToHex(color)
     const hexColorBright = saturate(luminate(hexColor, .015), 0.1)
-    const hexColorDark = saturate(luminate(hexColor, -.65), -0.2)
-    const hexColorBrighter = saturate(luminate(hexColor, .030), 0.2)
-    const hexColorBrightest = saturate(luminate(hexColor, .1), 0.2)
+    const hexColorDark = luminate(saturate(hueshift(hexColor, 180), -1), -.45) //saturate(luminate(hueshift(hexColor, 180), -.65), -0.2)
+    const hexColorBrighter = saturate(luminate(hexColor, .0030), 0.02)
+    const hexColorBrightest = saturate(luminate(hexColor, .01), 0.02)
     const colorBright = hexToInt(hexColorBright)
     const colorBrighter = hexToInt(hexColorBrighter)
     const colorDark = hexToInt(hexColorDark)
@@ -843,6 +858,8 @@ function Boxes(tracks: Track[]) {
 
 // let floats: Floats
 
+const toHex = (x: string) => x.startsWith('oklch') ? oklchToHex(x) ?? x : x
+
 function Waves(boxes: ReturnType<typeof Boxes>) {
   //   if (!floats) {
   //     floats = Floats(waveform)
@@ -868,6 +885,12 @@ function Waves(boxes: ReturnType<typeof Boxes>) {
 
           // console.log(floats)
           // console.log(color.toString(16), box.data.hexColor)
+          // console.log(state.colors)
+
+          const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .09))
+          const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
+          const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
+
           const f = [
             [
               ShapeOpts.Box,
@@ -879,17 +902,17 @@ function Waves(boxes: ReturnType<typeof Boxes>) {
               1, // ptr
               0, // len
               0, // offset
-              box.data.colorDark,
-              .77 // alpha
+              y % 2 === 0 ? bg : bg2, //0x222222 : 0x333333,
+              1.0 // alpha
             ] satisfies ShapeData.Box,
             [
               ShapeOpts.Wave,
-              x, y, w, h, // same dims as the box
+              x, y + (h - h / 2) / 2, w, h / 2, // same dims as the box
               1, // lw
               floats.ptr, // ptr
               floats.len, // len
               0, // offset
-              color, // color
+              fg, //0xcccccc, // color
               1.0, // alpha
             ] satisfies ShapeData.Wave
           ].flat()

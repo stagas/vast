@@ -86,35 +86,36 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   c.imageSmoothingEnabled = false
   c.save()
 
+  const color = '#000'
   const icons = $({
     snap: $.unwrap(() => fromSvg(/*html*/`
-      <svg xmlns="http://www.w3.org/2000/svg" height="32" width="32" viewBox="0 0 32 32">
+      <svg xmlns="http://www.w3.org/2000/svg" height="42" width="42" viewBox="0 0 32 32">
         <path fill="currentColor" d="M5 5v22h22V5zm2 2h8v8H7zm10 0h8v8h-8zM7 17h8v8H7zm10 0h8v8h-8z" />
       </svg>
-    `)),
+    `, color)),
     beat: $.unwrap(() => fromSvg(/*html*/`
-      <svg xmlns="http://www.w3.org/2000/svg" height="34" width="34" viewBox="0 0 24 24">
+      <svg xmlns="http://www.w3.org/2000/svg" height="44" width="44" viewBox="0 0 24 24">
         <path fill="currentColor" d="M14 3v10.56c-.59-.35-1.27-.56-2-.56c-2.21 0-4 1.79-4 4s1.79 4 4 4s4-1.79 4-4V3z" />
       </svg>
-    `)),
+    `, color)),
     shuffle: $.unwrap(() => fromSvg(/*html*/`
-      <svg xmlns="http://www.w3.org/2000/svg" height="47" width="47" viewBox="0 0 24 24">
+      <svg xmlns="http://www.w3.org/2000/svg" height="57" width="57" viewBox="0 0 24 24">
         <path fill="currentColor" d="M16.47 5.47a.75.75 0 0 0 0 1.06l.72.72h-3.813a1.75 1.75 0 0 0-1.575.987l-.21.434a.4.4 0 0 0 0 .35l.568 1.174a.2.2 0 0 0 .36 0l.632-1.304a.25.25 0 0 1 .225-.141h3.812l-.72.72a.75.75 0 1 0 1.061 1.06l2-2a.75.75 0 0 0 0-1.06l-2-2a.75.75 0 0 0-1.06 0m-6.436 9.859a.4.4 0 0 0 0-.35l-.57-1.174a.2.2 0 0 0-.36 0l-.63 1.304a.25.25 0 0 1-.226.141H5a.75.75 0 0 0 0 1.5h3.248a1.75 1.75 0 0 0 1.575-.987z" />
         <path fill="currentColor" d="M16.47 18.53a.75.75 0 0 1 0-1.06l.72-.72h-3.813a1.75 1.75 0 0 1-1.575-.987L8.473 8.89a.25.25 0 0 0-.225-.141H5a.75.75 0 0 1 0-1.5h3.248c.671 0 1.283.383 1.575.987l3.329 6.872a.25.25 0 0 0 .225.141h3.812l-.72-.72a.75.75 0 1 1 1.061-1.06l2 2a.75.75 0 0 1 0 1.06l-2 2a.75.75 0 0 1-1.06 0" />
       </svg>
-    `)),
+    `, color)),
     quantize: $.unwrap(() => fromSvg(/*html*/`
-      <svg xmlns="http://www.w3.org/2000/svg" height="36" width="36" viewBox="0 0 256 256">
+      <svg xmlns="http://www.w3.org/2000/svg" height="46" width="46" viewBox="0 0 256 256">
         <path fill="currentColor" d="M252 56a12 12 0 0 1-12 12h-44v36a12 12 0 0 1-12 12h-44v36a12 12 0 0 1-12 12H84v36a12 12 0 0 1-12 12H16a12 12 0 0 1 0-24h44v-36a12 12 0 0 1 12-12h44v-36a12 12 0 0 1 12-12h44V56a12 12 0 0 1 12-12h56a12 12 0 0 1 12 12" />
       </svg>
-    `)),
+    `, color)),
     duplicate: $.unwrap(() => fromSvg(/*html*/`
-      <svg xmlns="http://www.w3.org/2000/svg" height="48" width="48" viewBox="0 0 32 32">
+      <svg xmlns="http://www.w3.org/2000/svg" height="58" width="58" viewBox="0 0 32 32">
         <rect fill="currentColor" x="6" y="8" height="8" width="8" />
         <rect fill="currentColor" x="22" y="8" height="8" width="8" />
         <path stroke="currentColor" d="M 6 12 L 22 12" />
       </svg>
-    `)),
+    `, color)),
   })
 
   $.fx(() => {
@@ -124,6 +125,8 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   })
 
   const tick = () => {
+    return
+
     c.restore()
     c.save()
 
@@ -151,27 +154,28 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     let x = data.x * m.a * pr + m.e * pr //+ 40
     if (x < (CODE_WIDTH + 55) * pr) x = (CODE_WIDTH + 55) * pr
     // if (mousePos.x >= x + w / 2) x += w - hitArea.w
-    let y = data.y * m.d * pr + m.f * pr + 45.5 * pr
+    let y = data.y * m.d * pr + m.f * pr + 45.5 * pr + 1
     const h = (data.h * m.d * pr)
-    const bh = 45
-    c.font = '31px Mono'
+    const bh = 75
+    c.font = '29px Mono'
     // @ts-ignore
     c.letterSpacing = '-.035em'
     let snapText = '32'
     let beatText = '4'
 
     hitArea.x = x
-    hitArea.y = y - bh
-
+    hitArea.y = y //- bh
+    hitArea.w = data.w * m.a * pr //ix - hitArea.x - 10
     hitArea.h = bh
     hitArea.path(c)
     c.lineWidth = state.pr * 2
-    const dark = luminate(state.colors['base-100'], -0.04)
+    const dark = data.hexColor // luminate(state.colors['base-100'], -0.04)
     c.fillStyle = dark
 
     c.fill()
+    c.clip()
 
-    c.fillStyle = state.colors['base-content']
+    c.fillStyle = '#000' //state.colors['base-content']
     c.textBaseline = 'middle'
     c.textAlign = 'left'
 
@@ -191,21 +195,28 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
         c.fillStyle = state.colors['base-100']
         c.fillRect(ix - 10, hitArea.y, w, hitArea.h)
       }
-      c.fillStyle = /* isHovering ? state.colors.primary :  */state.colors['base-content']
+      c.fillStyle = isHovering ? state.colors['base-content'] : '#000' ///* isHovering ? state.colors.primary :  */state.colors['base-content']
       c.drawImage(isHovering ? item.img_hover : item.img, ix + xOffset, y)
       ix += w
     }
+    c.lineWidth = 0.4
+    c.strokeStyle = '#000'
     let tx = ix
-    if (icons?.snap) put(icons.snap, iw * 1.95, y - bh + 6)
-    c.fillText(snapText, tx + iw * 0.7, y - bh / 2 + 3.5)
+    let yy = y
+    if (icons?.snap) put(icons.snap, iw * 1.95, yy + 15.5)
+    let xx = Math.floor(tx + iw * 0.85)
+    c.fillText(snapText, xx, yy + bh / 2 + 3.5)
+    c.strokeText(snapText, xx, yy + bh / 2 + 3.5)
     tx = ix
-    if (icons?.beat) put(icons.beat, iw * 1.2 + beatText.length * 16, y - bh + 4.4)
-    c.fillText(beatText, tx + iw * 0.55, y - bh / 2 + 3.5)
-    if (icons?.shuffle) put(icons.shuffle, iw * 1.50, y - bh - 1.5, 3.5)
-    if (icons?.quantize) put(icons.quantize, iw * 1.50, y - bh + 4, 9)
-    if (icons?.duplicate) put(icons.duplicate, iw * 1.50, y - bh + 4, 1)
+    if (icons?.beat) put(icons.beat, iw * 1.2 + beatText.length * 16, yy + 13.4)
+    xx = Math.floor(tx + iw * 0.75)
+    c.fillText(beatText, xx, yy + bh / 2 + 3.5)
+    c.strokeText(beatText, xx, yy + bh / 2 + 3.5)
+    if (icons?.shuffle) put(icons.shuffle, iw * 1.50, yy + 8.5, 3.5)
+    if (icons?.quantize) put(icons.quantize, iw * 1.50, yy + 14, 9)
+    if (icons?.duplicate) put(icons.duplicate, iw * 1.50, yy + 14, 1)
 
-    hitArea.w = ix - hitArea.x - 10
+    // hitArea.w = ix - hitArea.x - 10
 
     // let explainText = ''
     // if (hoveringItem === icons.snap) explainText = 'snap ' + snapText

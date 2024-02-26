@@ -59,7 +59,7 @@ export function Main() {
   function addTrack(source: $<Source<any>>) {
     const y = state.tracks.length
     const t = Track(dsp, source, y)
-    t.info.boxes = Array.from({ length: 4 }, (_, x) =>
+    t.info.boxes = Array.from({ length: 8 }, (_, x) =>
       $({ rect: $(new Rect, { x, y, w: 1, h: 1 }), shape: null }))
     state.tracks = [...state.tracks, t]
   }
@@ -68,9 +68,9 @@ export function Main() {
     if (state.tracks.length) return
     addTrack(state.source)
     addTrack(state.t1_source)
-    addTrack(state.t1_source)
-    addTrack(state.t1_source)
-    addTrack(state.t1_source)
+    addTrack(state.t2_source)
+    addTrack(state.t3_source)
+    addTrack(state.t4_source)
     // addTrack(state.t1_source)
     // addTrack(state.t1_source)
     // addTrack(state.t1_source)
@@ -325,6 +325,7 @@ export function Main() {
             editors.forEach(editor => {
               editor.drawText()
             })
+            code.drawSeparators()
           }
 
           surface.anim.ticks.add(redrawEditors)

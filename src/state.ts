@@ -17,7 +17,7 @@ class State {
   name = 'ravescript'
 
   pr = window.devicePixelRatio
-  theme = storage<Theme>('dim')
+  theme = storage<Theme>('dark')
   get colors() {
     // console.log(themes[state.theme] )
     return themes[state.theme]
@@ -74,6 +74,60 @@ class State {
 } kick=
 
 [kick 4]
+`
+  })
+
+  t2_source = $(new Source<Token>(tokenize), {
+    code: `;;;hihat
+{ hz=
+[saw hz t]
+[ramp hz t .39] +
+} x=
+[x 130][x 400][x 300]
+[x 620][x 800][x 600]
+@  4*
+[dclipexp 4.1]
+clip 8*
+[bhp 7000 2.92]
+[bbp 8000 2.552]
+[exp 16 co* t] .41^ [lp 510] *
+(.6 .48 1 .54) t 16 * ? *
+.2* clip 1*
+`
+  })
+
+  t3_source = $(new Source<Token>(tokenize), {
+    code: `;;;eyo
+[sin (313 1313) t .125 * ? 111
+[sin .25 co* t] * + ]
+[sin 313 20
+ [sin 8 co* t] * +
+ t] *
+[sin 1721
+1 [sin 4 co* t] - 1200 * +]
+[exp 26 t] * + a= a .7*
+[delay 148 .91] a +
+[clip 2] 1.49 *
+[exp 44144 t] [lp] *
+[lp] [shp 850]
+[inc .097 t 4*] clip 1.8^ *
+2 *
+`
+  })
+
+  t4_source = $(new Source<Token>(tokenize), {
+    code: `;;;radio signals
+[sin 344]
+[sin 32] *
+[sin 186
+ [sin .125 co* t .25*] 3700 * +]
+[exp 1 co* t] * +
+[delay 11 .91]
+[clip 2] 1.49 *
+[exp 16 co* t] [lp] *
+[shp 1250]
+@ [slp 833]
+1.5 *
 `
   })
 

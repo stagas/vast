@@ -81,7 +81,7 @@ export function Minimap(grid: Grid) {
       for (const box of row) {
         const { x, y, w, h } = box.data
         color = box.data.color
-        c.rect(x, y + 1 * (1 / view.h), w, h - 2 * (1 / view.h))
+        c.rect(x, y + 10 * (1 / view.h), w, h - 20 * (1 / view.h))
       }
       c.fillStyle = '#' + (color ?? 0x0).toString(16).padStart(6, '0')
       c.fill()
@@ -109,7 +109,7 @@ export function Minimap(grid: Grid) {
     c.moveTo(x, y + h)
     c.lineTo(x, y)
     c.lineTo(x + w, y) //, w, h - .5)
-    c.fillStyle = '#fff3'
+    c.fillStyle = '#fff1'
     c.fill()
     c.strokeStyle = '#fff'
     c.lineWidth = 2.1
@@ -120,7 +120,7 @@ export function Minimap(grid: Grid) {
     c.moveTo(x + w, y)
     c.lineTo(x + w, y + h)
     c.lineTo(x, y + h)
-    c.fillStyle = '#fff3'
+    c.fillStyle = '#fff1'
     c.fill()
 
     c.strokeStyle = '#000c' //state.colors['primary'] + '55'

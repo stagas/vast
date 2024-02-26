@@ -177,7 +177,7 @@ export function draw(
           cw -= ox
         }
 
-        let x_step: f32 = f32(ma / NUM_SAMPLES) * 8.0
+        let x_step: f32 = f32(ma / NUM_SAMPLES) * 2.0 //* 8.0
         let mul: f32 = 1.0
         let lw: f32 = 1.5
 
@@ -213,33 +213,33 @@ export function draw(
                     // }
                     // else {
                     waveMode = WaveMode.Normal
-                    x_step = 0.125
+                    x_step *= 16
                     // }
                   }
                   else {
                     waveMode = WaveMode.Normal
-                    x_step = 0.125
+                    x_step *= 16
                   }
                 }
                 else {
                   waveMode = WaveMode.Normal
-                  x_step = 0.5
+                  x_step *= 16
                 }
               }
               else {
                 waveMode = WaveMode.Normal
                 // x_step = 0.0125
-                x_step = 0.5
+                x_step *= 16
               }
             }
             else {
               waveMode = WaveMode.Normal
-              x_step = 0.5
+              x_step *= 8
             }
           }
           else {
             waveMode = WaveMode.Normal
-            x_step = 0.5
+            x_step *= 4
           }
         }
         //   else {
@@ -320,8 +320,10 @@ export function draw(
 
         // advance the pointer if left edge is offscreen
         if (ox) {
-          n += ox / x_step
+          n += Mathf.floor(ox / x_step)
         }
+
+        n = Mathf.floor(n)
 
         // coeff *= 0.125
         let n_step = coeff

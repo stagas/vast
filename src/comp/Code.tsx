@@ -45,6 +45,31 @@ export function Code() {
   canvas.style.zIndex = '10'
   c = canvas.getContext('2d', { alpha: true })!
 
+  function drawSeparators() {
+    c.save()
+    for (const t of state.tracks) {
+      c.lineWidth = state.pr * 2
+      c.beginPath()
+      let y = t.info.sy
+      c.moveTo(0, y)
+      c.lineTo(CODE_WIDTH * state.pr - 25, y)
+      c.strokeStyle = t.info.shape!.data.hexColor
+      c.stroke()
+
+      c.lineWidth = 2
+      c.beginPath()
+      y = t.info.sy - 2
+      c.moveTo(0, y)
+      c.lineTo(CODE_WIDTH * state.pr - 25, y)
+      c.strokeStyle = '#000'
+      c.stroke()
+    }
+    c.restore()
+  }
+
+  //
+  // big scrollbar
+  //
   const bigScrollbarRect = $(new Rect)
   let bigScrollbarHandleHeight = 0
   function drawBigScrollbar() {
@@ -229,11 +254,11 @@ export function Code() {
 
       get TokenColors() {
         return {
-          [Token.Type.Op]: '#666',
+          [Token.Type.Op]: state.colors['primary'],
           [Token.Type.Id]: this.brand,
           [Token.Type.Keyword]: this.brand2,
-          [Token.Type.Number]: '#fff',
-          [Token.Type.Comment]: '#444',
+          [Token.Type.Number]: state.colors['base-content'],
+          [Token.Type.Comment]: state.colors['base-content'] + '66',
         } as any
       },
       get Builtin() {
@@ -402,7 +427,7 @@ export function Code() {
           editorInfo.Builtin[t.text] ??
           // AstNodeColors[state.tokensAstNode.get(tokensCopyMap.get(t)!)?.type ?? -1] ??
           editorInfo.TokenColors[t.type] ??
-          '#fff'
+          state.colors['base-content'] //#fff'
 
         const { x, y } = linecolToPos(t)
 
@@ -457,9 +482,11 @@ export function Code() {
 
   function clearCanvas() {
     c.clearRect(0, 0, view.w_pr, view.h_pr)
-    c.fillStyle = '#000b'
+    c.fillStyle = '#222b'
+    c.fillRect(0, 0, view.w_pr, view.h_pr)
+    c.fillStyle = state.colors['base-100'] + 'cc'
     c.fillRect(0, 0, view.w_pr, view.h_pr)
   }
 
-  return { info, canvas, createEditorView, clearCanvas, drawBigScrollbar, textarea: keyboard.textarea }
+  return { info, canvas, createEditorView, clearCanvas, drawBigScrollbar, drawSeparators, textarea: keyboard.textarea }
 }
