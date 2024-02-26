@@ -18,6 +18,6 @@ export function hexToInt(hex: string) {
 
 export function clamp255(x: f32): i32 {
   if (x > 255) x = 255
-  else if (x < 0) x = 0
+  if (x < 0) x = 0
   return i32(x)
 }

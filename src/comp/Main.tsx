@@ -59,7 +59,8 @@ export function Main() {
   function addTrack(source: $<Source<any>>) {
     const y = state.tracks.length
     const t = Track(dsp, source, y)
-    t.info.boxes = [$({ rect: $(new Rect, { x: 0, y, w: 1, h: 1 }), shape: null })]
+    t.info.boxes = Array.from({ length: 4 }, (_, x) =>
+      $({ rect: $(new Rect, { x, y, w: 1, h: 1 }), shape: null }))
     state.tracks = [...state.tracks, t]
   }
 
@@ -70,7 +71,15 @@ export function Main() {
     addTrack(state.t1_source)
     addTrack(state.t1_source)
     addTrack(state.t1_source)
-    addTrack(state.t1_source)
+    // addTrack(state.t1_source)
+    // addTrack(state.t1_source)
+    // addTrack(state.t1_source)
+    // addTrack(state.t1_source)
+    // addTrack(state.t1_source)
+    // addTrack(state.t1_source)
+    // addTrack(state.t1_source)
+    // addTrack(state.t1_source)
+    // addTrack(state.t1_source)
   })
 
   // const t0 = Track(dsp, state.source, 0) //$(new Source(tokenize), { code: '[saw 330]' }))
@@ -100,7 +109,7 @@ export function Main() {
       offs.push($.fx(() => {
         const { shape } = $.of(track.info)
         $()
-        editor.editorInfo.brand = shape.data.hexColorBrighter ?? '#aaa'
+        editor.editorInfo.brand = shape.data.hexColorBrightest ?? '#aaa'
       }))
       editor.editor.buffer.source = track.source
     }

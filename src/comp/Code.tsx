@@ -1,6 +1,6 @@
 import { Signal } from 'signal-jsx'
 import { Point, Rect } from 'std'
-import { dom, isMobile } from 'utils'
+import { clamp, dom, isMobile } from 'utils'
 import { CODE_WIDTH } from '../constants.ts'
 import { Editor, createEditor } from '../editor/editor.ts'
 import { Keyboard } from '../editor/keyboard.ts'
@@ -21,7 +21,7 @@ export function Code() {
     textLeft: 19,
     textTop: 6,
 
-    fontSize: '15px',
+    fontSize: '17px',
     lineHeight: 18,
   })
 
@@ -45,7 +45,11 @@ export function Code() {
   canvas.style.zIndex = '10'
   c = canvas.getContext('2d', { alpha: true })!
 
+  const bigScrollbarRect = $(new Rect)
+  let bigScrollbarHandleHeight = 0
   function drawBigScrollbar() {
+    if (state.tracks.length < 3) return
+
     const m = state.viewMatrix
     c.save()
     c.scale(state.pr, state.pr)
@@ -53,10 +57,10 @@ export function Code() {
 
     const co = (vh / (m.d * 2 * (state.tracks.length)))
 
-    const x = view.w - 55
+    const w = 30
+    const x = view.w - (5 + w)
     let y = -.5 - m.f * co * 2 //* state.pr
-    const w = 50
-    const bottom = window.innerHeight - 50
+    const bottom = window.innerHeight - 47
 
     let h = vh * co * state.pr //* (1/m.d) * vh / 2
 
@@ -67,31 +71,47 @@ export function Code() {
 
     if (y + h > bottom) h = bottom - y
 
-    y += 2
+    y += 1
 
-    c.lineWidth = 2
-    c.beginPath()
-    c.moveTo(x, y + h)
-    c.lineTo(x, y)
-    c.lineTo(x + w, y)
-    c.strokeStyle = '#fff'
-    c.stroke()
-    c.beginPath()
-    c.moveTo(x + w, y)
-    c.lineTo(x + w, y + h)
-    c.lineTo(x, y + h)
-    c.strokeStyle = '#444'
-    c.stroke()
+    bigScrollbarRect.x = x
+    bigScrollbarRect.y = 0
+    bigScrollbarRect.w = w
+    bigScrollbarRect.h = vh
+    bigScrollbarHandleHeight = h
 
+    if (isHoveringBigScrollbar) {
+      bigScrollbarRect.fill(c, state.colors['base-content'] + '33')
+    }
+
+    c.beginPath()
+    c.rect(x, y - 1, w, h + 1)
+    c.fillStyle = state.colors['base-content'] + '44'
+    c.fill()
     for (const t of state.tracks) {
       c.beginPath()
-      const y = (t.info.y) * (view.h / (state.tracks.length)) + 2
-      c.moveTo(x + 10, y)
-      c.lineTo(x + 10 + w - 17, y)
+      const h = (view.h / (state.tracks.length))
+      const y = (t.info.y) * h
+      // c.moveTo(x + 10, y)
+      c.moveTo(x + 8 + w - 10, y)
+      c.lineTo(x + 8 + w - 10, y + h - 1)
       c.lineWidth = 4
       c.strokeStyle = t.info.shape?.data.hexColor ?? '#fff'
       c.stroke()
     }
+
+    // c.lineWidth = 2
+    // c.beginPath()
+    // // c.moveTo(x, y + h)
+    // c.moveTo(x, y)
+    // c.lineTo(x + w, y)
+    // c.strokeStyle = state.colors.secondary //'#fff'
+    // c.stroke()
+    // c.beginPath()
+    // // c.moveTo(x + w, y)
+    // c.moveTo(x + w, y + h)
+    // c.lineTo(x, y + h)
+    // // c.strokeStyle = '#fff'
+    // c.stroke()
 
     c.restore()
   }
@@ -113,6 +133,65 @@ export function Code() {
   const pointer = $(new Pointer)
   pointer.element = canvas
   pointer.offset.y = 44
+
+  let beginDragY = -1
+  let beginDragF = 0
+  let isDraggingBigScrollbar = false
+  let isHoveringBigScrollbar = false
+
+  const target = {
+    rect: bigScrollbarRect,
+    handler: () => {
+      if (state.tracks.length < 3) return
+
+      const m = state.matrix
+      if (pointer.type === PointerEventType.Down) {
+        pointer.isDown = true
+
+        const handle = (e: MouseEvent) => {
+          e.stopImmediatePropagation()
+          e.preventDefault()
+          const { tracks } = state
+          const th = (view.h / (tracks.length - 1)) //* m.d
+          const n = clamp(0, 1.0, (e.pageY - 44 - th / 2) / (view.h - th))
+          m.f = -n * (m.d * (tracks.length - 1))
+          // const co = m.d / view.h * state.tracks.length
+          // m.f = -Math.min( (((co * view.h) - view.h) / m.d) * 2 , n * (view.h / m.d) * 2)
+          // console.log(m.f)
+        }
+        const off = dom.on(window, 'mousemove', handle, { capture: true })
+        handle(pointer.real as any)
+        dom.on(window, 'mouseup', () => {
+          pointer.isDown = false
+          off()
+        }, { once: true })
+      }
+      else if (pointer.type === PointerEventType.Wheel) {
+        m.f -= (pointer.real as any).deltaY * 0.001 * m.d
+      }
+
+      document.body.style.cursor = 'pointer'
+      // console.log('in scrollbar')
+    }
+  }
+
+  $.fx(() => {
+    const { hoverTarget } = pointer
+    $()
+    if (hoverTarget === target) {
+      isHoveringBigScrollbar = true
+      info.redraw++
+      return () => {
+        document.body.style.cursor = ''
+        isHoveringBigScrollbar = false
+        queueMicrotask(() => {
+          info.redraw++
+        })
+      }
+    }
+  })
+
+  pointer.targets.add(target)
   // dom.on(window, 'mouseup', (e) => {
   //   if (e.currentTarget)
   //   keyboard.textarea.focus()

@@ -40,8 +40,8 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
     const last = tracks.at(-1)!
     if (mousePos.withinRect(r) && mousePos.y < last.info.sy + dims.h) {
       state.isHoveringHeads = true
-      e.stopImmediatePropagation()
-      e.preventDefault()
+      // e.stopImmediatePropagation()
+      // e.preventDefault()
 
       for (const track of state.tracks) {
         if (mousePos.y > track.info.sy && mousePos.y < track.info.sy + dims.h) {

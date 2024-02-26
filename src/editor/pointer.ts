@@ -212,15 +212,18 @@ export class Pointer {
 
     const p = this._sparePoint
     p.set(this.pos).sub(this.offset)
-    for (const target of this.targets) {
-      if (p.withinRect(target.rect)) {
-        this.hoverTarget = target
-        if (event.type === 'mousedown' || real.type === 'pointerdown') {
-          this.focusTarget = target
+    outer: {
+      for (const target of this.targets) {
+        if (p.withinRect(target.rect)) {
+          this.hoverTarget = target
+          if (event.type === 'mousedown' || real.type === 'pointerdown') {
+            this.focusTarget = target
+          }
+          target.handler()
+          break outer
         }
-        target.handler()
-        break
       }
+      this.hoverTarget = null
     }
     // if (this.focusEl) {
     //   this.listeners.get(this.focusEl)?.handler()

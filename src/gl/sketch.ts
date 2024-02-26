@@ -133,7 +133,7 @@ vec3 intToRgb(int color) {
 }
 
 void main() {
-  fragColor = vec4(intToRgb(int(v_color.x)), v_color.y);
+  fragColor = vec4(intToRgb(int(v_color.x)).rgb, v_color.y);
 }
 `
 
@@ -180,7 +180,7 @@ function SketchInfo(GL: GL, view: Rect) {
     ptr: 'f32',
     len: 'f32',
     offset: 'f32',
-    color: 'i32',
+    color: 'f32',
     alpha: 'f32',
   })
 
@@ -194,7 +194,7 @@ function SketchInfo(GL: GL, view: Rect) {
     ptr: 'f32',
     len: 'f32',
     offset: 'f32',
-    color: 'i32',
+    color: 'f32',
     alpha: 'f32',
   })
 
@@ -208,7 +208,7 @@ function SketchInfo(GL: GL, view: Rect) {
     ptr: 'f32',
     len: 'f32',
     offset: 'f32',
-    color: 'i32',
+    color: 'f32',
     alpha: 'f32',
   })
 

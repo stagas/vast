@@ -724,8 +724,11 @@ export type BoxData = RectLike & {
   hexColor: string
   hexColorBright: string
   hexColorBrighter: string
+  hexColorBrightest: string
+  hexColorDark: string
   colorBright: number
   colorBrighter: number
+  colorDark: number
   setColor: (color: number) => void
   notes?: BoxNotes
   floats?: number[]
@@ -735,6 +738,8 @@ const intToHex = (x: number) => '#' + x.toString(16).padStart(6, '0')
 const boxesHitmap = new Map<string, BoxData>()
 
 const BOX_HOVER_COLOR = 0x777777
+
+const seed = Math.random() * 1000
 
 function Boxes(tracks: Track[]) {
   boxesHitmap.clear()
@@ -748,14 +753,27 @@ function Boxes(tracks: Track[]) {
     y: number,
     w: number,
     color =
-      hexToInt(saturate(intToHex(Math.floor((0xbb0000 + 0xfff * (Math.sin(5 + y * 155.85) * .5 + 0.5)) % 0xffffff)), 0.05))
+      hexToInt(
+        saturate(
+          luminate(
+            intToHex(
+              Math.floor(
+                0xdd0000 + 0xffff * Math.sin(seed + track.info.y * 99999)
+              )
+            ), 0.05
+          ), 0.2
+        )
+      )
   ) {
     const h = 1
     const hexColor = intToHex(color)
-    const hexColorBright =  saturate(luminate(hexColor, .015), 0.1)
+    const hexColorBright = saturate(luminate(hexColor, .015), 0.1)
+    const hexColorDark = saturate(luminate(hexColor, -.65), -0.2)
     const hexColorBrighter = saturate(luminate(hexColor, .030), 0.2)
+    const hexColorBrightest = saturate(luminate(hexColor, .1), 0.2)
     const colorBright = hexToInt(hexColorBright)
     const colorBrighter = hexToInt(hexColorBrighter)
+    const colorDark = hexToInt(hexColorDark)
     const boxData: BoxData = {
       track,
       x, y, w, h,
@@ -764,8 +782,11 @@ function Boxes(tracks: Track[]) {
       hexColor,
       hexColorBright,
       hexColorBrighter,
+      hexColorBrightest,
+      hexColorDark,
       colorBright,
       colorBrighter,
+      colorDark,
       setColor(color: number) {
         setColor(this.ptr, color)
       }
@@ -831,31 +852,63 @@ function Waves(boxes: ReturnType<typeof Boxes>) {
     return boxes.rows
       // .filter((_, y) => y % 2 === 1)
       .map(cols =>
-        cols.map(box => {
+        cols.map((box: any) => {
           const [, x, y, w, h] = box
           let color: number = 0x0
 
-          if (box.data) {
-            color = highlightBox === box.data
-              ? box.data.colorBrighter
-              : 0x0
-          }
+          // if (box.data) {
+          //   color = highlightBox === box.data
+          //     ? box.data.colorBrighter
+          //     : 0x0
+          // }
+          color = box.data.colorBrighter
 
           const floats = box.data.track.info.floats
           if (!floats?.length) return []
 
           // console.log(floats)
-
+          // console.log(color.toString(16), box.data.hexColor)
           const f = [
-            ShapeOpts.Wave,
-            x, y, w, h, // same dims as the box
-            1, // lw
-            floats.ptr, // ptr
-            floats.len, // len
-            0, // offset
-            color, // color
-            1.0, // alpha
-          ] as ShapeData.Wave
+            [
+              ShapeOpts.Box,
+              x,
+              y,
+              w,
+              h,
+              1, // lw
+              1, // ptr
+              0, // len
+              0, // offset
+              box.data.colorDark,
+              .77 // alpha
+            ] satisfies ShapeData.Box,
+            [
+              ShapeOpts.Wave,
+              x, y, w, h, // same dims as the box
+              1, // lw
+              floats.ptr, // ptr
+              floats.len, // len
+              0, // offset
+              color, // color
+              1.0, // alpha
+            ] satisfies ShapeData.Wave
+          ].flat()
+
+          // info.waves.data = new Float32Array([
+          //   [
+          //     ShapeOpts.Box,
+          //     cx,
+          //     cy,
+          //     cw,
+          //     ch,
+          //     1, // lw
+          //     1, // ptr
+          //     0, // len
+          //     0x001144,
+          //     .62 // alpha
+          //   ] as ShapeData.Box,
+          //   info.waves.update(lastFloats = focusedBox.floats[6], focusedBox)
+          // ].flat())
 
           box.data.floats = f
 
