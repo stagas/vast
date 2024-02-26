@@ -5,10 +5,10 @@ import os from 'os'
 import path from 'path'
 import { defineConfig } from 'vite'
 import externalize from "vite-plugin-externalize-dependencies"
-import ViteUsing from 'vite-plugin-using'
 import { watchAndRun } from 'vite-plugin-watch-and-run'
 import tsconfigPaths from 'vite-tsconfig-paths'
-import assemblyScriptPlugin from "./vendor/vite-plugin-assemblyscript"
+import assemblyScriptPlugin from './vendor/vite-plugin-assemblyscript'
+import ViteUsing from './vendor/vite-plugin-using'
 
 import type { HmrContext, Plugin } from 'vite'
 
@@ -143,12 +143,12 @@ export default defineConfig({
   },
   esbuild: {
     jsx: 'automatic',
-    target: 'es2022',
-    include: /\.(m?[jt]s|[jt]sx)$/,
-    exclude: []
+    // target: 'esnext',
+    // include: /\.(m?[jt]s|[jt]sx)$/,
+    // exclude: ['**/assembly/dsp/**/*']
   },
   build: {
-    target: 'es2022',
+    target: 'esnext',
     rollupOptions: {
       treeshake: { propertyReadSideEffects: 'always' },
     }
