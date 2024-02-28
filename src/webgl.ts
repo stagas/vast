@@ -15,11 +15,9 @@ export interface Mesh {
   draw(): void
 }
 
-export function WebGL(world: World, canvas: HTMLCanvasElement, alpha = false) {
+export function WebGL(view: Rect, canvas: HTMLCanvasElement, alpha = false) {
   DEBUG && console.log('[webgl] create')
   using $ = Signal()
-
-  const { view } = world
 
   const GL = initGL(canvas, {
     antialias: true,
@@ -41,8 +39,6 @@ export function WebGL(world: World, canvas: HTMLCanvasElement, alpha = false) {
     }
   }
 
-  world.anim.ticks.add(draw)
-
   function add($: Signal, mesh: Mesh) {
     $.fx(() => {
       state.meshes.add(mesh)
@@ -54,7 +50,6 @@ export function WebGL(world: World, canvas: HTMLCanvasElement, alpha = false) {
 
   $.fx(() => () => {
     DEBUG && console.log('[webgl] dispose')
-    world.anim.ticks.delete(draw)
     state.meshes.clear()
     GL.reset()
   })

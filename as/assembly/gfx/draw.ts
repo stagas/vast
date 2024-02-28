@@ -138,15 +138,15 @@ export function draw(
         //
         // sample coeff for zoom level
         //
-        let sample_coeff: f32 = f32(NUM_SAMPLES / ma)
+        let sample_coeff: f64 = f64(NUM_SAMPLES / ma)
 
         //
         // setup wave pointers
         //
         let p = i32(wave.ptr)
         let p_index: i32 = 0
-        let n: f32 = 0
-        let n_len = wave.len
+        let n: f64 = 0
+        let n_len = f64(wave.len)
 
         //
         // determine right edge
@@ -156,7 +156,7 @@ export function draw(
         //
         // determine left edge (cx)
         //
-        let cx: f32 = x
+        let cx: f64 = f64(x)
         let ox: f32 = 0
         // if left edge is offscreen
         if (cx < 0) {
@@ -173,7 +173,7 @@ export function draw(
         if (right > width) {
           // logf(444)
           ow = right - width
-          cw = width - cx
+          cw = f32(width - cx)
           right = width
         }
         // or if left edge is offscreen
@@ -181,9 +181,9 @@ export function draw(
           cw -= ox
         }
 
-        let x_step: f32 = f32(ma / NUM_SAMPLES)
-        let n_step: f32 = 1.0
-        let mul: f32 = 1.0
+        let x_step: f64 = f64(ma / NUM_SAMPLES)
+        let n_step: f64 = 1.0
+        let mul: f64 = 1.0
         let lw: f32 = 1.1
 
         let waveMode: WaveMode = WaveMode.Scaled
@@ -192,8 +192,8 @@ export function draw(
           const threshold = thresholds[i]
           if (ma < threshold) {
             waveMode = WaveMode.Normal
-            p_index += i32(Mathf.floor(n_len))
-            n_len = Mathf.floor(n_len / 2.0)
+            p_index += i32(Math.floor(n_len))
+            n_len = Math.floor(n_len / 2.0)
             mul *= 2.0
             x_step *= 2.0
             lw = 1.1 - (0.8 * (1 -
@@ -210,23 +210,23 @@ export function draw(
         p += p_index << 2
 
         const hh: f32 = h / 2
+        const yh = y + hh
 
         switch (waveMode) {
           case WaveMode.Scaled: {
             // advance the pointer if left edge is offscreen
             if (ox) {
-              n += Mathf.floor(ox / x_step)
+              n += Math.floor(ox / x_step)
             }
-            n = Mathf.floor(n)
+            n = Math.floor(n)
 
             // interpolate 2 samples
             let nx = (n * n_step) % n_len
-            let nfrac = nx - Mathf.floor(nx)
-            let s = readSampleLerp(p, nx, nfrac)
+            let nfrac = nx - Math.floor(nx)
 
             // move to v0
-            let x0 = cx
-            let y0 = y + hh + s * hh // TODO: hh in shader?
+            let x0 = f32(cx)
+            let y0 = yh + readSampleLerp(p, f32(nx), nfrac) * hh
 
             if (opts & ShapeOpts.Join) {
               sketch.drawLine(
@@ -237,21 +237,15 @@ export function draw(
               )
             }
 
-            let step_i: i32 = 0
-            let bcx = cx
-            let bnx = nx
-
             do {
-              step_i++
+              cx += x_step
+              nx += n_step
+              if (nx >= n_len) nx -= n_len
 
-              cx = f32(f64(bcx) + f64(step_i) * f64(x_step))
-              nx = f32((f64(bnx) + f64(step_i) * f64(n_step)) % n_len)
+              nfrac = nx - Math.floor(nx)
 
-              nfrac = nx - Mathf.floor(nx)
-              s = readSampleLerp(p, nx, nfrac)
-
-              const x1 = cx
-              const y1 = y + hh + s * hh
+              const x1 = f32(cx)
+              const y1 = yh + readSampleLerp(p, f32(nx), nfrac) * hh
 
               sketch.drawLine(
                 x0, y0,
@@ -273,16 +267,16 @@ export function draw(
           case WaveMode.Normal: {
             // advance the pointer if left edge is offscreen
             if (ox) {
-              n += Mathf.floor(ox / x_step)
+              n += Math.floor(ox / x_step)
             }
-            n = Mathf.floor(n)
+            n = Math.floor(n)
 
             let nx = (n * n_step) % n_len
             let s = f32.load(p + (i32(nx) << 2))
 
             // move to v0
-            let x0 = cx
-            let y0 = y + hh + s * hh // TODO: hh in shader?
+            let x0 = f32(cx)
+            let y0 = yh + s * hh
 
             if (opts & ShapeOpts.Join) {
               sketch.drawLine(
@@ -293,21 +287,13 @@ export function draw(
               )
             }
 
-            let step_i: i32 = 0
-            let bcx = cx
-            let bnx = nx
-
             do {
-              step_i++
+              cx += x_step
+              nx += n_step
+              if (nx >= n_len) nx -= n_len
 
-              cx = f32(f64(bcx) + f64(step_i) * f64(x_step))
-              // the rounding here fixes flickering
-              nx = Mathf.round(f32((f64(bnx) + f64(step_i) * f64(n_step))) % n_len)
-
-              s = f32.load(p + (i32(nx) << 2))
-
-              const x1 = cx
-              const y1 = y + hh + s * hh
+              const x1 = f32(cx)
+              const y1 = yh + f32.load(p + (i32(nx) << 2)) * hh
 
               sketch.drawLine(
                 x0, y0,
@@ -416,8 +402,8 @@ export function draw(
 
 // @ts-ignore
 @inline
-function readSampleLerp(p: i32, nx: f32, frac: f32): f32 {
+function readSampleLerp(p: i32, nx: f32, frac: f64): f32 {
   const s0 = f32.load(p + (i32(nx) << 2))
   const s1 = f32.load(p + (i32(nx + 1) << 2))
-  return s0 + (s1 - s0) * frac
+  return f32(f64(s0) + f64(s1 - s0) * frac)
 }

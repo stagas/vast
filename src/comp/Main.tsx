@@ -35,13 +35,13 @@ export function Main() {
 
   const bench = Bench()
 
-  bench.add('Math.sin()', () => {
-    let i = 0
-    let x = 0
-    return () => {
-      x += Math.sin(i++ / 10000)
-    }
-  }, { times: 100_000, raf: true })
+  // bench.add('Math.sin()', () => {
+  //   let i = 0
+  //   let x = 0
+  //   return () => {
+  //     x += Math.sin(i++ / 10000)
+  //   }
+  // }, { times: 100_000, raf: true })
 
   let surface: Surface | undefined
   // let grid: Grid | undefined
@@ -359,6 +359,13 @@ export function Main() {
           minimap ??= Minimap(info.grid)
           minimapDiv.append(minimap.canvas)
           minimapDiv.append(minimap.handle)
+
+          bench.add('draw()', () => {
+            return () => {
+              surface?.webgl.draw()
+            }
+          }, { times: 10 })
+
 
           return <div>
             {surface.canvas}

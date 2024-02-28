@@ -27,7 +27,13 @@ export function Surface(view: Rect, intentMatrix: Matrix, viewMatrix: LerpMatrix
   canvas.style.imageRendering = 'pixelated'
 
   const mat2d = WasmMatrix(view, viewMatrix)
-  anim.ticks.add(viewMatrix.tick)
+  $.fx(() => {
+    anim.ticks.add(viewMatrix.tick)
+    return () => {
+      anim.ticks.delete(viewMatrix.tick)
+    }
+  })
+
   $.fx(() => {
     const { a, b, c, d, e, f } = viewMatrix
     {
@@ -37,7 +43,13 @@ export function Surface(view: Rect, intentMatrix: Matrix, viewMatrix: LerpMatrix
     anim.info.epoch++
   })
 
-  const webgl = WebGL(world, canvas, alpha)
+  const webgl = WebGL(view, canvas, alpha)
+  $.fx(() => {
+    anim.ticks.add(webgl.draw)
+    return () => {
+      anim.ticks.delete(webgl.draw)
+    }
+  })
   const sketch = Sketch(webgl.GL, view, mat2d)
   webgl.add($, sketch)
 

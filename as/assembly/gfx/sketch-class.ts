@@ -69,10 +69,8 @@ export class Sketch {
 // @ts-ignore
 @inline
 function store4(ptr: usize, x: f32, y: f32, z: f32, w: f32): void {
-  f32.store(ptr, x)
-  f32.store(ptr, y, 4)
-  f32.store(ptr, z, 8)
-  f32.store(ptr, w, 12)
+  const v = f32x4(x, y, z, w)
+  v128.store(ptr, v)
 }
 
 // @ts-ignore
