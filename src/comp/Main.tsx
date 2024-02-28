@@ -59,7 +59,7 @@ export function Main() {
   function addTrack(source: $<Source<any>>) {
     const y = state.tracks.length
     const t = Track(dsp, source, y)
-    t.info.boxes = Array.from({ length: 8 }, (_, x) =>
+    t.info.boxes = Array.from({ length: 512 }, (_, x) =>
       $({ rect: $(new Rect, { x, y, w: 1, h: 1 }), shape: null }))
     state.tracks = [...state.tracks, t]
   }

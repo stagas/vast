@@ -1,12 +1,16 @@
 import wasm from 'assembly'
+import { WAVE_MIPMAPS } from '../../as/assembly/gfx/sketch-shared.ts'
 
 export type Floats = ReturnType<typeof Floats>
 
-const Divisors = [2, 4, 8, 16, 32, 64, 128, 256]
-
 export function Floats(waveform: Float32Array) {
   const len = waveform.length
-  const targets = Divisors.map(divisor => ({ divisor, len: 0, ptr: 0 }))
+
+  const targets = Array.from({ length: WAVE_MIPMAPS }, (_, i) => ({
+    divisor: 2 ** (i + 1),
+    len: 0,
+    ptr: 0
+  }))
 
   const size = targets.reduce((p, n) => {
     n.ptr = p

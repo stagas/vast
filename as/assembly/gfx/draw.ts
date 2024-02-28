@@ -1,14 +1,15 @@
 import { logf, logf2, logf3, logf4, logf6, logi } from '../env'
 import { Sketch } from './sketch-class'
-import { Box, SHAPE_LENGTH, Matrix, Wave, ShapeOpts, Shape, Line } from './sketch-shared'
+import { Box, SHAPE_LENGTH, Matrix, Wave, ShapeOpts, Shape, Line, WAVE_MIPMAPS } from './sketch-shared'
 
 const MAX_ZOOM: f32 = 0.5
 const BASE_SAMPLES: f32 = 48000
 const NUM_SAMPLES: f32 = BASE_SAMPLES / MAX_ZOOM
 
-// const Divisors =       [2,    4,    8,   16,  32,  64, 128, 256]
+// const Divisors =       [2,    4,    8,   16,  32,  64, 128, 256, 512, 1024]
 
-const thresholds: f32[] = [4000, 2000, 800, 300, 150, 75, 30, 10]
+const WAVE_MIPMAPS_THRESHOLD = 4000
+// const thresholds: f32[] = [4000, 2000, 1000, 500, 250, 125, 62.5,  31.25, 15.625, 7.5]
 
 const enum WaveMode {
   Scaled,
@@ -188,8 +189,8 @@ export function draw(
 
         let waveMode: WaveMode = WaveMode.Scaled
 
-        for (let i = 0; i < thresholds.length; i++) {
-          const threshold = thresholds[i]
+        for (let i = 0; i < WAVE_MIPMAPS; i++) {
+          const threshold = WAVE_MIPMAPS_THRESHOLD / (2 ** i)
           if (ma < threshold) {
             waveMode = WaveMode.Normal
             p_index += i32(Math.floor(n_len))
@@ -197,7 +198,7 @@ export function draw(
             mul *= 2.0
             x_step *= 2.0
             lw = 1.1 - (0.8 * (1 -
-              (f32(ma / 4000) ** .35)
+              (f32(ma / WAVE_MIPMAPS_THRESHOLD) ** .35)
             ))
           }
           else {

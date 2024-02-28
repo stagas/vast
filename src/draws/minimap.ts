@@ -25,10 +25,10 @@ export function Minimap(grid: Grid) {
 
   $.fx(() => dom.on(handle, 'wheel', e => {
     const m = grid.intentMatrix
-    grid.mousePos.x = ((state.mode === 'wide' ? 0 : CODE_WIDTH + 55) - m.e) / m.a  //Math.floor(-m.e / m.a) //- CODE_WIDTH //+ grid.view.w / m.a / view.pr
-    grid.mousePos.y = 0 //Math.floor(-m.f / m.d) //+ grid.view.h / m.d / view.pr
+    grid.mousePos.x = ((state.mode === 'wide' ? 0 : CODE_WIDTH + 55) - m.e) / m.a
+    grid.mousePos.y = 0
     grid.handleWheelScaleX(e)
-    log('wheel', grid.mousePos.x, grid.mousePos.y)
+    DEBUG && log('wheel', grid.mousePos.x, grid.mousePos.y)
   }))
 
   $.fx(() => dom.on(handle, 'mousedown', e => {
@@ -54,7 +54,6 @@ export function Minimap(grid: Grid) {
     }, { once: true })
 
     moveToTarget(e)
-    // log('click', x, y)
   }))
 
   const c = canvas.getContext('2d', { alpha: false })!
@@ -95,26 +94,17 @@ export function Minimap(grid: Grid) {
     const { pr } = handleView
     $()
     const c = hc
+
     c.save()
     c.scale(pr, pr)
     handleView.clear(c)
     c.translate(.5, 2.5)
-    c.beginPath()
-    const padX = state.mode === 'wide' ? 0 : CODE_WIDTH + 55.5
-    const x = -( (e - padX) / a / pr) * matrix.a
-    const y = -( (f) / d / pr) * matrix.d
-    const w = ( (vw - padX - 5) / a / pr) * matrix.a
-    const h = (vh / d / pr) * matrix.d - 2
-    // c.rect(x, y, w, h - .5)
-    c.moveTo(x, y + h)
-    c.lineTo(x, y)
-    c.lineTo(x + w, y) //, w, h - .5)
-    c.fillStyle = '#fff1'
-    c.fill()
-    c.strokeStyle = '#fff'
-    c.lineWidth = 2.1
-    c.stroke()
 
+    const padX = state.mode === 'wide' ? 0 : CODE_WIDTH + 55.5
+    const x = -((e - padX) / a / pr) * matrix.a
+    const y = -((f) / d / pr) * matrix.d
+    const w = ((vw - padX - 5) / a / pr) * matrix.a
+    const h = (vh / d / pr) * matrix.d - 2
 
     c.beginPath()
     c.moveTo(x + w, y)
@@ -122,10 +112,20 @@ export function Minimap(grid: Grid) {
     c.lineTo(x, y + h)
     c.fillStyle = '#fff1'
     c.fill()
-
-    c.strokeStyle = '#000c' //state.colors['primary'] + '55'
+    c.strokeStyle = '#000c'
     c.lineWidth = 2.1
     c.stroke()
+
+    c.beginPath()
+    c.moveTo(x, y + h)
+    c.lineTo(x, y)
+    c.lineTo(x + w, y)
+    c.fillStyle = '#fff1'
+    c.fill()
+    c.strokeStyle = '#fff'
+    c.lineWidth = 2.1
+    c.stroke()
+
 
     c.restore()
   })

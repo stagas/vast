@@ -1,5 +1,3 @@
-import { Floats } from '../util'
-
 // 4 float bytes per instance, so we fit into 1 page
 // (which might be better? TODO: bench)
 export const MAX_BYTES = 65536 * 32 // 1 page
@@ -20,6 +18,8 @@ export enum ShapeOpts {
   Collapse /* */ = 0b0001_0000_0000,
   Join /*     */ = 0b0010_0000_0000,
 }
+
+export const WAVE_MIPMAPS = 13
 
 // Note: All shapes must have equal 32bit size.
 // and this must match count of shapes 32bit elements.
