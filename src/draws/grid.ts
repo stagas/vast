@@ -12,9 +12,10 @@ import { waveform } from '../util/waveform.ts'
 import { hexToInt } from '../util/rgb.ts'
 import { Track, TrackBox, TrackBoxKind } from '../dsp/track.ts'
 import { oklchToHex } from '../util/oklch.ts'
+import { BoxNotes, MAX_NOTE, Note, byNoteN, getNotesScale } from '../util/notes.ts'
 
 const DEBUG = true
-const SCALE_X = 1
+const SCALE_X = 1 / 16
 
 export type Grid = ReturnType<typeof Grid>
 
@@ -23,12 +24,6 @@ export function Grid(surface: Surface) {
 
   const { anim, mouse, keyboard, view, intentMatrix, viewMatrix, sketch } = surface
   const { lastFarMatrix, targetMatrix, tracks } = state
-
-  // create Box data
-  const ROWS = 9
-  const COLS = 120
-  const SCALE_X = 16
-  log('VIEW', view.text)
 
   const targetView = $(new Rect)
   $.fx(() => {
@@ -43,14 +38,10 @@ export function Grid(surface: Surface) {
   })
 
   const boxes = Boxes(tracks)
-  // const waves = Waves(boxes)
-  // const notes = Notes(boxes)
   let pianorollData: Float32Array | null
 
   const info = $({
     boxes,
-    // waves,
-    // notes,
     focusedBox: null as null | BoxData,
     hoveringBox: null as null | BoxData,
     hoveringNoteN: -1,
@@ -79,8 +70,6 @@ export function Grid(surface: Surface) {
   function write() {
     sketch.shapes.count = 0
     sketch.write(info.boxes.data)
-    // sketch.write(info.waves.data)
-    // sketch.write(info.notes.data)
     if (pianorollData) sketch.write(pianorollData)
     anim.info.epoch++
   }
@@ -253,7 +242,7 @@ export function Grid(surface: Surface) {
     let { x, y } = mouse.screenPos
     x -= hoveringBox.x
     y -= hoveringBox.y
-    notePos.x = x
+    notePos.x = x * (16)
     notePos.y = y
 
     const { notes } = hoveringBox
@@ -311,7 +300,10 @@ export function Grid(surface: Surface) {
             lastFloats = null
           }
         }
-        const amt = Math.min(.5, Math.abs(e.deltaY / ((viewMatrix.a * 0.08) ** 0.82) * ((targetMatrix.a * 0.5) ** 1.15) * .85) * .0014)
+        const amt = Math.min(.5, Math.abs(
+          e.deltaY / ((viewMatrix.a * 0.008) ** 0.82)
+          * ((targetMatrix.a * 0.05) ** 1.15) * .85) * .0001
+        )
         lerpMatrix(intentMatrix, lastFarMatrix, amt)
         if (Matrix.compare(intentMatrix, lastFarMatrix, 30.0)) {
           zoomFar()
@@ -327,7 +319,9 @@ export function Grid(surface: Surface) {
         if (intentMatrix.d > 150 && !state.isHoveringToolbar) {
           info.focusedBox = info.hoveringBox
         }
-        const amt = Math.min(.5, Math.abs(e.deltaY * ((viewMatrix.a * 0.08) ** 0.92) / ((targetMatrix.a * 0.1) ** 0.5) * .85) * .0014)
+        const amt = Math.min(.5, Math.abs(
+          e.deltaY * ((viewMatrix.a * 0.008) ** 0.92)
+          / ((targetMatrix.a * 0.05) ** 0.5) * .85) * .0028)
         lerpMatrix(intentMatrix, targetMatrix, amt)
       }
     }
@@ -380,9 +374,11 @@ export function Grid(surface: Surface) {
     }
   })
 
+  const notesWidth = 65 / view.w
+
   function applyBoxMatrix(m: Matrix, box: BoxData) {
-    const w = box?.notes ? box.w + 1 : box.w
-    const ox = box?.notes ? 1 : 0
+    const w = box?.notes ? box.w + notesWidth * 2 : box.w
+    const ox = box?.notes ? notesWidth : 0
     const padY = .082
     const padX = 0 //10
     Matrix.viewBox(m, targetView, {
@@ -566,13 +562,14 @@ export function Grid(surface: Surface) {
     if (focusedBox.notes) {
       const { notes } = focusedBox
       const scale = notes.scale = getNotesScale(notes)
-      const scaleX = 1
+      const scaleX = 1 / 16
 
       const { x: cx, y: cy, w: cw, h: ch } = focusedBox
 
       const SNAPS = 16
-      pianorollData = Float32Array.from([
+      const PIANO_WIDTH = .065
 
+      pianorollData = Float32Array.from([
         [
           ShapeOpts.Box,
           cx,
@@ -583,8 +580,23 @@ export function Grid(surface: Surface) {
           1, // ptr
           0, // len
           0, // offset
+          focusedBox.track.info.colors.bgHover,
+          1.0 // alpha
+        ] as ShapeData.Box,
+
+        // piano bg
+        [
+          ShapeOpts.Box | ShapeOpts.Collapse,
+          cx - PIANO_WIDTH,
+          cy,
+          PIANO_WIDTH + 0.001,
+          ch,
+          1, // lw
+          1, // ptr
+          0, // len
+          0, // offset
           0x0,
-          .92 // alpha
+          1.0 // alpha
         ] as ShapeData.Box,
 
         Array.from({ length: scale.N }, (_, ny) => {
@@ -594,7 +606,8 @@ export function Grid(surface: Surface) {
           const n_key = n % 12
 
           const isBlack = BLACK_KEYS.has(n_key)
-          const row = [
+
+          const row = isBlack ? [
             ShapeOpts.Box,
             cx,
             y,
@@ -604,17 +617,18 @@ export function Grid(surface: Surface) {
             1, // ptr
             0, // len
             0, // offset
-            hoveringNoteN === n
-              ? 0x00aaff
-              : focusedBox.track.info.color,
-            .25 + (isBlack ? 0 : .10) // alpha
-          ] as ShapeData.Box
+            0x0,
+            // hoveringNoteN === n
+            //   ? 0x00aaff
+            //   : 0x0, //focusedBox.track.info.colors.bg, //focusedBox.track.info.color,
+            .25 // + (isBlack ? 0 : .10) // alpha
+          ] as ShapeData.Box : []
 
           const key = [
             ShapeOpts.Box | ShapeOpts.Collapse,
-            cx - 1,
+            cx - PIANO_WIDTH,
             y,
-            1,
+            PIANO_WIDTH,
             h,
             1, // lw
             1, // ptr
@@ -623,18 +637,19 @@ export function Grid(surface: Surface) {
             isBlack ? 0x0 : 0xffffff,
             1.0 // alpha
           ] as ShapeData.Box
+
           return [row, key]
         }).flat(),
 
         Array.from({ length: (cw * SNAPS) - 1 }, (_, col) => {
-          const x = (1 + col) / SNAPS + cx
+          const x = ((1 + col) / SNAPS) + cx
           return [
             ShapeOpts.Line,
             x,
             cy,
             x,
             cy + ch,
-            col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0, // lw
+            col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0.5, // lw
             1, // ptr
             0, // len
             0, // offset
@@ -643,7 +658,7 @@ export function Grid(surface: Surface) {
           ] as ShapeData.Line
         }),
 
-        notes.map(({ n, time, length, vel }) => {
+        notes.sort(byNoteN).map(({ n, time, length, vel }) => {
           const x = time * scaleX // x
           if (x > cw) return
 
@@ -660,7 +675,23 @@ export function Grid(surface: Surface) {
             && hoveringNote.time === time
             && hoveringNote.length === length
 
-          return [
+          const alpha = isHovering ? 1 : .45 + (.55 * vel)
+
+          const noteBg = [
+            ShapeOpts.Box,
+            cx + x,
+            cy + y,
+            w,
+            h + .0065,
+            1, // lw
+            1, // ptr
+            0, // len
+            0, // offset
+            0x0, // color
+            alpha // alpha
+          ] as ShapeData.Box
+
+          const noteBox = [
             ShapeOpts.Box,
             cx + x,
             cy + y,
@@ -674,8 +705,10 @@ export function Grid(surface: Surface) {
               ? state.primaryColorInt
               : focusedBox.track.info.colors.colorBright
             ,
-            isHovering ? 1 : .45 + (.55 * vel) // alpha
+            alpha // alpha
           ] as ShapeData.Box
+
+          return [noteBg, noteBox]
         }).filter(Boolean).flat()
 
       ].flat().flat())
@@ -698,7 +731,9 @@ export function Grid(surface: Surface) {
     const { tracks, theme, colors } = state
     for (const track of tracks) {
       track.info.floats
+      track.info.notes
     }
+    info.draggingNote?.n
     $()
     info.boxes = Boxes(tracks)
     // info.waves = Waves(boxes)
@@ -734,28 +769,13 @@ export type BoxData = RectLike & {
   setColor: (color: number) => void
 }
 
-const intToHex = (x: number) => '#' + x.toString(16).padStart(6, '0')
 const boxesHitmap = new Map<string, BoxData>()
 
-const BOX_HOVER_COLOR = 0x777777
-
-const seed = Math.random() * 1000
-
-const palette = [
-  0xff5555,
-  0x1188ff,
-  0xbb55b0,
-  0x44aa99,
-]
 function Boxes(tracks: Track[]) {
   boxesHitmap.clear()
 
   let right = 0
   let ptr = 0
-
-  // const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .09))
-  // const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
-  // const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
 
   function createBox(
     track: Track,
@@ -799,22 +819,51 @@ function Boxes(tracks: Track[]) {
     track.info.shape ??= shape
     trackBox.shape ??= shape
 
-    // const boxf = [
-    //   ShapeOpts.Box,
-    //   x,
-    //   y,
-    //   w,
-    //   h,
-    //   1, // lw
-    //   1, // ptr
-    //   0, // len
-    //   0, // offset
-    //   y % 2 === 0 ? bg : bg2, //0x222222 : 0x333333,
-    //   1.0 // alpha
-    // ] satisfies ShapeData.Box
-
     if (trackBox.kind === TrackBoxKind.Notes) {
       // return boxf
+
+      //         box.data.notes = Object.assign([...notes], { ptr, scale })
+      const [, cx, cy, cw, ch] = shape
+      const { notes } = track.info
+      const scale = getNotesScale(notes)
+      const notesPtr = ptr
+      const boxNotes = notes.map(({ n, time, length, vel }) => {
+        const x = time * SCALE_X // x
+        if (x > cw) return
+
+        const h = ch / scale.N
+        const y = ch - h * (n + 1 - scale.min) // y
+
+        let w = length * SCALE_X // w
+        if (x + w > cw) {
+          w = cw - x
+        }
+
+        const noteShape = Object.assign([
+          ShapeOpts.Box,
+          cx + x,
+          cy + y,
+          w,
+          h,
+          1, // lw
+          1, // ptr
+          0, // len
+          0, // offset
+          track.info.colors.fg,
+          .2 + (.8 * vel) // alpha
+        ] as ShapeData.Box, { ptr })
+
+        ptr += noteShape.length
+
+        shapes.push(noteShape)
+
+        return noteShape
+      })
+
+      boxData.notes = Object.assign(notes, { ptr: notesPtr, scale })
+      // track.
+      //         return boxNotes.filter(Boolean).flat()
+
     }
     else if (trackBox.kind === TrackBoxKind.Audio) {
       // if (box.data) {
@@ -843,7 +892,7 @@ function Boxes(tracks: Track[]) {
           floats.ptr, // ptr
           floats.len, // len
           0, // offset
-          track.info.colors.fg, //0xcccccc, // color
+          track.info.colors.fg, // color
           1.0, // alpha
         ] satisfies ShapeData.Wave, { ptr, data: boxData })
 
@@ -878,188 +927,3 @@ function Boxes(tracks: Track[]) {
 
   return { rows, right, data, setColor }
 }
-
-// let floats: Floats
-
-// const toHex = (x: string) => x.startsWith('oklch') ? oklchToHex(x) ?? x : x
-
-// function Waves(boxes: ReturnType<typeof Boxes>) {
-//   //   if (!floats) {
-//   //     floats = Floats(waveform)
-//   //   }
-
-//   function update(highlightBox?: BoxData) {
-//     return boxes.rows
-//       // .filter((_, y) => y % 2 === 1)
-//       .map(cols =>
-//         cols.map((box: any) => {
-//           const [, x, y, w, h] = box
-//           let color: number = 0x0
-
-//           const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .09))
-//           const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
-//           const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
-
-//           const boxf = [
-//             ShapeOpts.Box,
-//             x,
-//             y,
-//             w,
-//             h,
-//             1, // lw
-//             1, // ptr
-//             0, // len
-//             0, // offset
-//             y % 2 === 0 ? bg : bg2, //0x222222 : 0x333333,
-//             1.0 // alpha
-//           ] satisfies ShapeData.Box
-
-//           if (box.data.trackBox.kind === TrackBoxKind.Notes) {
-//             return boxf
-//           }
-//           else if (box.data.trackBox.kind === TrackBoxKind.Audio) {
-//             // if (box.data) {
-//             //   color = highlightBox === box.data
-//             //     ? box.data.colorBrighter
-//             //     : 0x0
-//             // }
-//             color = box.data.colorBrighter
-
-//             const floats = box.data.track.info.floats
-//             if (!floats?.length) return boxf
-
-//             // console.log(floats)
-//             // console.log(color.toString(16), box.data.hexColor)
-//             // console.log(state.colors)
-
-//             const f = [
-//               boxf,
-//               [
-//                 ShapeOpts.Wave,
-//                 x, y + (h - h / 2) / 2, w, h / 2, // same dims as the box
-//                 1, // lw
-//                 floats.ptr, // ptr
-//                 floats.len, // len
-//                 0, // offset
-//                 fg, //0xcccccc, // color
-//                 1.0, // alpha
-//               ] satisfies ShapeData.Wave
-//             ].flat()
-
-//             box.data.floats = f
-
-//             return f
-
-//           }
-
-//         }).flat()
-//       ).flat()
-//   }
-
-//   const data = new Float32Array(update())
-
-//   return { data, update }
-// }
-
-interface Note {
-  n: number
-  time: number
-  length: number
-  vel: number
-}
-
-function createDemoNotes(
-  base = 60, // middle C
-  count = 3,
-  step = 1,
-  // length = 1,
-) {
-  return Array.from({ length: 16 }, (_, i) => {
-    const time = i * step //* 4
-    const length = Math.round(Math.random() * 4)
-    // const count = 1 //+ Math.round(Math.random() * 2)
-    // const base = 12 //+ Math.floor(Math.random() * 12)
-    const notes: Note[] = []
-    const y = base + Math.round(Math.random() * 8)
-
-    for (let n = 0; n < count; n++) {
-      const note = {
-        n: y + n * (2 + Math.round(Math.random() * 2)),
-        time,
-        length,
-        vel: Math.random()
-      }
-      notes.push($(note))
-    }
-    return notes
-  }).flat()
-}
-
-const MAX_NOTE = 121
-function getNotesScale(notes: Note[]) {
-  let max = -Infinity
-  let min = Infinity
-  for (const note of notes) {
-    if (note.n > max) max = note.n
-    if (note.n < min) min = note.n
-  }
-  if (!Number.isFinite(min) || !Number.isFinite(max)) {
-    min = 0
-    max = 12
-  }
-  min = Math.max(0, min - 6)
-  max = Math.min(MAX_NOTE, max + 6)
-  const N = max - min
-  return { min, max, N }
-}
-
-type BoxNotes = Note[] & {
-  ptr: number
-  scale: ReturnType<typeof getNotesScale>
-}
-
-// function Notes(boxes: ReturnType<typeof Boxes>, notes = createDemoNotes()) {
-//   const scale = getNotesScale(notes)
-
-//   let ptr = 0
-//   const data = new Float32Array(boxes.rows
-//     .filter((_, ry) => ry % 2 === 0)
-//     .map(cols =>
-//       cols.map(box => {
-//         const [, cx, cy, cw, ch] = box
-
-//         box.data.notes = Object.assign([...notes], { ptr, scale })
-
-//         const boxNotes = notes.map(({ n, time, length, vel }) => {
-//           const x = time * SCALE_X // x
-//           if (x > cw) return
-
-//           const h = ch / scale.N
-//           const y = ch - h * (n + 1 - scale.min) // y
-
-//           let w = length * SCALE_X // w
-//           if (x + w > cw) {
-//             w = cw - x
-//           }
-
-//           return [
-//             ShapeOpts.Box,
-//             cx + x,
-//             cy + y,
-//             w,
-//             h,
-//             1, // lw
-//             1, // ptr
-//             0, // len
-//             0, // offset
-//             0x0,
-//             .2 + (.8 * vel) // alpha
-//           ] as ShapeData.Box
-//         })
-
-//         return boxNotes.filter(Boolean).flat()
-//       }).flat()
-//     ).flat())
-
-//   return { data }
-// }

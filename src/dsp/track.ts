@@ -12,6 +12,7 @@ import { Floats } from '../util/floats.ts'
 import { BoxData } from '../draws/grid.ts'
 import { saturate, luminate, hueshift } from 'utils'
 import { intToHex, hexToInt, toHex } from '../util/rgb.ts'
+import { createDemoNotes } from '../util/notes.ts'
 
 const DEBUG = true
 
@@ -42,11 +43,6 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
   const { clock } = dsp
   const sound = dsp.Sound()
 
-  const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .09))
-  const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
-  const bgHover = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .15))
-  const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
-
   const info = $({
     y,
     get sy() {
@@ -65,7 +61,7 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
       }
       return max
     },
-    waveLength: 1, // computed during effect
+    waveLength: 1, // computed during effect update_audio_buffer
     get audioBuffer() {
       return dsp.ctx.createBuffer(1, this.waveLength, dsp.ctx.sampleRate)
     },
@@ -74,6 +70,11 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
     error: null as Error | null,
     floats: null as Floats | null,
     shape: null as (ShapeData.Box & { data: BoxData }) | null,
+    get notes() {
+      $()
+      const notes = createDemoNotes()
+      return notes
+    },
     get color() {
       return Math.floor(palette[this.y % palette.length])
     },
@@ -86,7 +87,13 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
       const hexColorBrightest = saturate(luminate(hexColor, .01), 0.02)
       const colorBright = hexToInt(hexColorBright)
       const colorBrighter = hexToInt(hexColorBrighter)
+      const colorBrightest = hexToInt(hexColorBrightest)
       const colorDark = hexToInt(hexColorDark)
+
+      const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .09))
+      const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
+      const bgHover = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .15))
+      const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
 
       return {
         bg: y % 2 === 0 ? bg : bg2,
@@ -100,6 +107,7 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
         hexColorDark,
         colorBright,
         colorBrighter,
+        colorBrightest,
         colorDark,
       }
     },
@@ -113,7 +121,7 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
     bufferSource.start()
   }
 
-  $.fx(() => {
+  $.fx(function update_audio_buffer() {
     const { tokens } = source
     const { audioLength } = info
     if (!audioLength) return
