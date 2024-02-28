@@ -330,7 +330,12 @@ export function Main() {
             code.drawSeparators()
           }
 
-          surface.anim.ticks.add(redrawEditors)
+          $.fx(() => {
+            surface!.anim.ticks.add(redrawEditors)
+            return () => {
+              surface!.anim.ticks.delete(redrawEditors)
+            }
+          })
 
           $.fx(() => {
             const { redraw } = code.info
@@ -365,7 +370,6 @@ export function Main() {
               surface?.webgl.draw()
             }
           }, { times: 10 })
-
 
           return <div>
             {surface.canvas}

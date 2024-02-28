@@ -5,22 +5,22 @@ import { MAX_GL_INSTANCES, VertOpts } from './sketch-shared'
 export class Sketch {
   ptr: u32 = 0
   shapes: Floats
-  a_opts: Floats
+  // a_opts: Floats
   a_vert: Floats
-  a_color: Floats
-  a_lineWidth: Floats
+  a_style: Floats
+  // a_lineWidth: Floats
   constructor(
     public shapes$: usize,
-    public a_opts$: usize,
+    // public a_opts$: usize,
     public a_vert$: usize,
-    public a_color$: usize,
-    public a_lineWidth$: usize,
+    public a_style$: usize,
+    // public a_lineWidth$: usize,
   ) {
     this.shapes = changetype<Floats>(shapes$)
-    this.a_opts = changetype<Floats>(a_opts$)
+    // this.a_opts = changetype<Floats>(a_opts$)
     this.a_vert = changetype<Floats>(a_vert$)
-    this.a_color = changetype<Floats>(a_color$)
-    this.a_lineWidth = changetype<Floats>(a_lineWidth$)
+    this.a_style = changetype<Floats>(a_style$)
+    // this.a_lineWidth = changetype<Floats>(a_lineWidth$)
   }
   @inline
   flush(): void {
@@ -41,10 +41,10 @@ export class Sketch {
   ): void {
     const ptr = this.ptr
     const ptr4 = (ptr * 4) << 2
-    const ptr2 = (ptr * 2) << 2
-    unchecked(this.a_opts[ptr] = f32(VertOpts.Box))
+    // const ptr2 = (ptr * 2) << 2
+    // unchecked(this.a_opts[ptr] = f32(VertOpts.Box))
     store4(this.a_vert$ + ptr4, x, y, w, h)
-    store2(this.a_color$ + ptr2, color, alpha)
+    store4(this.a_style$ + ptr4, color, alpha, f32(VertOpts.Box), 1.0)
     this.advance()
   }
   @inline
@@ -57,11 +57,12 @@ export class Sketch {
   ): void {
     const ptr = this.ptr
     const ptr4 = (ptr * 4) << 2
-    const ptr2 = (ptr * 2) << 2
-    unchecked(this.a_opts[ptr] = f32(VertOpts.Line))
+    // const ptr2 = (ptr * 2) << 2
+    // unchecked(this.a_opts[ptr] = f32(VertOpts.Line))
     store4(this.a_vert$ + ptr4, x0, y0, x1, y1)
-    store2(this.a_color$ + ptr2, color, alpha)
-    unchecked(this.a_lineWidth[ptr] = lineWidth)
+    store4(this.a_style$ + ptr4, color, alpha, f32(VertOpts.Line), lineWidth)
+    // store2(this.a_color$ + ptr2, color, alpha)
+    // unchecked(this.a_lineWidth[ptr] = lineWidth)
     this.advance()
   }
 }

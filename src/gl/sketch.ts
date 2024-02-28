@@ -62,10 +62,8 @@ const vertex = /*glsl*/`
 precision highp float;
 
 in float a_quad;
-in float a_opts;
 in vec4 a_vert;
-in vec2 a_color;
-in float a_lineWidth;
+in vec4 a_style;
 
 uniform float u_pr;
 uniform vec2 u_screen;
@@ -80,6 +78,10 @@ vec2 perp(vec2 v) {
 }
 
 void main() {
+  vec2 a_color = a_style.xy;
+  float a_opts = a_style.z;
+  float a_lineWidth = a_style.w;
+
   vec2 pos = vec2(0.,0.);
 
   vec2 quad = vec2(
@@ -156,22 +158,26 @@ function SketchInfo(GL: GL, view: Rect) {
       a_quad: [
         gl.ARRAY_BUFFER, attrib(1, new Float32Array([0, 1, 2, 3]))
       ],
-      a_opts: [
-        gl.ARRAY_BUFFER, attrib(1, wasm.alloc(Float32Array, MAX_GL_INSTANCES), 1),
-        gl.DYNAMIC_DRAW
-      ],
+      // a_opts: [
+      //   gl.ARRAY_BUFFER, attrib(1, wasm.alloc(Float32Array, MAX_GL_INSTANCES), 1),
+      //   gl.DYNAMIC_DRAW
+      // ],
       a_vert: [
         gl.ARRAY_BUFFER, attrib(4, wasm.alloc(Float32Array, MAX_GL_INSTANCES * 4), 1),
         gl.DYNAMIC_DRAW
       ],
-      a_color: [
-        gl.ARRAY_BUFFER, attrib(2, wasm.alloc(Float32Array, MAX_GL_INSTANCES * 2), 1),
+      a_style: [
+        gl.ARRAY_BUFFER, attrib(4, wasm.alloc(Float32Array, MAX_GL_INSTANCES * 4), 1),
         gl.DYNAMIC_DRAW
       ],
-      a_lineWidth: [
-        gl.ARRAY_BUFFER, attrib(1, wasm.alloc(Float32Array, MAX_GL_INSTANCES), 1),
-        gl.DYNAMIC_DRAW
-      ],
+      // a_color: [
+      //   gl.ARRAY_BUFFER, attrib(2, wasm.alloc(Float32Array, MAX_GL_INSTANCES * 2), 1),
+      //   gl.DYNAMIC_DRAW
+      // ],
+      // a_lineWidth: [
+      //   gl.ARRAY_BUFFER, attrib(1, wasm.alloc(Float32Array, MAX_GL_INSTANCES), 1),
+      //   gl.DYNAMIC_DRAW
+      // ],
     }
   })
 
@@ -231,18 +237,20 @@ function SketchInfo(GL: GL, view: Rect) {
   const wave = Wave(wasm.memory.buffer, shapes.ptr) satisfies Wave
 
   const {
-    a_opts,
+    // a_opts,
     a_vert,
-    a_color,
-    a_lineWidth,
+    a_style,
+    // a_color,
+    // a_lineWidth,
   } = info.attribs
 
   const sketch$ = wasm.createSketch(
     shapes.ptr,
-    a_opts.ptr,
+    // a_opts.ptr,
     a_vert.ptr,
-    a_color.ptr,
-    a_lineWidth.ptr,
+    a_style.ptr,
+    // a_color.ptr,
+    // a_lineWidth.ptr,
   )
 
   function draw(
@@ -265,10 +273,10 @@ function SketchInfo(GL: GL, view: Rect) {
 
   function writeGL(count: number) {
     range.end = range.count = count
-    GL.writeAttribRange(a_opts, range)
+    // GL.writeAttribRange(a_opts, range)
     GL.writeAttribRange(a_vert, range)
-    GL.writeAttribRange(a_color, range)
-    GL.writeAttribRange(a_lineWidth, range)
+    GL.writeAttribRange(a_style, range)
+    // GL.writeAttribRange(a_lineWidth, range)
     // DEBUG && log('[sketch] write gl begin:', range.begin, 'end:', range.end, 'count:', range.count)
   }
 
