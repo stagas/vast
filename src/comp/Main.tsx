@@ -20,7 +20,7 @@ import { dspGens } from '../../generated/typescript/dsp-gens.ts'
 import { getAllProps } from '../dsp/util.ts'
 import { Floats } from '../util/floats.ts'
 import { tokenize } from '../lang/tokenize.ts'
-import { Track } from '../dsp/track.ts'
+import { Track, TrackBoxKind } from '../dsp/track.ts'
 import { Source } from '../source.ts'
 import { Heads } from '../draws/heads.ts'
 
@@ -54,13 +54,16 @@ export function Main() {
 
   const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
   const dsp = Dsp(ctx)
-  const sound = dsp.Sound()
+  // const sound = dsp.Sound()
 
   function addTrack(source: $<Source<any>>) {
     const y = state.tracks.length
     const t = Track(dsp, source, y)
-    t.info.boxes = Array.from({ length: 512 }, (_, x) =>
-      $({ rect: $(new Rect, { x, y, w: 1, h: 1 }), shape: null }))
+    t.info.boxes = Array.from({ length: 8 }, (_, x) => $({
+      kind: x % 2 === 0 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
+      rect: $(new Rect, { x, y, w: 1, h: 1 }),
+      shape: null
+    }))
     state.tracks = [...state.tracks, t]
   }
 
@@ -109,9 +112,9 @@ export function Main() {
     for (const track of tracks) {
       const editor = (editors[track.info.y] ??= code.createEditorView($(new Rect, { x: 0, y: track.info.y, w: 1, h: 1 })))
       offs.push($.fx(() => {
-        const { shape } = $.of(track.info)
+        const { hexColorBrightest } = track.info.colors
         $()
-        editor.editorInfo.brand = shape.data.hexColorBrightest ?? '#aaa'
+        editor.editorInfo.brand = hexColorBrightest
       }))
       editor.editor.buffer.source = track.source
     }

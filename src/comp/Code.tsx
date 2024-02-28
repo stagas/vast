@@ -53,7 +53,7 @@ export function Code() {
       let y = t.info.sy
       c.moveTo(0, y)
       c.lineTo(CODE_WIDTH * state.pr - 25, y)
-      c.strokeStyle = t.info.shape?.data.hexColor ?? '#fff'
+      c.strokeStyle = t.info.colors.hexColor ?? '#fff'
       c.stroke()
 
       c.lineWidth = 2
@@ -120,7 +120,7 @@ export function Code() {
       c.moveTo(x + 8 + w - 10, y)
       c.lineTo(x + 8 + w - 10, y + h - 1)
       c.lineWidth = 4
-      c.strokeStyle = t.info.shape?.data.hexColor ?? '#fff'
+      c.strokeStyle = t.info.colors.hexColor ?? '#fff'
       c.stroke()
     }
 

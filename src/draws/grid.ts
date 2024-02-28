@@ -10,7 +10,7 @@ import { Floats } from '../util/floats.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { waveform } from '../util/waveform.ts'
 import { hexToInt } from '../util/rgb.ts'
-import { Track } from '../dsp/track.ts'
+import { Track, TrackBox, TrackBoxKind } from '../dsp/track.ts'
 import { oklchToHex } from '../util/oklch.ts'
 
 const DEBUG = true
@@ -43,13 +43,13 @@ export function Grid(surface: Surface) {
   })
 
   const boxes = Boxes(tracks)
-  const waves = Waves(boxes)
+  // const waves = Waves(boxes)
   // const notes = Notes(boxes)
   let pianorollData: Float32Array | null
 
   const info = $({
     boxes,
-    waves,
+    // waves,
     // notes,
     focusedBox: null as null | BoxData,
     hoveringBox: null as null | BoxData,
@@ -79,7 +79,7 @@ export function Grid(surface: Surface) {
   function write() {
     sketch.shapes.count = 0
     sketch.write(info.boxes.data)
-    sketch.write(info.waves.data)
+    // sketch.write(info.waves.data)
     // sketch.write(info.notes.data)
     if (pianorollData) sketch.write(pianorollData)
     anim.info.epoch++
@@ -203,7 +203,7 @@ export function Grid(surface: Surface) {
   function unhoverBox() {
     const { hoveringBox } = info
     if (hoveringBox) {
-      hoveringBox.setColor(hoveringBox.color)
+      hoveringBox.setColor(hoveringBox.track.info.colors.bg)
       info.hoveringBox = null
       write()
     }
@@ -214,12 +214,12 @@ export function Grid(surface: Surface) {
       const { hoveringBox } = info
       if (!hoveringBox || hoveringBox.x !== box.x || hoveringBox.y !== box.y) {
         if (hoveringBox) {
-          hoveringBox.setColor(hoveringBox.color)
+          hoveringBox.setColor(hoveringBox.track.info.colors.bg)
         }
         if (!state.isHoveringToolbar) {
           applyBoxMatrix(targetMatrix, box)
           info.hoveringBox = box
-          box.setColor(info.hoveringBox.colorBright)
+          box.setColor(info.hoveringBox.track.info.colors.bgHover)
         }
         write()
       }
@@ -514,12 +514,12 @@ export function Grid(surface: Surface) {
     handleHoveringBox()
   })
 
-  $.fx(() => {
-    const { theme, colors } = state
-    $()
-    info.waves.data = new Float32Array(info.waves.update())
-    write()
-  })
+  // $.fx(() => {
+  //   const { theme, colors } = state
+  //   $()
+  //   info.waves.data = new Float32Array(info.waves.update())
+  //   write()
+  // })
 
   const BLACK_KEYS = new Set([1, 3, 6, 8, 10])
   const KEY_NAMES = [
@@ -606,7 +606,7 @@ export function Grid(surface: Surface) {
             0, // offset
             hoveringNoteN === n
               ? 0x00aaff
-              : focusedBox.color,
+              : focusedBox.track.info.color,
             .25 + (isBlack ? 0 : .10) // alpha
           ] as ShapeData.Box
 
@@ -672,7 +672,7 @@ export function Grid(surface: Surface) {
             0, // offset
             isHovering
               ? state.primaryColorInt
-              : focusedBox.colorBright
+              : focusedBox.track.info.colors.colorBright
             ,
             isHovering ? 1 : .45 + (.55 * vel) // alpha
           ] as ShapeData.Box
@@ -695,13 +695,13 @@ export function Grid(surface: Surface) {
   let initial = true
 
   $.fx(() => {
-    const { tracks } = state
+    const { tracks, theme, colors } = state
     for (const track of tracks) {
       track.info.floats
     }
     $()
     info.boxes = Boxes(tracks)
-    info.waves = Waves(boxes)
+    // info.waves = Waves(boxes)
     DEBUG && console.log('[grid] updated boxes & waves')
     write()
     // if (initial && tracks.length === 1) {
@@ -726,20 +726,12 @@ export function Grid(surface: Surface) {
 }
 
 export type BoxData = RectLike & {
-  track: Track
   ptr: number
-  color: number
-  hexColor: string
-  hexColorBright: string
-  hexColorBrighter: string
-  hexColorBrightest: string
-  hexColorDark: string
-  colorBright: number
-  colorBrighter: number
-  colorDark: number
-  setColor: (color: number) => void
+  track: Track
+  trackBox: TrackBox
   notes?: BoxNotes
   floats?: number[]
+  setColor: (color: number) => void
 }
 
 const intToHex = (x: number) => '#' + x.toString(16).padStart(6, '0')
@@ -761,47 +753,24 @@ function Boxes(tracks: Track[]) {
   let right = 0
   let ptr = 0
 
+  // const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .09))
+  // const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
+  // const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
+
   function createBox(
     track: Track,
+    trackBox: TrackBox,
     x: number,
     y: number,
     w: number,
-    color =
-      // hexToInt(
-      //   saturate(
-      //     luminate(
-      //       intToHex(
-      Math.floor(
-        palette[track.info.y % palette.length]
-        // 0xdd0000 + 0xffff * Math.sin(seed + track.info.y * 99999)
-      )
-    //       ), 0.05
-    //     ), 0.2
-    //   )
-    // )
   ) {
     const h = 1
-    const hexColor = intToHex(color)
-    const hexColorBright = saturate(luminate(hexColor, .015), 0.1)
-    const hexColorDark = luminate(saturate(hueshift(hexColor, 180), -1), -.45) //saturate(luminate(hueshift(hexColor, 180), -.65), -0.2)
-    const hexColorBrighter = saturate(luminate(hexColor, .0030), 0.02)
-    const hexColorBrightest = saturate(luminate(hexColor, .01), 0.02)
-    const colorBright = hexToInt(hexColorBright)
-    const colorBrighter = hexToInt(hexColorBrighter)
-    const colorDark = hexToInt(hexColorDark)
+
     const boxData: BoxData = {
       track,
+      trackBox,
       x, y, w, h,
       ptr,
-      color,
-      hexColor,
-      hexColorBright,
-      hexColorBrighter,
-      hexColorBrightest,
-      hexColorDark,
-      colorBright,
-      colorBrighter,
-      colorDark,
       setColor(color: number) {
         setColor(this.ptr, color)
       }
@@ -813,34 +782,88 @@ function Boxes(tracks: Track[]) {
 
     right = Math.max(right, x + w)
 
+    const shapes = []
+
     const shape = Object.assign([
       ShapeOpts.Box,
       x, y, w, h,
       1, 1, 0, 0, // lw, ptr, len, offset
-      color, // color
+      track.info.colors.bg, // color
       1.0 // alpha
     ] as ShapeData.Box, { ptr, data: boxData })
 
     ptr += shape.length
 
+    shapes.push(shape)
+
     track.info.shape ??= shape
+    trackBox.shape ??= shape
 
-    return shape
+    // const boxf = [
+    //   ShapeOpts.Box,
+    //   x,
+    //   y,
+    //   w,
+    //   h,
+    //   1, // lw
+    //   1, // ptr
+    //   0, // len
+    //   0, // offset
+    //   y % 2 === 0 ? bg : bg2, //0x222222 : 0x333333,
+    //   1.0 // alpha
+    // ] satisfies ShapeData.Box
+
+    if (trackBox.kind === TrackBoxKind.Notes) {
+      // return boxf
+    }
+    else if (trackBox.kind === TrackBoxKind.Audio) {
+      // if (box.data) {
+      //   color = highlightBox === box.data
+      //     ? box.data.colorBrighter
+      //     : 0x0
+      // }
+      // let color = track.info.colors.colorBrighter
+
+      const floats = track.info.floats
+      if (floats?.length) {
+
+        // console.log(floats)
+        // console.log(color.toString(16), box.data.hexColor)
+        // console.log(state.colors)
+
+        // const f = [
+        //   boxf,
+
+        // ] //.flat()
+
+        boxData.floats = Object.assign([
+          ShapeOpts.Wave,
+          x, y + (h - h / 2) / 2, w, h / 2, // same dims as the box
+          1, // lw
+          floats.ptr, // ptr
+          floats.len, // len
+          0, // offset
+          track.info.colors.fg, //0xcccccc, // color
+          1.0, // alpha
+        ] satisfies ShapeData.Wave, { ptr, data: boxData })
+
+        ptr += boxData.floats.length
+
+        shapes.push(boxData.floats)
+      }
+
+      // return f
+    }
+
+    return Object.assign(shapes.flat(), { ptr, data: boxData })
   }
-
-  // const rows = Array.from({ length: rowsLength }, (_, ry) => {
-  //   const mul = (ry % 2 === 1 ? 4 : 1)
-  //   return Array.from({ length: cols * mul }, (_, rx) => {
-  //     return createBox(rx, ry, scaleX / mul)
-  //   })
-  // })
 
   let rows = Array.from(tracks).map(track => {
     const boxes: ReturnType<typeof createBox>[] = []
     track.info.shape = null
     for (const box of track.info.boxes) {
       const { x, y, w } = box.rect
-      const shape = box.shape = createBox(track, x, y, w)
+      const shape = createBox(track, box, x, y, w)
       boxes.push(shape)
     }
     return boxes
@@ -858,92 +881,85 @@ function Boxes(tracks: Track[]) {
 
 // let floats: Floats
 
-const toHex = (x: string) => x.startsWith('oklch') ? oklchToHex(x) ?? x : x
+// const toHex = (x: string) => x.startsWith('oklch') ? oklchToHex(x) ?? x : x
 
-function Waves(boxes: ReturnType<typeof Boxes>) {
-  //   if (!floats) {
-  //     floats = Floats(waveform)
-  //   }
+// function Waves(boxes: ReturnType<typeof Boxes>) {
+//   //   if (!floats) {
+//   //     floats = Floats(waveform)
+//   //   }
 
-  function update(highlightBox?: BoxData) {
-    return boxes.rows
-      // .filter((_, y) => y % 2 === 1)
-      .map(cols =>
-        cols.map((box: any) => {
-          const [, x, y, w, h] = box
-          let color: number = 0x0
+//   function update(highlightBox?: BoxData) {
+//     return boxes.rows
+//       // .filter((_, y) => y % 2 === 1)
+//       .map(cols =>
+//         cols.map((box: any) => {
+//           const [, x, y, w, h] = box
+//           let color: number = 0x0
 
-          // if (box.data) {
-          //   color = highlightBox === box.data
-          //     ? box.data.colorBrighter
-          //     : 0x0
-          // }
-          color = box.data.colorBrighter
+//           const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .09))
+//           const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
+//           const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
 
-          const floats = box.data.track.info.floats
-          if (!floats?.length) return []
+//           const boxf = [
+//             ShapeOpts.Box,
+//             x,
+//             y,
+//             w,
+//             h,
+//             1, // lw
+//             1, // ptr
+//             0, // len
+//             0, // offset
+//             y % 2 === 0 ? bg : bg2, //0x222222 : 0x333333,
+//             1.0 // alpha
+//           ] satisfies ShapeData.Box
 
-          // console.log(floats)
-          // console.log(color.toString(16), box.data.hexColor)
-          // console.log(state.colors)
+//           if (box.data.trackBox.kind === TrackBoxKind.Notes) {
+//             return boxf
+//           }
+//           else if (box.data.trackBox.kind === TrackBoxKind.Audio) {
+//             // if (box.data) {
+//             //   color = highlightBox === box.data
+//             //     ? box.data.colorBrighter
+//             //     : 0x0
+//             // }
+//             color = box.data.colorBrighter
 
-          const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .09))
-          const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
-          const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
+//             const floats = box.data.track.info.floats
+//             if (!floats?.length) return boxf
 
-          const f = [
-            [
-              ShapeOpts.Box,
-              x,
-              y,
-              w,
-              h,
-              1, // lw
-              1, // ptr
-              0, // len
-              0, // offset
-              y % 2 === 0 ? bg : bg2, //0x222222 : 0x333333,
-              1.0 // alpha
-            ] satisfies ShapeData.Box,
-            [
-              ShapeOpts.Wave,
-              x, y + (h - h / 2) / 2, w, h / 2, // same dims as the box
-              1, // lw
-              floats.ptr, // ptr
-              floats.len, // len
-              0, // offset
-              fg, //0xcccccc, // color
-              1.0, // alpha
-            ] satisfies ShapeData.Wave
-          ].flat()
+//             // console.log(floats)
+//             // console.log(color.toString(16), box.data.hexColor)
+//             // console.log(state.colors)
 
-          // info.waves.data = new Float32Array([
-          //   [
-          //     ShapeOpts.Box,
-          //     cx,
-          //     cy,
-          //     cw,
-          //     ch,
-          //     1, // lw
-          //     1, // ptr
-          //     0, // len
-          //     0x001144,
-          //     .62 // alpha
-          //   ] as ShapeData.Box,
-          //   info.waves.update(lastFloats = focusedBox.floats[6], focusedBox)
-          // ].flat())
+//             const f = [
+//               boxf,
+//               [
+//                 ShapeOpts.Wave,
+//                 x, y + (h - h / 2) / 2, w, h / 2, // same dims as the box
+//                 1, // lw
+//                 floats.ptr, // ptr
+//                 floats.len, // len
+//                 0, // offset
+//                 fg, //0xcccccc, // color
+//                 1.0, // alpha
+//               ] satisfies ShapeData.Wave
+//             ].flat()
 
-          box.data.floats = f
+//             box.data.floats = f
 
-          return f
-        }).flat()
-      ).flat()
-  }
+//             return f
 
-  const data = new Float32Array(update())
+//           }
 
-  return { data, update }
-}
+//         }).flat()
+//       ).flat()
+//   }
+
+//   const data = new Float32Array(update())
+
+//   return { data, update }
+// }
 
 interface Note {
   n: number
@@ -1011,6 +1027,7 @@ type BoxNotes = Note[] & {
 //     .map(cols =>
 //       cols.map(box => {
 //         const [, cx, cy, cw, ch] = box
+
 //         box.data.notes = Object.assign([...notes], { ptr, scale })
 
 //         const boxNotes = notes.map(({ n, time, length, vel }) => {
@@ -1034,6 +1051,7 @@ type BoxNotes = Note[] & {
 //             1, // lw
 //             1, // ptr
 //             0, // len
+//             0, // offset
 //             0x0,
 //             .2 + (.8 * vel) // alpha
 //           ] as ShapeData.Box

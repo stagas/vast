@@ -1,4 +1,5 @@
 import { hexToRgb } from 'utils'
+import { oklchToHex } from './oklch.ts'
 
 type f32 = number
 type i32 = number
@@ -16,8 +17,17 @@ export function hexToInt(hex: string) {
   return rgbToInt(r, g, b)
 }
 
+export function intToHex(x: number) {
+  return '#' + x.toString(16).padStart(6, '0')
+}
+
 export function clamp255(x: f32): i32 {
   if (x > 255) x = 255
   if (x < 0) x = 0
   return i32(x)
 }
+
+export function toHex(x: string) {
+  return x.startsWith('oklch') ? oklchToHex(x) ?? x : x
+}
+

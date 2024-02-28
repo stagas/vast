@@ -6,10 +6,7 @@ const MAX_ZOOM: f32 = 0.5
 const BASE_SAMPLES: f32 = 48000
 const NUM_SAMPLES: f32 = BASE_SAMPLES / MAX_ZOOM
 
-// const Divisors =       [2,    4,    8,   16,  32,  64, 128, 256, 512, 1024]
-
-const WAVE_MIPMAPS_THRESHOLD = 4000
-// const thresholds: f32[] = [4000, 2000, 1000, 500, 250, 125, 62.5,  31.25, 15.625, 7.5]
+const WAVE_MIPMAPS_THRESHOLD = 3000
 
 const enum WaveMode {
   Scaled,

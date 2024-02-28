@@ -79,7 +79,7 @@ export function Minimap(grid: Grid) {
       let color
       for (const box of row) {
         const { x, y, w, h } = box.data
-        color = box.data.color
+        color = box.data.track.info.color
         c.rect(x, y + 10 * (1 / view.h), w, h - 20 * (1 / view.h))
       }
       c.fillStyle = '#' + (color ?? 0x0).toString(16).padStart(6, '0')

@@ -167,8 +167,8 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
       c.rect(0, y, w, th - pr)
       c.fillStyle =
         (info.hoveringTrack === track
-          ? track.info.shape?.data.hexColorBrighter
-          : track.info.shape?.data.hexColorBright) ?? '#fff'
+          ? track.info.colors.hexColorBrighter
+          : track.info.colors.hexColorBright) ?? '#fff'
       c.fill()
       c.clip()
       if (icons?.play) c.drawImage(
