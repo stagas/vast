@@ -125,7 +125,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   })
 
   const tick = () => {
-    return
+    return;
 
     c.restore()
     c.save()

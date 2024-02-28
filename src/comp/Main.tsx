@@ -65,7 +65,9 @@ export function Main() {
   }
 
   $.batch(() => {
-    if (state.tracks.length) return
+    if (state.tracks.length) {
+      state.tracks = []
+    }
     addTrack(state.source)
     addTrack(state.t1_source)
     addTrack(state.t2_source)

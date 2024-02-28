@@ -54,8 +54,8 @@ export namespace ShapeData {
   ]
 }
 
-const hasVertOpts = (...bits: number[]) => /*glsl*/
-  `(int(a_opts) & (${bits.join(' | ')})) != 0`
+const hasBits = (varname: string, ...bits: number[]) => /*glsl*/
+  `(int(${varname}) & (${bits.join(' | ')})) != 0`
 
 const vertex = /*glsl*/`
 #version 300 es
@@ -70,6 +70,9 @@ in float a_lineWidth;
 uniform float u_pr;
 uniform vec2 u_screen;
 
+out float v_opts;
+out vec2 v_uv;
+out vec2 v_size;
 out vec2 v_color;
 
 vec2 perp(vec2 v) {
@@ -84,7 +87,7 @@ void main() {
     floor(a_quad / 2.0)
   );
 
-  if (${hasVertOpts(VertOpts.Line)}) {
+  if (${hasBits('a_opts', VertOpts.Line)}) {
     vec2 a = a_vert.xy;
     vec2 b = a_vert.zw;
     vec2 v = b - a;
@@ -133,7 +136,9 @@ vec3 intToRgb(int color) {
 }
 
 void main() {
-  fragColor = vec4(intToRgb(int(v_color.x)).rgb, v_color.y);
+  vec3 color = intToRgb(int(v_color.x)).rgb;
+  float alpha = v_color.y;
+  fragColor = vec4(color, alpha);
 }
 `
 
@@ -264,14 +269,14 @@ function SketchInfo(GL: GL, view: Rect) {
     GL.writeAttribRange(a_vert, range)
     GL.writeAttribRange(a_color, range)
     GL.writeAttribRange(a_lineWidth, range)
-    DEBUG && log('[sketch] write gl begin:', range.begin, 'end:', range.end, 'count:', range.count)
+    // DEBUG && log('[sketch] write gl begin:', range.begin, 'end:', range.end, 'count:', range.count)
   }
 
   function write(data: Float32Array) {
     const count = data.length / SHAPE_LENGTH
     const begin = shapes.count
     const end = (shapes.count += count)
-    DEBUG && log('[sketch] shapes write begin:', begin, 'end:', end, 'count:', count)
+    // DEBUG && log('[sketch] shapes write begin:', begin, 'end:', end, 'count:', count)
     shapes.set(data, begin * SHAPE_LENGTH)
   }
 
@@ -314,7 +319,7 @@ export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
   const { use } = info
 
   wasm.setFlushSketchFn(count => {
-    DEBUG && log('[sketch] draw', shapes.count)
+    DEBUG && log('[sketch] draw', count)
 
     writeGL(count)
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count)
@@ -331,37 +336,12 @@ export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
       range.end =
       range.count = 0
 
-    // let index = 0
-    // let lastIndex = -2
-    // let previousLastIndex = -3
-    // while (index =
     sketchDraw(
       mat2d,
       view,
       0,
       shapes.count
     )
-    // ) {
-    //   if (previousLastIndex === index) {
-    //     // we're in an infinite loop, so stop drawing
-    //     break
-    //   }
-
-    //   DEBUG && log('[sketch] draw', index, index >= 0 ? shapes.count - index : '---')
-
-    //   writeGL()
-
-    //   gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, range.count)
-
-    //   if (index === -1) break
-
-    //   previousLastIndex = lastIndex
-    //   lastIndex = index
-
-    //   range.begin =
-    //     range.end =
-    //     range.count = 0
-    // }
   }
 
   return { draw, shapes, shape, info, write }

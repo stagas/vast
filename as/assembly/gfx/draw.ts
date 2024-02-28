@@ -6,6 +6,10 @@ const MAX_ZOOM: f32 = 0.5
 const BASE_SAMPLES: f32 = 48000
 const NUM_SAMPLES: f32 = BASE_SAMPLES / MAX_ZOOM
 
+// const Divisors =       [2,    4,    8,   16,  32,  64, 128, 256]
+
+const thresholds: f32[] = [4000, 2000, 800, 300, 150, 75, 30, 10]
+
 const enum WaveMode {
   Scaled,
   Normal,
@@ -134,7 +138,7 @@ export function draw(
         //
         // sample coeff for zoom level
         //
-        const sample_coeff: f32 = f32(NUM_SAMPLES / ma)
+        let sample_coeff: f32 = f32(NUM_SAMPLES / ma)
 
         //
         // setup wave pointers
@@ -177,161 +181,46 @@ export function draw(
           cw -= ox
         }
 
-        let x_step: f32 = f32(ma / NUM_SAMPLES) * 2.0 //* 8.0
+        let x_step: f32 = f32(ma / NUM_SAMPLES)
+        let n_step: f32 = 1.0
         let mul: f32 = 1.0
-        let lw: f32 = 1.5
-
-        // logf(f32(ma))
+        let lw: f32 = 1.1
 
         let waveMode: WaveMode = WaveMode.Scaled
 
-        // if (ma < 5000) {
-        if (ma < 1500) {
-          if (ma < 500) {
-            if (ma < 150) {
-              if (ma < 70) {
-                p_index += i32(wave.len)
-                n_len = Mathf.floor(wave.len / 16.0)
-                mul = 4.0
-                if (ma < 20) {
-                  if (ma < 10) {
-                    // if (ma < 5) {
-                    //   p_index += i32(n_len)
-                    //   n_len = Mathf.floor(n_len / 4.0)
-                    //   mul = 16
-
-                    //   if (ma < 1) {
-                    //     p_index += i32(n_len)
-                    //     x_step = 1
-                    //     n_len = 2
-                    //     waveMode = WaveMode.VeryFar
-                    //   }
-                    //   else {
-                    //     waveMode = WaveMode.Normal
-                    //     x_step = 0.00125
-                    //   }
-                    // }
-                    // else {
-                    waveMode = WaveMode.Normal
-                    x_step *= 16
-                    // }
-                  }
-                  else {
-                    waveMode = WaveMode.Normal
-                    x_step *= 16
-                  }
-                }
-                else {
-                  waveMode = WaveMode.Normal
-                  x_step *= 16
-                }
-              }
-              else {
-                waveMode = WaveMode.Normal
-                // x_step = 0.0125
-                x_step *= 16
-              }
-            }
-            else {
-              waveMode = WaveMode.Normal
-              x_step *= 8
-            }
+        for (let i = 0; i < thresholds.length; i++) {
+          const threshold = thresholds[i]
+          if (ma < threshold) {
+            waveMode = WaveMode.Normal
+            p_index += i32(Mathf.floor(n_len))
+            n_len = Mathf.floor(n_len / 2.0)
+            mul *= 2.0
+            x_step *= 2.0
+            lw = 1.1 - (0.8 * (1 -
+              (f32(ma / 4000) ** .35)
+            ))
           }
           else {
-            waveMode = WaveMode.Normal
-            x_step *= 4
+            break
           }
         }
-        //   else {
-        //     waveMode = WaveMode.Normal
-        //     x_step = 0.5
-        //   }
-        // }
+
+        n_step = sample_coeff / (mul / x_step)
 
         p += p_index << 2
 
-        // x_step *= 0.05
-
-        //
-        // determine sampling coeff based on
-        // the horizontal zoom level (m.a).
-        //
-        let coeff: f32 = sample_coeff / (mul / x_step)
-
-        // logf2(f32(ma), coeff)
-        // logf3(x_step, coeff, f32(ma))
-        // logf2(x_step, coeff)
-
-
-        // if (ma < 10) {
-        //   p_index += i32(wave.len)
-        //   n_len = Mathf.floor(wave.len / 16.0)
-
-        //   if (ma < 2) {
-        //     p_index += i32(n_len * 2.0)
-        //     n_len = Mathf.floor(((wave.len / 16.0) * 2.0) / 4.0)
-
-        //     if (ma < 1) {
-        //       p_index += i32(n_len)
-        //       // logf(111)
-        //       x_step = 1
-        //       coeff = 1
-        //       n_len = 2
-        //     }
-        //     else {
-        //       // logf(222)
-        //       x_step **= 1.5
-        //       // x_step = .01
-        //       x_step = Mathf.max(0.0085, x_step)
-        //       coeff = sample_coeff / (8.0 / x_step)
-        //       // logf2(x_step, coeff)
-        //     }
-        //   }
-        //   else {
-        //     // logf(333)
-        //     x_step **= 1.5
-        //     x_step = Mathf.max(0.03, x_step)
-        //     // x_step = .1
-        //     coeff = sample_coeff / (4.0 / x_step)
-        //     // n_len = wave.len
-        //   }
-
-        //   p += p_index << 2
-        // }
-
-        // logf(f32(p))
-        // logf(f32(ma))
-        // logf2(n_coeff, n_step)
-
-        // logf(f32(ma))
-        // if (cw <= 1.0) {
-        //   x_step = .15
-        // }
-
-        // let steps = i32(cw / x_step)
-        // if (steps > i32(width) && ma > 200) {
-        //   // logf2(666, f32(ma))
-        //   coeff *= 1.0 / x_step
-        //   x_step = 1.0
-        //   steps = i32(cw)
-        // }
-
         const hh: f32 = h / 2
-
-        // advance the pointer if left edge is offscreen
-        if (ox) {
-          n += Mathf.floor(ox / x_step)
-        }
-
-        n = Mathf.floor(n)
-
-        // coeff *= 0.125
-        let n_step = coeff
 
         switch (waveMode) {
           case WaveMode.Scaled: {
+            // advance the pointer if left edge is offscreen
+            if (ox) {
+              n += Mathf.floor(ox / x_step)
+            }
+            n = Mathf.floor(n)
+
             // interpolate 2 samples
-            let nx = (n * coeff) % n_len
+            let nx = (n * n_step) % n_len
             let nfrac = nx - Mathf.floor(nx)
             let s = readSampleLerp(p, nx, nfrac)
 
@@ -382,21 +271,18 @@ export function draw(
           }
 
           case WaveMode.Normal: {
-            // read first sample
-            let nx = (n * coeff) % n_len
+            // advance the pointer if left edge is offscreen
+            if (ox) {
+              n += Mathf.floor(ox / x_step)
+            }
+            n = Mathf.floor(n)
+
+            let nx = (n * n_step) % n_len
             let s = f32.load(p + (i32(nx) << 2))
 
             // move to v0
             let x0 = cx
             let y0 = y + hh + s * hh // TODO: hh in shader?
-
-            // draw for every pixel step
-            // right -= 1
-
-            // const lw: f32 = 1.5 + f32(30.0 / ma)
-            // logf2(lw, x_step)
-            // x_step *= 0.125
-            // n_step *= 0.125
 
             if (opts & ShapeOpts.Join) {
               sketch.drawLine(
@@ -415,7 +301,8 @@ export function draw(
               step_i++
 
               cx = f32(f64(bcx) + f64(step_i) * f64(x_step))
-              nx = f32((f64(bnx) + f64(step_i) * f64(n_step)) % n_len)
+              // the rounding here fixes flickering
+              nx = Mathf.round(f32((f64(bnx) + f64(step_i) * f64(n_step))) % n_len)
 
               s = f32.load(p + (i32(nx) << 2))
 
@@ -439,44 +326,77 @@ export function draw(
             break
           }
 
-          // case WaveMode.VeryFar: {
-          //   let nx: f32 = 0 //(n * coeff) % n_len
-          //   let s = f32.load(p + (i32(nx) << 2))
+          // case WaveMode.Far: {
+          //   // advance the pointer if left edge is offscreen
+          //   if (ox) {
+          //     n += Mathf.floor(ox / x_step)
+          //   }
+          //   n = Mathf.floor(n)
+
+          //   let nx = (n * n_step) % n_len
+
+          //   let min: f32
+          //   let max: f32
+
+          //   let pos: i32
+
+          //   pos = i32(Mathf.floor(f32(p + (i32(nx) << 2)) / 2.0) * 2.0)
+
+          //   min = f32.load(p + (i32(nx) << 2))
 
           //   // move to v0
-          //   // let x0 = cx
-          //   let y0 = y + hh + s * hh // TODO: hh in shader?
+          //   let x0 = cx
+          //   let y0 = y + hh + min * hh // TODO: hh in shader?
 
           //   if (opts & ShapeOpts.Join) {
           //     sketch.drawLine(
           //       px, py,
-          //       cx, y0,
+          //       x0, y0,
           //       wave.color, wave.alpha,
-          //       1.5
+          //       lw
           //     )
           //   }
 
-          //   // cx += x_step
-          //   nx += 1.0 //n_step
-
-          //   s = f32.load(p + (i32(nx) << 2))
-
-          //   // logf(s)
-          //   // let x1 = cx //+ x_step
-          //   const y1 = y + hh + s * hh
+          //   let step_i: i32 = 0
+          //   let bcx = cx
+          //   let bnx = nx
 
           //   do {
+          //     cx = f32(f64(bcx) + f64(step_i) * f64(x_step))
+          //     // the rounding here fixes flickering
+          //     nx = Mathf.round(f32((f64(bnx) + f64(step_i) * f64(n_step))) % n_len)
+
+          //     pos = i32(Mathf.floor(f32(p + (i32(nx) << 2)) / 2.0) * 2.0)
+          //     min = f32.load(pos)
+          //     max = f32.load(pos, 4)
+
+          //     const x1 = cx
+          //     const y1 = y + hh + min * hh
+
           //     sketch.drawLine(
-          //       cx, y0,
-          //       cx, y1,
+          //       x0, y0,
+          //       x1, y1,
           //       wave.color, wave.alpha,
-          //       1.0
+          //       lw
           //     )
 
-          //     cx += 1.0
+          //     const x2 = cx
+          //     const y2 = y + hh + max * hh
+
+          //     sketch.drawLine(
+          //       x1, y1,
+          //       x2, y2,
+          //       wave.color, wave.alpha,
+          //       lw
+          //     )
+
+          //     x0 = x2
+          //     y0 = y2
+
+          //     step_i++
           //   } while (cx < right)
 
-          //   px = cx
+          //   px = x0
           //   py = y0
 
           //   break

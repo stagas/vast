@@ -11,7 +11,7 @@ import { AstNode, interpret } from '../lang/interpreter.ts'
 import { parseNumber } from '../lang/util.ts'
 import { $ } from 'signal-jsx'
 
-const DEBUG = true
+const DEBUG = false
 
 const MAX_OPS = 4096
 
