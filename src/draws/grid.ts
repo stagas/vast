@@ -9,6 +9,7 @@ import { Surface } from '../surface.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { BLACK_KEYS, MAX_NOTE, Note, byNoteN, getNotesScale } from '../util/notes.ts'
 import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
+import { Dsp } from '../dsp/dsp.ts'
 
 const DEBUG = true
 const SCALE_X = 1 / 16
@@ -18,7 +19,7 @@ const WAVES_MARGIN_NORMAL = 0.0775
 
 export type Grid = ReturnType<typeof Grid>
 
-export function Grid(surface: Surface) {
+export function Grid(surface: Surface, dsp: Dsp) {
   using $ = Signal()
 
   const { anim, mouse, keyboard, view, intentMatrix, viewMatrix, sketch } = surface
@@ -615,10 +616,12 @@ export function Grid(surface: Surface) {
           waveformBg.visible = !!isFocused
           waveformBg.view.floats$ = floats.ptr
           waveformBg.view.len = floats.len
+          waveformBg.view.coeff = dsp.clock.coeff
 
           waveform.view.color = isFocused ? colors.colorBright : colors.fg
           waveform.view.floats$ = floats.ptr
           waveform.view.len = floats.len
+          waveform.view.coeff = dsp.clock.coeff
 
           redraw(waveformShapes)
         })]
@@ -890,6 +893,52 @@ export function Grid(surface: Surface) {
         : .2 + (.8 * vel)
 
     $.fx(() => {
+      const { scale } = info
+      const { track, rect } = trackBox
+      const { x: cx, y: cy, w: cw } = rect
+      const ch = rect.h * NOTES_HEIGHT_NORMAL
+      const { notes } = track.info
+      $()
+      shapes.clear()
+      map.clear()
+      notes.sort(byNoteN).forEach(note => {
+        const { n, time, length, vel } = note
+
+        const x = time * SCALE_X // x
+        if (x >= cw) return
+
+        const h = ch / scale.N
+        const y = ch - h * (n + 1 - scale.min) // y
+
+        let w = length * SCALE_X // w
+        if (x + w > cw) {
+          w = cw - x
+        }
+
+        const noteBg = shapes.Box({
+          x: cx + x,
+          y: cy + y,
+          w,
+          h: h + .0065,
+        })
+        noteBg.view.opts = ShapeOpts.Box | ShapeOpts.Collapse
+        noteBg.visible = false
+
+        const noteShape = shapes.Box({
+          x: cx + x,
+          y: cy + y,
+          w,
+          h,
+        })
+        noteShape.view.opts = ShapeOpts.Box | ShapeOpts.Collapse
+
+        map.set(note, { noteBg, noteShape })
+      })
+      shapes.update()
+      info.update++
+    })
+
+    $.fx(() => {
       const { isFocused, track } = trackBox
       const { colors } = track.info
       const { primaryColorInt } = state
@@ -938,52 +987,6 @@ export function Grid(surface: Surface) {
         })
         redraw(shapes)
       }
-    })
-
-    $.fx(() => {
-      const { scale } = info
-      const { track, rect } = trackBox
-      const { x: cx, y: cy, w: cw } = rect
-      const ch = rect.h * NOTES_HEIGHT_NORMAL
-      const { notes } = track.info
-      $()
-      shapes.clear()
-      map.clear()
-      notes.sort(byNoteN).forEach(note => {
-        const { n, time, length, vel } = note
-
-        const x = time * SCALE_X // x
-        if (x >= cw) return
-
-        const h = ch / scale.N
-        const y = ch - h * (n + 1 - scale.min) // y
-
-        let w = length * SCALE_X // w
-        if (x + w > cw) {
-          w = cw - x
-        }
-
-        const noteBg = shapes.Box({
-          x: cx + x,
-          y: cy + y,
-          w,
-          h: h + .0065,
-        })
-        noteBg.view.opts = ShapeOpts.Box | ShapeOpts.Collapse
-        noteBg.visible = false
-
-        const noteShape = shapes.Box({
-          x: cx + x,
-          y: cy + y,
-          w,
-          h,
-        })
-        noteShape.view.opts = ShapeOpts.Box | ShapeOpts.Collapse
-
-        map.set(note, { noteBg, noteShape })
-      })
-      shapes.update()
-      info.update++
     })
 
     return { info, shapes }

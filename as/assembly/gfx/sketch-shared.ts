@@ -69,6 +69,7 @@ export class Wave {
   floats$: f32 = 0
   len: f32 = 0
   offset: f32 = 0
+  coeff: f32 = 1
 }
 
 @unmanaged

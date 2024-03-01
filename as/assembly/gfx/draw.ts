@@ -137,7 +137,7 @@ export function draw(
         //
         // sample coeff for zoom level
         //
-        let sample_coeff: f64 = f64(NUM_SAMPLES / ma)
+        let sample_coeff: f64 = f64( (NUM_SAMPLES / wave.coeff / 2.0) / ma)
 
         //
         // setup wave pointers

@@ -177,6 +177,7 @@ export namespace Shape {
     floats$: 'f32',
     len: 'f32',
     offset: 'f32',
+    coeff: 'f32',
   })
 
   export type Wave = [
@@ -194,6 +195,7 @@ export namespace Shape {
     floats$: number,
     len: number,
     offset: number,
+    coeff: number,
   ]
 }
 
@@ -333,6 +335,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
     view.opts = ShapeOpts.Wave
     view.alpha = 1.0
     view.lw = 1.0
+    view.coeff = 1.0
 
     $.fx(() => {
       const { x, y, w, h } = rect

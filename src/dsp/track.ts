@@ -134,14 +134,14 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
 
       clock.time = 0
       clock.barTime = 0
-      clock.bpm = 120
+      clock.bpm = 144
 
       wasm.updateClock(clock.ptr)
 
       const { program, out, updateClock } = sound.process(tokens)
 
       info.tokensAstNode = program.value.tokensAstNode
-      info.waveLength = Math.floor(audioLength * clock.sampleRate * clock.coeff * 4)
+      info.waveLength = Math.floor(audioLength * clock.sampleRate / clock.coeff)
       const f = new Float32Array(info.waveLength)
 
       sound.data.begin = 0

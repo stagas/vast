@@ -361,7 +361,7 @@ export function Main() {
           // codeDraw ??= CodeDraw(codeSurface)
           // codeDraw.write()
 
-          info.grid ??= Grid(surface)
+          info.grid ??= Grid(surface, dsp)
           // info.grid.write()
 
           textDraw ??= TextDraw(surface, info.grid, view)
