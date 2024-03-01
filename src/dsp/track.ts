@@ -58,9 +58,9 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
     get audioLength() {
       let max = 0
       for (const { kind, rect } of this.boxes) {
-        if (kind === TrackBoxKind.Audio) {
+        // if (kind === TrackBoxKind.Audio) {
           if (rect.w > max) max = rect.w
-        }
+        // }
       }
       return max
     },
@@ -95,7 +95,7 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
 
       const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .09))
       const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
-      const bgHover = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .15))
+      const bgHover = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), -.01115))
       const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
 
       return {

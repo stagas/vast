@@ -8,9 +8,13 @@ import { log, state } from '../state.ts'
 import { Surface } from '../surface.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { BLACK_KEYS, MAX_NOTE, Note, byNoteN, getNotesScale } from '../util/notes.ts'
+import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
 
 const DEBUG = true
 const SCALE_X = 1 / 16
+const NOTES_HEIGHT_NORMAL = 0.65
+const WAVES_HEIGHT_NORMAL = 1 - NOTES_HEIGHT_NORMAL
+const WAVES_MARGIN_NORMAL = 0.0775
 
 export type Grid = ReturnType<typeof Grid>
 
@@ -49,15 +53,25 @@ export function Grid(surface: Surface) {
 
   info.boxes = Boxes(tracks)
 
+  function getInitialMatrixValues() {
+    const a = Math.max(7.27, targetView.w / tracks.reduce((p, n) => Math.max(p,
+      n.info.boxes.reduce((p, n) => Math.max(p, n.rect.x + n.rect.w), 1))
+      , 1)
+    )
+    const d = targetView.h / Math.max(3, tracks.length)
+    const e = state.mode === 'wide' ? 0 : CODE_WIDTH + 55
+    const f = 0
+    return { a, d, e, f }
+  }
+
   $.untrack(function initial_scale() {
     if (intentMatrix.a === 1) {
-      viewMatrix.a = intentMatrix.a = Math.max(7.27, targetView.w / tracks.reduce((p, n) => Math.max(p,
-        n.info.boxes.reduce((p, n) => Math.max(p, n.rect.x + n.rect.w), 1))
-        , 1)
-      )
-      viewMatrix.d = intentMatrix.d = targetView.h / Math.max(3, tracks.length)
-      viewMatrix.e = intentMatrix.e = state.mode === 'wide' ? 0 : CODE_WIDTH
-      lastFarMatrix.set(viewMatrix)
+      const m = getInitialMatrixValues()
+      viewMatrix.a = intentMatrix.a = m.a
+      viewMatrix.d = intentMatrix.d = m.d
+      viewMatrix.e = intentMatrix.e = m.e
+
+      // lastFarMatrix.set(viewMatrix)
       $.fx(function scale_rows_to_fit_height() {
         const { h } = targetView
         const { tracks } = state
@@ -227,7 +241,7 @@ export function Grid(surface: Surface) {
 
     let { x, y } = mouse.screenPos
     x -= hoveringBox.rect.x
-    y -= hoveringBox.rect.y
+    y = (y - hoveringBox.rect.y) * (1 / NOTES_HEIGHT_NORMAL)
     notePos.x = x * 16
     notePos.y = y
 
@@ -384,6 +398,19 @@ export function Grid(surface: Surface) {
     applyBoxMatrix(intentMatrix, box)
   })
 
+  const zoomFull = $.fn(function zoomFull() {
+    isWheelHoriz = false
+    state.zoomState = 'zooming'
+    viewMatrix.isRunning = true
+    viewMatrix.speed = ZOOM_SPEED_SLOW
+    const m = getInitialMatrixValues()
+    intentMatrix.a = m.a
+    intentMatrix.d = m.d
+    intentMatrix.e = m.e
+    intentMatrix.f = m.f
+    lastFarMatrix.set(intentMatrix)
+  })
+
   const zoomFar = $.fn(function zoomFar() {
     if (!info.draggingNote) {
       info.focusedBox = null
@@ -397,7 +424,7 @@ export function Grid(surface: Surface) {
     if (ev.type === 'keydown') {
       log(ev.key)
       if (ev.key === 'Escape') {
-        zoomFar()
+        zoomFull()
       }
     }
   })
@@ -449,6 +476,12 @@ export function Grid(surface: Surface) {
             handleHoveringNote()
           }), { once: true })
           return
+        }
+      }
+      else {
+        if (++clicks >= 2) {
+          zoomFull()
+          console.log('should zoom full')
         }
       }
     }
@@ -512,7 +545,7 @@ export function Grid(surface: Surface) {
   type GridBox = ReturnType<typeof GridBox>
   type GridNotes = ReturnType<typeof Notes>
 
-  function GridBox(boxes: Shapes, trackBox: TrackBox) {
+  function GridBox(boxes: Shapes, waveformShapes: Shapes, trackBox: TrackBox) {
     using $ = Signal()
 
     const info = $({
@@ -542,25 +575,53 @@ export function Grid(surface: Surface) {
         sketch.scene.add(notes.shapes)
         redraw(notes.shapes)
 
+        const waveformBg = waveformShapes.Wave($({
+          get x() { return rect.x },
+          get y() { return 0.01 + rect.y + rect.h * NOTES_HEIGHT_NORMAL + rect.h * WAVES_MARGIN_NORMAL * 0.5 },
+          get w() { return rect.w },
+          get h() { return rect.h * WAVES_HEIGHT_NORMAL - rect.h * WAVES_MARGIN_NORMAL },
+        }))
+        waveformBg.view.alpha = 0.6
+
+        const waveform = waveformShapes.Wave($({
+          get x() { return rect.x },
+          get y() { return rect.y + rect.h * NOTES_HEIGHT_NORMAL + rect.h * WAVES_MARGIN_NORMAL * 0.5 },
+          get w() { return rect.w },
+          get h() { return rect.h * WAVES_HEIGHT_NORMAL - rect.h * WAVES_MARGIN_NORMAL },
+        }))
+
         const off = $.fx(() => {
           const { isFocused } = trackBox
           $()
           if (isFocused) {
             pianoroll ??= Pianoroll(trackBox)
             pianoroll.info.trackBox = trackBox
-
-            sketch.scene.delete(notes.shapes)
             pianoroll.hide()
             pianoroll.show()
-            sketch.scene.add(notes.shapes)
+            toFront(notes.shapes)
+            toFront(waveformShapes)
             redraw()
           }
         })
 
-        return () => {
+        return [() => {
           sketch.scene.delete(notes.shapes)
           off()
-        }
+        }, $.fx(() => {
+          const { track, isFocused } = trackBox
+          const { floats, colors } = $.of(track.info)
+          $()
+
+          waveformBg.visible = !!isFocused
+          waveformBg.view.floats$ = floats.ptr
+          waveformBg.view.len = floats.len
+
+          waveform.view.color = isFocused ? colors.colorBright : colors.fg
+          waveform.view.floats$ = floats.ptr
+          waveform.view.len = floats.len
+
+          redraw(waveformShapes)
+        })]
       }
       else if (kind === TrackBoxKind.Audio) {
         const waveform = boxes.Wave($({
@@ -578,12 +639,17 @@ export function Grid(surface: Surface) {
           waveform.view.color = fg
           waveform.view.floats$ = floats.ptr
           waveform.view.len = floats.len
-          redraw(boxes)
+          redraw(waveformShapes)
         })
       }
     })
 
     return { rect, trackBox, info, box }
+  }
+
+  function toFront(shapes: Shapes) {
+    sketch.scene.delete(shapes)
+    sketch.scene.add(shapes)
   }
 
   function Boxes(tracks: Track[]) {
@@ -592,10 +658,14 @@ export function Grid(surface: Surface) {
     const hitmap = new Map<string, GridBox>()
 
     const shapes = Shapes(view, viewMatrix)
+    const waveformShapes = Shapes(view, viewMatrix)
+
     $.fx(() => {
       sketch.scene.add(shapes)
+      sketch.scene.add(waveformShapes)
       return () => {
         sketch.scene.delete(shapes)
+        sketch.scene.delete(waveformShapes)
       }
     })
 
@@ -615,7 +685,7 @@ export function Grid(surface: Surface) {
       info.rows = Array.from(tracks).map(track => {
         const gridBoxes: GridBox[] = []
         for (const box of track.info.boxes) {
-          const gridBox = GridBox(shapes, box)
+          const gridBox = GridBox(shapes, waveformShapes, box)
           gridBoxes.push(gridBox)
         }
         return gridBoxes
@@ -653,13 +723,15 @@ export function Grid(surface: Surface) {
     })
 
     const rect = $(new Rect)
+    const rectCols = $(new Rect)
 
     const pianoroll = Shapes(view, viewMatrix)
 
-    const background = pianoroll.Box(rect)
+    const pianorollBg = pianoroll.Box(rect)
+    pianorollBg.view.opts = ShapeOpts.Box | ShapeOpts.NoMargin
     $.fx(() => {
       const { trackBox } = info
-      background.view.color = trackBox.track.info.colors.bgHover
+      pianorollBg.view.color = trackBox.track.info.colors.bgHover
     })
 
     pianoroll.Box($({
@@ -680,7 +752,14 @@ export function Grid(surface: Surface) {
     $.fx(() => {
       const { x, y, w, h } = info.trackBox.rect
       $()
-      rect.set(info.trackBox.rect)
+      rect.setParameters(x, y, w, h * NOTES_HEIGHT_NORMAL)
+      pianoroll.update()
+    })
+
+    $.fx(() => {
+      const { x, y, w, h } = info.trackBox.rect
+      $()
+      rectCols.setParameters(x, y, w, h)
       pianoroll.update()
     })
 
@@ -689,6 +768,7 @@ export function Grid(surface: Surface) {
     $.fx(() => {
       const { scale } = info
       const { x: cx, y: cy, w: cw, h: ch } = rect
+      const { colors } = trackBox.track.info
       $()
       rows.clear()
       const h = rect.h / scale.N
@@ -706,6 +786,7 @@ export function Grid(surface: Surface) {
             w: cw,
             h,
           })
+          row.view.opts = ShapeOpts.Box | ShapeOpts.NoMargin
           row.view.alpha = .25
         }
 
@@ -717,36 +798,64 @@ export function Grid(surface: Surface) {
         })
         key.view.color = isBlack ? 0x0 : 0xffffff
       }
+      // const waveBgOuter = rows.Box({
+      //   x: cx,
+      //   y: rectCols.y + rectCols.h * NOTES_HEIGHT_NORMAL,
+      //   w: cw,
+      //   h: rectCols.h * WAVES_HEIGHT_NORMAL,
+      // })
+      // waveBgOuter.view.color = colors.bg
+      // // waveBgOuter.view.opts = ShapeOpts.Box | ShapeOpts.NoMargin
+      // waveBgOuter.view.alpha = 1.0
+
+      // const waveBg = rows.Box({
+      //   x: cx,
+      //   y: rectCols.y + rectCols.h * NOTES_HEIGHT_NORMAL
+      //     + rectCols.h * WAVES_MARGIN_NORMAL * 0.5,
+      //   w: cw,
+      //   h: rectCols.h * WAVES_HEIGHT_NORMAL - rectCols.h * WAVES_MARGIN_NORMAL,
+      // })
+      // waveBg.view.color = colors.bgHover
+      // waveBg.view.opts = ShapeOpts.Box | ShapeOpts.NoMargin
+      // waveBg.view.alpha = 1.0
+
       rows.update()
     })
 
     const cols = Shapes(view, viewMatrix)
 
     $.fx(() => {
-      const { x: cx, w: cw } = rect
+      const { x: cx, y: cy, w: cw, h: ch } = info.trackBox.rect
       $()
       cols.clear()
       const cols_n = (cw * SNAPS) - 1
       for (let col = 0; col < cols_n; col++) {
         const x = ((1 + col) / SNAPS) + cx
-        const p0 = $({ x, y: rect.$.y })
-        const p1 = $({ x, y: rect.$.bottom })
+        const p0 = $({ x, y: info.trackBox.rect.$.y })
+        const p1 = $({ x, y: info.trackBox.rect.$.bottom })
         const line = cols.Line(p0, p1)
         line.view.lw = col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0.5
       }
+      cols.Line({
+        x: cx,
+        y: cy + ch * NOTES_HEIGHT_NORMAL
+      }, {
+        x: cx + cw,
+        y: cy + ch * NOTES_HEIGHT_NORMAL
+      })
       cols.update()
     })
 
     function show() {
       sketch.scene.add(pianoroll)
-      sketch.scene.add(cols)
       sketch.scene.add(rows)
+      sketch.scene.add(cols)
     }
 
     function hide() {
       sketch.scene.delete(pianoroll)
-      sketch.scene.delete(cols)
       sketch.scene.delete(rows)
+      sketch.scene.delete(cols)
     }
 
     return { info, show, hide }
@@ -823,7 +932,6 @@ export function Grid(surface: Surface) {
       }
       else {
         map.forEach(({ noteBg, noteShape }, note) => {
-          noteBg.view.alpha = 0
           noteBg.visible = false
           noteShape.view.alpha = getAlpha(note.vel)
           noteShape.view.color = colors.fg
@@ -835,7 +943,8 @@ export function Grid(surface: Surface) {
     $.fx(() => {
       const { scale } = info
       const { track, rect } = trackBox
-      const { x: cx, y: cy, w: cw, h: ch } = rect
+      const { x: cx, y: cy, w: cw } = rect
+      const ch = rect.h * NOTES_HEIGHT_NORMAL
       const { notes } = track.info
       $()
       shapes.clear()
@@ -860,7 +969,7 @@ export function Grid(surface: Surface) {
           w,
           h: h + .0065,
         })
-        noteBg.view.alpha = 0
+        noteBg.view.opts = ShapeOpts.Box | ShapeOpts.Collapse
         noteBg.visible = false
 
         const noteShape = shapes.Box({
@@ -869,7 +978,7 @@ export function Grid(surface: Surface) {
           w,
           h,
         })
-        noteShape.view.alpha = 0
+        noteShape.view.opts = ShapeOpts.Box | ShapeOpts.Collapse
 
         map.set(note, { noteBg, noteShape })
       })

@@ -62,7 +62,7 @@ export function Main() {
     const proto = { track: t }
     t.info.boxes = Array.from({ length: 8 }, (_, x) => $({
       __proto__: proto,
-      kind: x % 2 === 0 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
+      kind: TrackBoxKind.Notes, //x % 2 === 0 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
       rect: $(new Rect, { x, y, w: 1, h: 1 }),
       isFocused: false,
       isHovering: false,

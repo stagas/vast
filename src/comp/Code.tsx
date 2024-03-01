@@ -8,6 +8,7 @@ import { Pointer, PointerEventType } from '../editor/pointer.ts'
 import { Token } from '../lang/tokenize.ts'
 import { state } from '../state.ts'
 import { Canvas } from './Canvas.tsx'
+import { toHex } from '../util/rgb.ts'
 
 export function Code() {
   using $ = Signal()
@@ -254,11 +255,11 @@ export function Code() {
 
       get TokenColors() {
         return {
-          [Token.Type.Op]: state.colors['primary'],
+          [Token.Type.Op]: toHex(state.colors['primary']),
           [Token.Type.Id]: this.brand,
           [Token.Type.Keyword]: this.brand2,
-          [Token.Type.Number]: state.colors['base-content'],
-          [Token.Type.Comment]: state.colors['base-content'] + '66',
+          [Token.Type.Number]: toHex(state.colors['base-content']),
+          [Token.Type.Comment]: toHex(state.colors['base-content']) + '66',
         } as any
       },
       get Builtin() {
@@ -421,13 +422,14 @@ export function Code() {
 
       // draw tokens
       c.lineWidth = 0.35 // stroke width
+      const baseContent = toHex(state.colors['base-content'] ?? '#fff')
       editor.buffer.source.tokens.forEach(t => {
         c.strokeStyle =
           c.fillStyle =
           editorInfo.Builtin[t.text] ??
           // AstNodeColors[state.tokensAstNode.get(tokensCopyMap.get(t)!)?.type ?? -1] ??
           editorInfo.TokenColors[t.type] ??
-          state.colors['base-content'] //#fff'
+          baseContent //#fff'
 
         const { x, y } = linecolToPos(t)
 

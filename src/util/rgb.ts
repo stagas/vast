@@ -28,6 +28,6 @@ export function clamp255(x: f32): i32 {
 }
 
 export function toHex(x: string) {
-  return x.startsWith('oklch') ? oklchToHex(x) ?? x : x
+  return !x ? '#ffffff' : x.startsWith('oklch') ? oklchToHex(x) ?? x : x
 }
 

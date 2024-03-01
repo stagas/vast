@@ -59,8 +59,8 @@ export function getNotesScale(notes: Note[]) {
     min = 0
     max = 12
   }
-  min = Math.max(0, min - 6)
-  max = Math.min(MAX_NOTE, max + 6)
+  min = Math.max(0, min - 4)
+  max = Math.min(MAX_NOTE, max + 5)
   const N = max - min
   return { min, max, N }
 }

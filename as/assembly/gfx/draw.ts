@@ -54,7 +54,15 @@ export function draw(
         const y = f32(box.y * md + mf)
         const w = f32(box.w * ma - x_gap)
         let h = f32(box.h * md)
-        if ((!(opts & ShapeOpts.Collapse) || h > 1.5) && h > 1.5) h -= h > 3 ? 1.0 : h > 1.5 ? .5 : 0
+        if (
+          !(opts & ShapeOpts.NoMargin)
+          && (
+            (!(opts & ShapeOpts.Collapse) || h > 1.5)
+            && h > 1.5
+          )
+        ) {
+          h -= h > 3 ? 1.0 : h > 1.5 ? .5 : 0
+        }
 
         // check if visible
         if (x > width
@@ -77,10 +85,11 @@ export function draw(
       case ShapeOpts.Line: {
         line = changetype<Line>(ptr)
 
-        const x0 = f32(line.x0 * ma + me)
-        const y0 = f32(line.y0 * md + mf)
-        const x1 = f32(line.x1 * ma + me)
-        const y1 = f32(line.y1 * md + mf)
+        const hw = line.lw / 2.0
+        const x0 = f32(line.x0 * ma + me - hw)
+        const y0 = f32(line.y0 * md + mf - hw)
+        const x1 = f32(line.x1 * ma + me - hw)
+        const y1 = f32(line.y1 * md + mf - hw)
 
         // check if visible
         if (

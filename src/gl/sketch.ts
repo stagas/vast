@@ -353,7 +353,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
         data.free()
         shapes.delete(shape)
         info.needUpdate = true
-      }
+      },
     }
 
     shapes.add(shape)

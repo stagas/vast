@@ -35,8 +35,8 @@ export function CodeDraw(surface: Surface) {
       1.0, // alpha
     ] as Shape.Wave).flat()
 
-    sketch.shapes.count = 0
-    sketch.write(Float32Array.from(wave))
+    // sketch.shapes.count = 0
+    // sketch.write(Float32Array.from(wave))
     anim.info.epoch++
   }
 

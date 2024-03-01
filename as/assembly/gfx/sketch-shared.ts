@@ -14,7 +14,8 @@ export enum ShapeOpts {
   Wave /*     */ = 0b0000_0000_0100,
   // flags
   Collapse /* */ = 0b0001_0000_0000,
-  Join /*     */ = 0b0010_0000_0000,
+  NoMargin /* */ = 0b0010_0000_0000,
+  Join /*     */ = 0b0100_0000_0000,
 }
 
 export const WAVE_MIPMAPS = 13
