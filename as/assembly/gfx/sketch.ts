@@ -1,14 +1,14 @@
 import { Sketch } from './sketch-class'
 
 export function createSketch(
-  shapes$: usize,
+  // shapes$: usize,
   // a_opts$: usize,
   a_vert$: usize,
   a_style$: usize,
   // a_lineWidth$: usize,
 ): Sketch {
   return new Sketch(
-    shapes$,
+    // shapes$,
     // a_opts$,
     a_vert$,
     a_style$,

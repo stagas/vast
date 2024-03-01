@@ -1,8 +1,6 @@
-// 4 float bytes per instance, so we fit into 1 page
-// (which might be better? TODO: bench)
-export const MAX_BYTES = 65536 * 32 // 1 page
+const PAGE_BYTES = 65536
+export const MAX_BYTES = PAGE_BYTES * 32
 export const MAX_GL_INSTANCES = MAX_BYTES >> 2
-export const MAX_SHAPES = 65536 * 32
 
 export enum VertOpts {
   Box /* */ = 0b001,
@@ -21,10 +19,6 @@ export enum ShapeOpts {
 
 export const WAVE_MIPMAPS = 13
 
-// Note: All shapes must have equal 32bit size.
-// and this must match count of shapes 32bit elements.
-export const SHAPE_LENGTH = 11
-
 @unmanaged
 export class Shape {
   opts: f32 = f32(ShapeOpts.Box)
@@ -33,16 +27,11 @@ export class Shape {
 @unmanaged
 export class Box {
   opts: f32 = f32(ShapeOpts.Box)
+
   x: f32 = 0
   y: f32 = 0
   w: f32 = 0
   h: f32 = 0
-
-  lw: f32 = 1 // unused
-
-  ptr: f32 = 0 // unused
-  len: f32 = 0 // unused
-  offset: f32 = 0 // unused
 
   color: f32 = 255
   alpha: f32 = 1.0
@@ -51,37 +40,34 @@ export class Box {
 @unmanaged
 export class Line {
   opts: f32 = f32(ShapeOpts.Line)
+
   x0: f32 = 0
   y0: f32 = 0
+
   x1: f32 = 0
   y1: f32 = 0
 
-  lw: f32 = 1
-
-  ptr: f32 = 0 // unused
-  len: f32 = 0 // unused
-  offset: f32 = 0 // unused
-
   color: f32 = 255
   alpha: f32 = 1.0
+  lw: f32 = 1
 }
 
 @unmanaged
 export class Wave {
   opts: f32 = f32(ShapeOpts.Wave)
+
   x: f32 = 0
   y: f32 = 0
   w: f32 = 0
   h: f32 = 0
 
-  lw: f32 = 1
-
-  ptr: f32 = 0
-  len: f32 = 0
-  offset: f32 = 0
-
   color: f32 = 255
   alpha: f32 = 1.0
+  lw: f32 = 1
+
+  floats$: f32 = 0
+  len: f32 = 0
+  offset: f32 = 0
 }
 
 @unmanaged

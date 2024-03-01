@@ -1,18 +1,13 @@
-import { $, Signal } from 'signal-jsx'
-import { Matrix, Point, Rect, RectLike } from 'std'
-import { clamp, debounce, dom, hexToRgb, hueshift, luminate, rgbToHsl, saturate } from 'utils'
-import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
+import { Signal } from 'signal-jsx'
+import { Matrix, Rect } from 'std'
+import { clamp, debounce, dom } from 'utils'
 import { CODE_WIDTH } from '../constants.ts'
-import { ShapeData } from '../gl/sketch.ts'
+import { Track, TrackBox, TrackBoxKind } from '../dsp/track.ts'
+import { Shapes } from '../gl/sketch.ts'
 import { log, state } from '../state.ts'
 import { Surface } from '../surface.ts'
-import { Floats } from '../util/floats.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
-import { waveform } from '../util/waveform.ts'
-import { hexToInt } from '../util/rgb.ts'
-import { Track, TrackBox, TrackBoxKind } from '../dsp/track.ts'
-import { oklchToHex } from '../util/oklch.ts'
-import { BoxNotes, MAX_NOTE, Note, byNoteN, getNotesScale } from '../util/notes.ts'
+import { BLACK_KEYS, MAX_NOTE, Note, byNoteN, getNotesScale } from '../util/notes.ts'
 
 const DEBUG = true
 const SCALE_X = 1 / 16
@@ -24,6 +19,8 @@ export function Grid(surface: Surface) {
 
   const { anim, mouse, keyboard, view, intentMatrix, viewMatrix, sketch } = surface
   const { lastFarMatrix, targetMatrix, tracks } = state
+
+  sketch.scene.clear()
 
   const targetView = $(new Rect)
   $.fx(() => {
@@ -37,17 +34,20 @@ export function Grid(surface: Surface) {
     }
   })
 
-  const boxes = Boxes(tracks)
-  let pianorollData: Float32Array | null
-
   const info = $({
-    boxes,
-    focusedBox: null as null | BoxData,
-    hoveringBox: null as null | BoxData,
+    redraw: 0,
+    boxes: null as null | ReturnType<typeof Boxes>,
+    focusedBox: null as null | GridBox,
+    hoveringBox: null as null | GridBox,
     hoveringNoteN: -1,
     hoveringNote: null as null | Note,
     draggingNote: null as null | Note,
   })
+  const gridInfo = info
+
+  let pianoroll: ReturnType<typeof Pianoroll> | undefined
+
+  info.boxes = Boxes(tracks)
 
   $.untrack(function initial_scale() {
     if (intentMatrix.a === 1) {
@@ -67,14 +67,12 @@ export function Grid(surface: Surface) {
     }
   })
 
-  function write() {
-    sketch.shapes.count = 0
-    sketch.write(info.boxes.data)
-    if (pianorollData) sketch.write(pianorollData)
-    anim.info.epoch++
-  }
-
+  //
   // interaction
+  //
+
+  let isWheelHoriz = false
+  let isZooming = false
 
   const p = { x: 0, y: 0 }
   const s = { x: 0, y: 0 }
@@ -96,41 +94,42 @@ export function Grid(surface: Surface) {
     const m = viewMatrix.dest
     m.set(intentMatrix)
     // log('m.e', -info.boxes.right * m.a + mouse.pos.x, mouse.pos.x, m.e)
-    m.e = clamp(-(info.boxes.right * m.a - view.w), mode === 'wide' ? 0 : CODE_WIDTH + 55, m.e) //clamp(-info.boxes.right * m.a + mouse.pos.x, 405, m.e)
+    // m.e = clamp(-(info.boxes!.info.right * m.a - view.w), mode === 'wide' ? 0 : CODE_WIDTH + 55, m.e)
     intentMatrix.a = m.a
     intentMatrix.e = m.e
     // log('m.e', m.e)
 
     if (hoveringBox) {
+      const { rect } = hoveringBox
       if (snap.y && snap.x) {
-        transformMatrixRect(m, hoveringBox, r)
+        transformMatrixRect(m, rect, r)
         if (r.x < 0) {
           m.e -= r.x
         }
-        transformMatrixRect(m, hoveringBox, r)
+        transformMatrixRect(m, rect, r)
         if (r.x + r.w > view.w) {
           m.e -= r.x + r.w - view.w
-          transformMatrixRect(m, hoveringBox, r)
+          transformMatrixRect(m, rect, r)
           if (r.x < 0) {
-            m.a = (view.w / hoveringBox.w)
-            m.e = -hoveringBox.x * m.a
+            m.a = (view.w / rect.w)
+            m.e = -rect.x * m.a
             lockedZoom.x = true
           }
         }
       }
 
       if (snap.y) {
-        transformMatrixRect(m, hoveringBox, r)
+        transformMatrixRect(m, rect, r)
         if (r.y < 0) {
           m.f -= r.y
         }
-        transformMatrixRect(m, hoveringBox, r)
+        transformMatrixRect(m, rect, r)
         if (r.y + r.h > view.h) {
           m.f -= r.y + r.h - view.h
-          transformMatrixRect(m, hoveringBox, r)
+          transformMatrixRect(m, rect, r)
           if (r.y < 0) {
-            m.d = (view.h / hoveringBox.h)
-            m.f = -hoveringBox.y * m.d
+            m.d = (view.h / rect.h)
+            m.f = -rect.y * m.d
             lockedZoom.y = true
           }
         }
@@ -152,11 +151,9 @@ export function Grid(surface: Surface) {
     m.translate(-x, -y)
   }
 
-  const point = $(new Point)
-
   function handleWheelScaleX(ev: WheelEvent) {
     let { x, y } = mousePos
-    const minZoomX = view.w / Math.max(view.w, info.boxes.right)
+    const minZoomX = view.w / Math.max(view.w, info.boxes!.info.right)
     const maxZoomX = 64000
 
     const m = intentMatrix
@@ -176,41 +173,24 @@ export function Grid(surface: Surface) {
     m.translate(x, y)
     m.scale(delta_a, 1)
     m.translate(-x, -y)
-
-    // if (state.zoomState === 'zooming') {
-    //   const lm = lastFarMatrix
-    //   point
-    //     .setParameters(mouse.pos.x, mouse.pos.y)
-    //     .transformMatrixInverse(lm)
-    //   const { x, y } = point
-    //   lm.translate(x, y)
-    //   lm.scale(m.a / a, 1)
-    //   lm.translate(-x, -y)
-    // }
   }
 
   function unhoverBox() {
+    if (info.draggingNote) return
     const { hoveringBox } = info
     if (hoveringBox) {
-      hoveringBox.setColor(hoveringBox.track.info.colors.bg)
       info.hoveringBox = null
-      write()
     }
   }
 
-  function updateHoveringBox(box?: BoxData | null) {
+  function updateHoveringBox(box?: GridBox | null) {
+    if (info.draggingNote) return
+
     if (box) {
       const { hoveringBox } = info
-      if (!hoveringBox || hoveringBox.x !== box.x || hoveringBox.y !== box.y) {
-        if (hoveringBox) {
-          hoveringBox.setColor(hoveringBox.track.info.colors.bg)
-        }
-        if (!state.isHoveringToolbar) {
-          applyBoxMatrix(targetMatrix, box)
-          info.hoveringBox = box
-          box.setColor(info.hoveringBox.track.info.colors.bgHover)
-        }
-        write()
+      // TODO: no need for rect check, only reference?
+      if (!hoveringBox || hoveringBox.rect.x !== box.rect.x || hoveringBox.rect.y !== box.rect.y) {
+        info.hoveringBox = box
       }
     }
     else {
@@ -218,45 +198,58 @@ export function Grid(surface: Surface) {
     }
   }
 
-  function handleHoveringBox() {
+  function handleHoveringBox(force?: boolean) {
     if (state.isHoveringHeads) return
-    if (state.isHoveringToolbar) return
+    // if (state.isHoveringToolbar) return
     if (info.draggingNote) return
 
     let { x, y } = mouse.screenPos
     x = Math.floor(x)
     y = Math.floor(y)
 
-    if (!isZooming) {
-      const box = boxesHitmap.get(`${x}:${y}`)
+    if (!isZooming || force) {
+      const box = info.boxes!.hitmap.get(`${x}:${y}`)
       updateHoveringBox(box)
     }
   }
+
+  $.fx(() => {
+    const { a, b, c, d, e, f } = viewMatrix
+    $()
+    handleHoveringBox()
+  })
 
   const notePos = { x: -1, y: -1 }
 
   function updateHoveringNoteN() {
     const { hoveringBox } = info
-    if (!hoveringBox?.notes) return
+    if (hoveringBox?.trackBox?.kind !== TrackBoxKind.Notes || !hoveringBox?.info.notes) return
 
     let { x, y } = mouse.screenPos
-    x -= hoveringBox.x
-    y -= hoveringBox.y
-    notePos.x = x * (16)
+    x -= hoveringBox.rect.x
+    y -= hoveringBox.rect.y
+    notePos.x = x * 16
     notePos.y = y
 
-    const { notes } = hoveringBox
+    const { notes } = hoveringBox.info
 
-    info.hoveringNoteN = clamp(0, MAX_NOTE - 1, Math.ceil(notes.scale.max - 1 - (y * notes.scale.N)))
+    info.hoveringNoteN = clamp(
+      0,
+      MAX_NOTE - 1,
+      Math.ceil(
+        notes.info.scale.max - 1
+        - (y * notes.info.scale.N)
+      )
+    )
   }
 
   function handleHoveringNote() {
     if (!info.focusedBox) return
     if (info.hoveringBox !== info.focusedBox) return
-    if (!info.hoveringBox?.notes) return
+    if (info.hoveringBox?.trackBox.kind !== TrackBoxKind.Notes) return
     if (info.draggingNote) return
 
-    const { notes } = info.hoveringBox
+    const { notes } = info.hoveringBox.trackBox.track.info
 
     updateHoveringNoteN()
     const hn = info.hoveringNoteN
@@ -291,13 +284,11 @@ export function Grid(surface: Surface) {
         viewMatrix.speed = ZOOM_SPEED_NORMAL
         log(intentMatrix.d)
         if (intentMatrix.d < 100) {
-          if (info.focusedBox) info.hoveringBox = info.focusedBox
-          info.focusedBox = null
-
-          if (lastFloats) {
-            // info.waves.data = new Float32Array(info.waves.update(lastFloats))
-            write()
-            lastFloats = null
+          if (!info.draggingNote) {
+            if (info.focusedBox) {
+              info.hoveringBox = info.focusedBox
+            }
+            info.focusedBox = null
           }
         }
         const amt = Math.min(.5, Math.abs(
@@ -316,8 +307,11 @@ export function Grid(surface: Surface) {
         lastFarMatrix.set(intentMatrix)
       }
       if (state.zoomState === 'zooming') {
-        if (intentMatrix.d > 150 && !state.isHoveringToolbar) {
-          info.focusedBox = info.hoveringBox
+        if (!info.hoveringBox) return
+        if (!info.draggingNote) {
+          if (intentMatrix.d > 150) {
+            info.focusedBox = info.hoveringBox
+          }
         }
         const amt = Math.min(.5, Math.abs(
           e.deltaY * ((viewMatrix.a * 0.008) ** 0.92)
@@ -340,31 +334,22 @@ export function Grid(surface: Surface) {
     mousePos.y = y
   }
 
-  let isWheelHoriz = false
-  let isZooming = false
+  // DEBUG && $.fx(() => {
+  //   const { zoomState } = state
+  //   $()
+  //   log('zoomState', zoomState)
+  // })
 
-  DEBUG && $.fx(() => {
-    const { zoomState } = state
-    $()
-    log('zoomState', zoomState)
-  })
-
-  DEBUG && $.fx(() => {
-    const { a } = viewMatrix
-    $()
-    log('m.a', a)
-  })
-
-  const zoomFar = $.fn(function zoomFar() {
-    info.focusedBox = null
-    viewMatrix.speed = ZOOM_SPEED_NORMAL
-    state.zoomState = 'far'
-    intentMatrix.set(lastFarMatrix)
-  })
+  // DEBUG && $.fx(() => {
+  //   const { a } = viewMatrix
+  //   $()
+  //   log('m.a', a)
+  // })
 
   const ZOOM_SPEED_SLOW = 0.2
   const ZOOM_SPEED_NORMAL = 0.3
-  $.fx(() => {
+
+  $.fx(function update_zoom_speed() {
     const { isRunning } = viewMatrix
     $()
     if (!isRunning) {
@@ -374,30 +359,38 @@ export function Grid(surface: Surface) {
     }
   })
 
-  const notesWidth = 65 / view.w
+  const pianoWidth = 65 / view.w
 
-  function applyBoxMatrix(m: Matrix, box: BoxData) {
-    const w = box?.notes ? box.w + notesWidth * 2 : box.w
-    const ox = box?.notes ? notesWidth : 0
+  function applyBoxMatrix(m: Matrix, box: GridBox) {
+    const { rect, trackBox: { kind } } = box
+    const isNotes = kind === TrackBoxKind.Notes
+    const w = isNotes ? rect.w + pianoWidth * 2 : rect.w
+    const ox = isNotes ? pianoWidth : 0
     const padY = .082
     const padX = 0 //10
     Matrix.viewBox(m, targetView, {
-      x: box.x - ox, // - w / (padX * 2) - ox,
-      y: box.y - padY,
+      x: rect.x - ox, // - w / (padX * 2) - ox,
+      y: rect.y - padY,
       w: w - ox, // + w / padX,
-      h: box.h + padY * 2,
+      h: rect.h + padY * 2,
     })
   }
 
-  const zoomBox = $.fn(function zoomBox(box: BoxData) {
+  const zoomBox = $.fn(function zoomBox(box: GridBox) {
     isWheelHoriz = false
     state.zoomState = 'zooming'
     viewMatrix.isRunning = true
     viewMatrix.speed = ZOOM_SPEED_SLOW
     applyBoxMatrix(intentMatrix, box)
-    // if (box.track) {
-    //   box.track.play()
-    // }
+  })
+
+  const zoomFar = $.fn(function zoomFar() {
+    if (!info.draggingNote) {
+      info.focusedBox = null
+    }
+    viewMatrix.speed = ZOOM_SPEED_NORMAL
+    state.zoomState = 'far'
+    intentMatrix.set(lastFarMatrix)
   })
 
   keyboard.targets.add(ev => {
@@ -409,19 +402,31 @@ export function Grid(surface: Surface) {
     }
   })
 
+  //
+  // mouse
+  //
+
   let orientChangeScore = 0
   let clicks = 0
   const CLICK_MS = 300
   const debounceClearClicks = debounce(CLICK_MS, () => {
+    if (clicks === 1) {
+      info.focusedBox = info.hoveringBox
+    }
     clicks = 0
   })
 
   mouse.targets.add(ev => {
-    if (ev.type !== 'wheel' && state.isHoveringToolbar) return
+    // if (ev.type !== 'wheel' && state.isHoveringToolbar) return
+
+    // clear the clicks when mouse is moved
+    if (ev.type !== 'mousedown' && ev.type !== 'mouseup') {
+      clicks = 0
+    }
 
     isZooming = false
     if (ev.type === 'mouseout' || ev.type === 'mouseleave') {
-      unhoverBox()
+      // unhoverBox()
       return
     }
     else if (ev.type === 'mousedown') {
@@ -441,16 +446,13 @@ export function Grid(surface: Surface) {
           dom.on(window, 'mouseup', $.fn((e: MouseEvent): void => {
             info.hoveringNote = null
             info.draggingNote = null
-            if (info.focusedBox?.notes) {
-              // info.notes = Notes(boxes, info.focusedBox.notes)
-            }
             handleHoveringNote()
           }), { once: true })
           return
         }
       }
     }
-    else if (ev.type === 'mousemove') {
+    else if (ev.type === 'mousemove' || ev.type === 'mouseenter') {
       updateMousePos()
       if (info.draggingNote) {
         handleDraggingNoteMove()
@@ -484,7 +486,6 @@ export function Grid(surface: Surface) {
         mouse.matrix = viewMatrix
         const de = (e.deltaX - (e.altKey ? e.deltaY : 0)) * 2.5 * 0.08 * (intentMatrix.a ** 0.18)
         intentMatrix.e -= de
-        // lastFarMatrix.e -= (de / intentMatrix.a) * lastFarMatrix.a
       }
       else {
         if (e.ctrlKey) {
@@ -504,332 +505,346 @@ export function Grid(surface: Surface) {
     handleHoveringNote()
   })
 
-  $.fx(() => {
-    const { a, b, c, d, e, f } = viewMatrix
-    $()
-    handleHoveringBox()
-  })
+  //
+  // drawings
+  //
 
-  // $.fx(() => {
-  //   const { theme, colors } = state
-  //   $()
-  //   info.waves.data = new Float32Array(info.waves.update())
-  //   write()
-  // })
+  type GridBox = ReturnType<typeof GridBox>
+  type GridNotes = ReturnType<typeof Notes>
 
-  const BLACK_KEYS = new Set([1, 3, 6, 8, 10])
-  const KEY_NAMES = [
-    'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'
-  ]
-  let lastFloats: any
-  $.fx(() => {
-    const { focusedBox, hoveringNoteN } = $.of(info)
-    const { hoveringNote, draggingNote } = info
-    if (draggingNote) {
-      const { n, time, length, vel } = draggingNote
-    }
-    $()
-    if (focusedBox.floats) {
-      const { x: cx, y: cy, w: cw, h: ch } = focusedBox
+  function GridBox(boxes: Shapes, trackBox: TrackBox) {
+    using $ = Signal()
 
-      // console.log('YO', focusedBox)
-
-      // info.waves.data = new Float32Array([
-      //   [
-      //     ShapeOpts.Box,
-      //     cx,
-      //     cy,
-      //     cw,
-      //     ch,
-      //     1, // lw
-      //     1, // ptr
-      //     0, // len
-      //     0x001144,
-      //     .62 // alpha
-      //   ] as ShapeData.Box,
-      //   info.waves.update(lastFloats = focusedBox.floats[6], focusedBox)
-      // ].flat())
-
-      write()
-    }
-    else {
-      if (lastFloats) {
-        // info.waves.data = new Float32Array(info.waves.update(lastFloats))
-        write()
-        lastFloats = null
-      }
-    }
-    if (focusedBox.notes) {
-      const { notes } = focusedBox
-      const scale = notes.scale = getNotesScale(notes)
-      const scaleX = 1 / 16
-
-      const { x: cx, y: cy, w: cw, h: ch } = focusedBox
-
-      const SNAPS = 16
-      const PIANO_WIDTH = .065
-
-      pianorollData = Float32Array.from([
-        [
-          ShapeOpts.Box,
-          cx,
-          cy,
-          cw,
-          ch,
-          1, // lw
-          1, // ptr
-          0, // len
-          0, // offset
-          focusedBox.track.info.colors.bgHover,
-          1.0 // alpha
-        ] as ShapeData.Box,
-
-        // piano bg
-        [
-          ShapeOpts.Box | ShapeOpts.Collapse,
-          cx - PIANO_WIDTH,
-          cy,
-          PIANO_WIDTH + 0.001,
-          ch,
-          1, // lw
-          1, // ptr
-          0, // len
-          0, // offset
-          0x0,
-          1.0 // alpha
-        ] as ShapeData.Box,
-
-        Array.from({ length: scale.N }, (_, ny) => {
-          const h = ch / scale.N
-          const y = cy + h * ny
-          const n = scale.N - ny - 1 + scale.min
-          const n_key = n % 12
-
-          const isBlack = BLACK_KEYS.has(n_key)
-
-          const row = isBlack ? [
-            ShapeOpts.Box,
-            cx,
-            y,
-            cw,
-            h,
-            1, // lw
-            1, // ptr
-            0, // len
-            0, // offset
-            0x0,
-            // hoveringNoteN === n
-            //   ? 0x00aaff
-            //   : 0x0, //focusedBox.track.info.colors.bg, //focusedBox.track.info.color,
-            .25 // + (isBlack ? 0 : .10) // alpha
-          ] as ShapeData.Box : []
-
-          const key = [
-            ShapeOpts.Box | ShapeOpts.Collapse,
-            cx - PIANO_WIDTH,
-            y,
-            PIANO_WIDTH,
-            h,
-            1, // lw
-            1, // ptr
-            0, // len
-            0, // offset
-            isBlack ? 0x0 : 0xffffff,
-            1.0 // alpha
-          ] as ShapeData.Box
-
-          return [row, key]
-        }).flat(),
-
-        Array.from({ length: (cw * SNAPS) - 1 }, (_, col) => {
-          const x = ((1 + col) / SNAPS) + cx
-          return [
-            ShapeOpts.Line,
-            x,
-            cy,
-            x,
-            cy + ch,
-            col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0.5, // lw
-            1, // ptr
-            0, // len
-            0, // offset
-            0x0,
-            1 // alpha
-          ] as ShapeData.Line
-        }),
-
-        notes.sort(byNoteN).map(({ n, time, length, vel }) => {
-          const x = time * scaleX // x
-          if (x > cw) return
-
-          const h = ch / scale.N
-          const y = ch - h * (n + 1 - scale.min) // y
-
-          let w = length * scaleX // w
-          if (x + w > cw) {
-            w = cw - x
-          }
-
-          const isHovering = hoveringNote
-            && hoveringNote.n === n
-            && hoveringNote.time === time
-            && hoveringNote.length === length
-
-          const alpha = isHovering ? 1 : .45 + (.55 * vel)
-
-          const noteBg = [
-            ShapeOpts.Box,
-            cx + x,
-            cy + y,
-            w,
-            h + .0065,
-            1, // lw
-            1, // ptr
-            0, // len
-            0, // offset
-            0x0, // color
-            alpha // alpha
-          ] as ShapeData.Box
-
-          const noteBox = [
-            ShapeOpts.Box,
-            cx + x,
-            cy + y,
-            w,
-            h,
-            1, // lw
-            1, // ptr
-            0, // len
-            0, // offset
-            isHovering
-              ? state.primaryColorInt
-              : focusedBox.track.info.colors.colorBright
-            ,
-            alpha // alpha
-          ] as ShapeData.Box
-
-          return [noteBg, noteBox]
-        }).filter(Boolean).flat()
-
-      ].flat().flat())
-
-      write()
-    }
-    return () => {
-      pianorollData = null
-      write()
-    }
-  })
-
-  // DEV KEEP: (un)comment when working with notes
-  // info.focusedBox = boxes.rows[0][1].data
-  // zoomBox(info.focusedBox)
-
-  let initial = true
-
-  $.fx(() => {
-    const { tracks, theme, colors } = state
-    for (const track of tracks) {
-      track.info.floats
-      track.info.notes
-    }
-    info.draggingNote?.n
-    $()
-    info.boxes = Boxes(tracks)
-    // info.waves = Waves(boxes)
-    DEBUG && console.log('[grid] updated boxes & waves')
-    write()
-    // if (initial && tracks.length === 1) {
-    //   initial = false
-    //   // zoomBox(tracks[0].info.boxes[0].rect)
-    // }
-  })
-
-  return {
-    info,
-    // waves,
-    write,
-    view,
-    mouse,
-    mousePos,
-    intentMatrix,
-    lastFarMatrix,
-    handleWheelZoom,
-    handleWheelScaleX,
-    updateHoveringBox,
-  }
-}
-
-export type BoxData = RectLike & {
-  ptr: number
-  track: Track
-  trackBox: TrackBox
-  notes?: BoxNotes
-  floats?: number[]
-  setColor: (color: number) => void
-}
-
-const boxesHitmap = new Map<string, BoxData>()
-
-function Boxes(tracks: Track[]) {
-  boxesHitmap.clear()
-
-  let right = 0
-  let ptr = 0
-
-  function createBox(
-    track: Track,
-    trackBox: TrackBox,
-    x: number,
-    y: number,
-    w: number,
-  ) {
-    const h = 1
-
-    const boxData: BoxData = {
-      track,
+    const info = $({
       trackBox,
-      x, y, w, h,
-      ptr,
-      setColor(color: number) {
-        setColor(this.ptr, color)
+      notes: null as null | GridNotes,
+    })
+
+    const { rect } = trackBox
+
+    const box = boxes.Box(rect)
+
+    $.fx(() => {
+      const { track, isFocused, isHovering } = trackBox
+      const color = isFocused || isHovering
+        ? track.info.colors.bgHover
+        : track.info.colors.bg
+      $()
+      box.view.color = color
+      redraw(boxes)
+    })
+
+    $.fx(() => {
+      const { kind } = trackBox
+      $()
+      if (kind === TrackBoxKind.Notes) {
+        const notes = info.notes = Notes(trackBox)
+        sketch.scene.add(notes.shapes)
+        redraw(notes.shapes)
+
+        const off = $.fx(() => {
+          const { isFocused } = trackBox
+          $()
+          if (isFocused) {
+            pianoroll ??= Pianoroll(trackBox)
+            pianoroll.info.trackBox = trackBox
+
+            sketch.scene.delete(notes.shapes)
+            pianoroll.hide()
+            pianoroll.show()
+            sketch.scene.add(notes.shapes)
+            redraw()
+          }
+        })
+
+        return () => {
+          sketch.scene.delete(notes.shapes)
+          off()
+        }
       }
+      else if (kind === TrackBoxKind.Audio) {
+        const waveform = boxes.Wave($({
+          get x() { return rect.x },
+          get y() { return rect.y + (rect.h - rect.hh) / 2 },
+          get w() { return rect.w },
+          get h() { return rect.hh },
+        }))
+
+        return $.fx(() => {
+          const { track } = trackBox
+          const { floats } = $.of(track.info)
+          const { fg } = track.info.colors
+          $()
+          waveform.view.color = fg
+          waveform.view.floats$ = floats.ptr
+          waveform.view.len = floats.len
+          redraw(boxes)
+        })
+      }
+    })
+
+    return { rect, trackBox, info, box }
+  }
+
+  function Boxes(tracks: Track[]) {
+    using $ = Signal()
+
+    const hitmap = new Map<string, GridBox>()
+
+    const shapes = Shapes(view, viewMatrix)
+    $.fx(() => {
+      sketch.scene.add(shapes)
+      return () => {
+        sketch.scene.delete(shapes)
+      }
+    })
+
+    const info = $({
+      rows: [] as GridBox[][],
+      get right() {
+        return this.rows.flat().reduce((p, n) =>
+          n.rect.right > p
+            ? n.rect.right
+            : p,
+          0
+        )
+      },
+    })
+
+    $.fx(() => {
+      info.rows = Array.from(tracks).map(track => {
+        const gridBoxes: GridBox[] = []
+        for (const box of track.info.boxes) {
+          const gridBox = GridBox(shapes, box)
+          gridBoxes.push(gridBox)
+        }
+        return gridBoxes
+      })
+    })
+
+    $.fx(() => {
+      const { rows } = info
+      $()
+      hitmap.clear()
+      for (const row of rows) {
+        for (const gridBox of row) {
+          const { left, y, right } = gridBox.rect
+          for (let x = left; x < right; x++) {
+            hitmap.set(`${x}:${y}`, gridBox)
+          }
+        }
+      }
+    })
+
+    return { info, hitmap, shapes, $ }
+  }
+
+  function Pianoroll(trackBox: TrackBox) {
+    using $ = Signal()
+
+    const SNAPS = 16
+    const PIANO_WIDTH = .065
+
+    const info = $({
+      trackBox,
+      get scale() {
+        return getNotesScale(this.trackBox.track.info.notes)
+      },
+    })
+
+    const rect = $(new Rect)
+
+    const pianoroll = Shapes(view, viewMatrix)
+
+    const background = pianoroll.Box(rect)
+    $.fx(() => {
+      const { trackBox } = info
+      background.view.color = trackBox.track.info.colors.bgHover
+    })
+
+    pianoroll.Box($({
+      get x() {
+        return rect.x - PIANO_WIDTH
+      },
+      get y() {
+        return rect.y
+      },
+      get w() {
+        return PIANO_WIDTH + 0.001
+      },
+      get h() {
+        return rect.h
+      },
+    }))
+
+    $.fx(() => {
+      const { x, y, w, h } = info.trackBox.rect
+      $()
+      rect.set(info.trackBox.rect)
+      pianoroll.update()
+    })
+
+    const rows = Shapes(view, viewMatrix)
+
+    $.fx(() => {
+      const { scale } = info
+      const { x: cx, y: cy, w: cw, h: ch } = rect
+      $()
+      rows.clear()
+      const h = rect.h / scale.N
+      for (let ny = 0; ny < scale.N; ny++) {
+        const y = rect.y + h * ny
+        const n = scale.N - ny - 1 + scale.min
+        const n_key = n % 12
+
+        const isBlack = BLACK_KEYS.has(n_key)
+
+        if (isBlack) {
+          const row = rows.Box({
+            x: cx,
+            y,
+            w: cw,
+            h,
+          })
+          row.view.alpha = .25
+        }
+
+        const key = rows.Box({
+          get x() { return rect.x - this.w },
+          y,
+          w: PIANO_WIDTH,
+          h,
+        })
+        key.view.color = isBlack ? 0x0 : 0xffffff
+      }
+      rows.update()
+    })
+
+    const cols = Shapes(view, viewMatrix)
+
+    $.fx(() => {
+      const { x: cx, w: cw } = rect
+      $()
+      cols.clear()
+      const cols_n = (cw * SNAPS) - 1
+      for (let col = 0; col < cols_n; col++) {
+        const x = ((1 + col) / SNAPS) + cx
+        const p0 = $({ x, y: rect.$.y })
+        const p1 = $({ x, y: rect.$.bottom })
+        const line = cols.Line(p0, p1)
+        line.view.lw = col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0.5
+      }
+      cols.update()
+    })
+
+    function show() {
+      sketch.scene.add(pianoroll)
+      sketch.scene.add(cols)
+      sketch.scene.add(rows)
     }
 
-    for (let i = x; i < x + w; i++) {
-      boxesHitmap.set(`${i}:${y}`, boxData)
+    function hide() {
+      sketch.scene.delete(pianoroll)
+      sketch.scene.delete(cols)
+      sketch.scene.delete(rows)
     }
 
-    right = Math.max(right, x + w)
+    return { info, show, hide }
+  }
 
-    const shapes = []
+  function Notes(trackBox: TrackBox) {
+    using $ = Signal()
 
-    const shape = Object.assign([
-      ShapeOpts.Box,
-      x, y, w, h,
-      1, 1, 0, 0, // lw, ptr, len, offset
-      track.info.colors.bg, // color
-      1.0 // alpha
-    ] as ShapeData.Box, { ptr, data: boxData })
+    const shapes = Shapes(view, viewMatrix)
 
-    ptr += shape.length
+    const info = $({
+      trackBox,
+      get scale() {
+        return getNotesScale(this.trackBox.track.info.notes)
+      },
+      update: 0,
+    })
 
-    shapes.push(shape)
+    const map = new Map<
+      Note,
+      {
+        noteBg: ReturnType<typeof shapes.Box>,
+        noteShape: ReturnType<typeof shapes.Box>
+      }
+    >()
 
-    track.info.shape ??= shape
-    trackBox.shape ??= shape
+    const getAlpha = (vel: number, isFocused?: boolean, isHoveringNote?: boolean) =>
+      isFocused
+        ? isHoveringNote
+          ? 1
+          : .45 + (.55 * vel)
+        : .2 + (.8 * vel)
 
-    if (trackBox.kind === TrackBoxKind.Notes) {
-      // return boxf
+    $.fx(() => {
+      const { isFocused, track } = trackBox
+      const { colors } = track.info
+      const { primaryColorInt } = state
+      const { update } = info
+      $()
+      if (isFocused) {
+        const noteColor = colors.colorBright
 
-      //         box.data.notes = Object.assign([...notes], { ptr, scale })
-      const [, cx, cy, cw, ch] = shape
+        map.forEach(({ noteBg, noteShape }, note) => {
+          noteBg.visible = true
+          noteBg.view.alpha = noteShape.view.alpha = getAlpha(note.vel, true)
+          noteShape.view.color = noteColor
+        })
+        redraw(shapes)
+
+        return $.fx(() => {
+          const { hoveringNote } = $.of(gridInfo)
+          $()
+          const noteShapes = map.get(hoveringNote)
+          if (!noteShapes) return
+
+          const { noteBg, noteShape } = noteShapes
+
+          noteBg.view.alpha =
+            noteShape.view.alpha =
+            getAlpha(hoveringNote.vel, true, true)
+
+          noteShape.view.color = primaryColorInt
+
+          redraw(shapes)
+          return () => {
+            noteBg.view.alpha =
+              noteShape.view.alpha =
+              getAlpha(hoveringNote.vel, true, false)
+
+            noteShape.view.color = noteColor
+            redraw(shapes)
+          }
+        })
+      }
+      else {
+        map.forEach(({ noteBg, noteShape }, note) => {
+          noteBg.view.alpha = 0
+          noteBg.visible = false
+          noteShape.view.alpha = getAlpha(note.vel)
+          noteShape.view.color = colors.fg
+        })
+        redraw(shapes)
+      }
+    })
+
+    $.fx(() => {
+      const { scale } = info
+      const { track, rect } = trackBox
+      const { x: cx, y: cy, w: cw, h: ch } = rect
       const { notes } = track.info
-      const scale = getNotesScale(notes)
-      const notesPtr = ptr
-      const boxNotes = notes.map(({ n, time, length, vel }) => {
+      $()
+      shapes.clear()
+      map.clear()
+      notes.sort(byNoteN).forEach(note => {
+        const { n, time, length, vel } = note
+
         const x = time * SCALE_X // x
-        if (x > cw) return
+        if (x >= cw) return
 
         const h = ch / scale.N
         const y = ch - h * (n + 1 - scale.min) // y
@@ -839,91 +854,90 @@ function Boxes(tracks: Track[]) {
           w = cw - x
         }
 
-        const noteShape = Object.assign([
-          ShapeOpts.Box,
-          cx + x,
-          cy + y,
+        const noteBg = shapes.Box({
+          x: cx + x,
+          y: cy + y,
+          w,
+          h: h + .0065,
+        })
+        noteBg.view.alpha = 0
+        noteBg.visible = false
+
+        const noteShape = shapes.Box({
+          x: cx + x,
+          y: cy + y,
           w,
           h,
-          1, // lw
-          1, // ptr
-          0, // len
-          0, // offset
-          track.info.colors.fg,
-          .2 + (.8 * vel) // alpha
-        ] as ShapeData.Box, { ptr })
+        })
+        noteShape.view.alpha = 0
 
-        ptr += noteShape.length
-
-        shapes.push(noteShape)
-
-        return noteShape
+        map.set(note, { noteBg, noteShape })
       })
+      shapes.update()
+      info.update++
+    })
 
-      boxData.notes = Object.assign(notes, { ptr: notesPtr, scale })
-      // track.
-      //         return boxNotes.filter(Boolean).flat()
-
-    }
-    else if (trackBox.kind === TrackBoxKind.Audio) {
-      // if (box.data) {
-      //   color = highlightBox === box.data
-      //     ? box.data.colorBrighter
-      //     : 0x0
-      // }
-      // let color = track.info.colors.colorBrighter
-
-      const floats = track.info.floats
-      if (floats?.length) {
-
-        // console.log(floats)
-        // console.log(color.toString(16), box.data.hexColor)
-        // console.log(state.colors)
-
-        // const f = [
-        //   boxf,
-
-        // ] //.flat()
-
-        boxData.floats = Object.assign([
-          ShapeOpts.Wave,
-          x, y + (h - h / 2) / 2, w, h / 2, // same dims as the box
-          1, // lw
-          floats.ptr, // ptr
-          floats.len, // len
-          0, // offset
-          track.info.colors.fg, // color
-          1.0, // alpha
-        ] satisfies ShapeData.Wave, { ptr, data: boxData })
-
-        ptr += boxData.floats.length
-
-        shapes.push(boxData.floats)
-      }
-
-      // return f
-    }
-
-    return Object.assign(shapes.flat(), { ptr, data: boxData })
+    return { info, shapes }
   }
 
-  let rows = Array.from(tracks).map(track => {
-    const boxes: ReturnType<typeof createBox>[] = []
-    track.info.shape = null
-    for (const box of track.info.boxes) {
-      const { x, y, w } = box.rect
-      const shape = createBox(track, box, x, y, w)
-      boxes.push(shape)
+  function redraw(shapes?: Shapes) {
+    shapes?.update()
+    info.redraw++
+  }
+
+  $.fx(function update_hovering_box_color() {
+    const { hoveringBox } = $.of(info)
+    $()
+    applyBoxMatrix(targetMatrix, hoveringBox)
+    hoveringBox.box.view.color = hoveringBox.trackBox.track.info.colors.bgHover
+    return () => {
+      hoveringBox.box.view.color = hoveringBox.trackBox.track.info.colors.bg
     }
-    return boxes
   })
 
-  const data = new Float32Array(rows.flat(Infinity) as number[])
+  $.fx(function update_box_isFocused() {
+    const { focusedBox } = info
+    if (!focusedBox) {
+      $()
+      pianoroll?.hide()
+      redraw()
+      return
+    }
+    const { trackBox } = focusedBox
+    $()
+    trackBox.isFocused = true
+    return () => {
+      trackBox.isFocused = false
+    }
+  })
 
-  function setColor(ptr: number, color: number) {
-    // TODO: sketch.shape.box.color
-    data[ptr + 9] = color
+  $.fx(function update_box_isHovering() {
+    const { hoveringBox } = $.of(info)
+    const { trackBox } = hoveringBox
+    $()
+    trackBox.isHovering = true
+    return () => {
+      trackBox.isHovering = false
+    }
+  })
+
+  $.fx(function redraw() {
+    const { redraw } = $.of(info)
+    $()
+    anim.info.epoch++
+  })
+
+  const grid = {
+    info,
+    view,
+    mouse,
+    mousePos,
+    intentMatrix,
+    lastFarMatrix,
+    handleWheelZoom,
+    handleWheelScaleX,
+    updateHoveringBox,
   }
 
-  return { rows, right, data, setColor }
+  return grid
 }

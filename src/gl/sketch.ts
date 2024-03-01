@@ -1,58 +1,14 @@
 import wasm from 'assembly'
 import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
-import { Rect } from 'std'
-import { Struct } from 'utils'
-import { Box, Line, MAX_GL_INSTANCES, MAX_SHAPES, SHAPE_LENGTH, ShapeOpts, VertOpts, Wave } from '../../as/assembly/gfx/sketch-shared.ts'
+import { Matrix, Rect, RectLike } from 'std'
+import { PointLike, Struct } from 'utils'
+import { Box, Line, MAX_GL_INSTANCES, ShapeOpts, VertOpts, Wave } from '../../as/assembly/gfx/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
 import { log } from '../state.ts'
 import { WasmMatrix } from '../util/wasm-matrix.ts'
 
 const DEBUG = true
-
-export namespace ShapeData {
-  export type Box = [
-    kind: ShapeOpts.Box,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    lw: number,
-    ptr: number,
-    len: number,
-    offset: number,
-    color: number,
-    alpha: number,
-  ]
-
-  export type Wave = [
-    kind: ShapeOpts.Wave,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    lw: number,
-    ptr: number,
-    len: number,
-    offset: number,
-    color: number,
-    alpha: number,
-  ]
-
-  export type Line = [
-    kind: ShapeOpts.Line,
-    x0: number,
-    y0: number,
-    x1: number,
-    y1: number,
-    lw: number,
-    ptr: number,
-    len: number,
-    offset: number,
-    color: number,
-    alpha: number,
-  ]
-}
 
 const hasBits = (varname: string, ...bits: number[]) => /*glsl*/
   `(int(${varname}) & (${bits.join(' | ')})) != 0`
@@ -144,6 +100,273 @@ void main() {
 }
 `
 
+export namespace Shape {
+  //
+  // Box
+  //
+  export const Box = Struct({
+    opts: 'f32',
+
+    x: 'f32',
+    y: 'f32',
+    w: 'f32',
+    h: 'f32',
+
+    color: 'f32',
+    alpha: 'f32',
+  })
+
+  export type Box = [
+    opts: ShapeOpts.Box,
+
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+
+    color: number,
+    alpha: number,
+  ]
+
+  //
+  // Line
+  //
+  export const Line = Struct({
+    opts: 'f32',
+
+    x0: 'f32',
+    y0: 'f32',
+
+    x1: 'f32',
+    y1: 'f32',
+
+    color: 'f32',
+    alpha: 'f32',
+    lw: 'f32',
+  })
+
+  export type Line = [
+    opts: ShapeOpts.Line,
+
+    x0: number,
+    y0: number,
+
+    x1: number,
+    y1: number,
+
+    color: number,
+    alpha: number,
+    lw: number,
+  ]
+
+  //
+  // Wave
+  //
+  export const Wave = Struct({
+    opts: 'f32',
+
+    x: 'f32',
+    y: 'f32',
+    w: 'f32',
+    h: 'f32',
+
+    color: 'f32',
+    alpha: 'f32',
+    lw: 'f32',
+
+    floats$: 'f32',
+    len: 'f32',
+    offset: 'f32',
+  })
+
+  export type Wave = [
+    opts: ShapeOpts.Wave,
+
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+
+    color: number,
+    alpha: number,
+    lw: number,
+
+    floats$: number,
+    len: number,
+    offset: number,
+  ]
+}
+
+export type Shapes = ReturnType<typeof Shapes>
+
+export function Shapes(view: Rect, matrix: Matrix) {
+  using $ = Signal()
+
+  type BoxView = ReturnType<typeof Box>
+  type LineView = ReturnType<typeof Line>
+  type WaveView = ReturnType<typeof Wave>
+
+  type ShapeView = BoxView | LineView | WaveView
+
+  const shapes = new Set<ShapeView>()
+  const mat2d = WasmMatrix(view, matrix)
+
+  const info = $({
+    needUpdate: false,
+    ptrs: wasm.alloc(Uint32Array, 1)
+  })
+
+  function clear() {
+    for (const shape of [...shapes]) {
+      shape.remove()
+    }
+  }
+
+  function update() {
+    let ptrs = info.ptrs
+
+    const neededSize = shapes.size + 1 // +1 for ending null
+
+    if (ptrs.length !== neededSize) {
+      ptrs.free()
+      ptrs = info.ptrs = wasm.alloc(Uint32Array, neededSize)
+    }
+
+    let i = 0
+    for (const s of shapes) {
+      if (s.visible) {
+        ptrs[i++] = s.view.ptr
+      }
+    }
+    ptrs[i++] = 0 // null means end
+
+    info.needUpdate = false
+
+    return ptrs
+  }
+
+  function Box(rect: RectLike) {
+    using $ = Signal()
+
+    const data = wasm.alloc(Uint8Array, Shape.Box.byteLength)
+    const view = Shape.Box(data) satisfies Box
+
+    view.opts = ShapeOpts.Box
+    view.alpha = 1.0
+
+    $.fx(() => {
+      const { x, y, w, h } = rect
+      $()
+      view.x = x
+      view.y = y
+      view.w = w
+      view.h = h
+    })
+
+    const shape = {
+      visible: true,
+      rect,
+      data,
+      view,
+      remove() {
+        $.dispose()
+        data.free()
+        shapes.delete(shape)
+        info.needUpdate = true
+      }
+    }
+
+    shapes.add(shape)
+
+    return shape
+  }
+
+  function Line(p0: PointLike, p1: PointLike) {
+    using $ = Signal()
+
+    const data = wasm.alloc(Uint8Array, Shape.Line.byteLength)
+    const view = Shape.Line(data) satisfies Line
+
+    view.opts = ShapeOpts.Line
+    view.alpha = 1.0
+    view.lw = 1.0
+
+    $.fx(() => {
+      const { x, y } = p0
+      $()
+      view.x0 = x
+      view.y0 = y
+    })
+
+    $.fx(() => {
+      const { x, y } = p1
+      $()
+      view.x1 = x
+      view.y1 = y
+    })
+
+    const shape = {
+      visible: true,
+      p0,
+      p1,
+      data,
+      view,
+      remove() {
+        $.dispose()
+        data.free()
+        shapes.delete(shape)
+        info.needUpdate = true
+      }
+    }
+
+    shapes.add(shape)
+
+    return shape
+  }
+
+  function Wave(rect: RectLike) {
+    using $ = Signal()
+
+    const data = wasm.alloc(Uint8Array, Shape.Wave.byteLength)
+    const view = Shape.Wave(data) satisfies Wave
+
+    view.opts = ShapeOpts.Wave
+    view.alpha = 1.0
+    view.lw = 1.0
+
+    $.fx(() => {
+      const { x, y, w, h } = rect
+      $()
+      view.x = x
+      view.y = y
+      view.w = w
+      view.h = h
+    })
+
+    const shape = {
+      visible: true,
+      rect,
+      data,
+      view,
+      remove() {
+        $.dispose()
+        data.free()
+        shapes.delete(shape)
+        info.needUpdate = true
+      }
+    }
+
+    shapes.add(shape)
+
+    return shape
+  }
+
+  return {
+    info, mat2d, view, shapes, clear, update,
+    Box, Line, Wave
+  }
+}
+
 function SketchInfo(GL: GL, view: Rect) {
   using $ = Signal()
 
@@ -158,10 +381,6 @@ function SketchInfo(GL: GL, view: Rect) {
       a_quad: [
         gl.ARRAY_BUFFER, attrib(1, new Float32Array([0, 1, 2, 3]))
       ],
-      // a_opts: [
-      //   gl.ARRAY_BUFFER, attrib(1, wasm.alloc(Float32Array, MAX_GL_INSTANCES), 1),
-      //   gl.DYNAMIC_DRAW
-      // ],
       a_vert: [
         gl.ARRAY_BUFFER, attrib(4, wasm.alloc(Float32Array, MAX_GL_INSTANCES * 4), 1),
         gl.DYNAMIC_DRAW
@@ -170,102 +389,28 @@ function SketchInfo(GL: GL, view: Rect) {
         gl.ARRAY_BUFFER, attrib(4, wasm.alloc(Float32Array, MAX_GL_INSTANCES * 4), 1),
         gl.DYNAMIC_DRAW
       ],
-      // a_color: [
-      //   gl.ARRAY_BUFFER, attrib(2, wasm.alloc(Float32Array, MAX_GL_INSTANCES * 2), 1),
-      //   gl.DYNAMIC_DRAW
-      // ],
-      // a_lineWidth: [
-      //   gl.ARRAY_BUFFER, attrib(1, wasm.alloc(Float32Array, MAX_GL_INSTANCES), 1),
-      //   gl.DYNAMIC_DRAW
-      // ],
     }
   })
 
-  const Box = Struct({
-    opts: 'i32',
-    x: 'f32',
-    y: 'f32',
-    w: 'f32',
-    h: 'f32',
-    lw: 'f32',
-    ptr: 'f32',
-    len: 'f32',
-    offset: 'f32',
-    color: 'f32',
-    alpha: 'f32',
-  })
-
-  const Line = Struct({
-    opts: 'i32',
-    x0: 'f32',
-    y0: 'f32',
-    x1: 'f32',
-    y1: 'f32',
-    lw: 'f32',
-    ptr: 'f32',
-    len: 'f32',
-    offset: 'f32',
-    color: 'f32',
-    alpha: 'f32',
-  })
-
-  const Wave = Struct({
-    opts: 'i32',
-    x: 'f32',
-    y: 'f32',
-    w: 'f32',
-    h: 'f32',
-    lw: 'f32',
-    ptr: 'f32',
-    len: 'f32',
-    offset: 'f32',
-    color: 'f32',
-    alpha: 'f32',
-  })
-
-  const shapesLength = MAX_SHAPES * (Box.byteLength >> 2)
-
-  DEBUG && log('[sketch]', 'MAX_SHAPES:', MAX_SHAPES, 'bytes:', shapesLength)
-
-  const shapes = Object.assign(
-    wasm.alloc(Float32Array, shapesLength),
-    { count: 0 }
-  )
-
-  const box = Box(wasm.memory.buffer, shapes.ptr) satisfies Box
-  const line = Line(wasm.memory.buffer, shapes.ptr) satisfies Line
-  const wave = Wave(wasm.memory.buffer, shapes.ptr) satisfies Wave
-
   const {
-    // a_opts,
     a_vert,
     a_style,
-    // a_color,
-    // a_lineWidth,
   } = info.attribs
 
   const sketch$ = wasm.createSketch(
-    shapes.ptr,
-    // a_opts.ptr,
     a_vert.ptr,
     a_style.ptr,
-    // a_color.ptr,
-    // a_lineWidth.ptr,
   )
 
-  function draw(
-    mat2d: WasmMatrix,
-    view: { width: number, height: number },
-    begin: number,
-    end: number
-  ) {
+  function draw(shapes: Shapes) {
+    if (shapes.info.needUpdate) shapes.update()
+    const { mat2d, view, info: { ptrs } } = shapes
     return wasm.draw(
       +sketch$,
+      ptrs.ptr,
       mat2d.ptr,
       view.width,
       view.height,
-      begin,
-      end,
     )
   }
 
@@ -273,19 +418,13 @@ function SketchInfo(GL: GL, view: Rect) {
 
   function writeGL(count: number) {
     range.end = range.count = count
-    // GL.writeAttribRange(a_opts, range)
     GL.writeAttribRange(a_vert, range)
     GL.writeAttribRange(a_style, range)
-    // GL.writeAttribRange(a_lineWidth, range)
     // DEBUG && log('[sketch] write gl begin:', range.begin, 'end:', range.end, 'count:', range.count)
   }
 
-  function write(data: Float32Array) {
-    const count = data.length / SHAPE_LENGTH
-    const begin = shapes.count
-    const end = (shapes.count += count)
-    // DEBUG && log('[sketch] shapes write begin:', begin, 'end:', end, 'count:', count)
-    shapes.set(data, begin * SHAPE_LENGTH)
+  function finish() {
+    wasm.maybeFlushSketch(+sketch$)
   }
 
   $.fx(() => {
@@ -301,14 +440,11 @@ function SketchInfo(GL: GL, view: Rect) {
   })
 
   return {
-    info, range, write, writeGL,
-    shapes,
-    shape: {
-      box,
-      line,
-      wave,
-    },
-    draw
+    info,
+    range,
+    writeGL,
+    draw,
+    finish,
   }
 }
 
@@ -316,41 +452,32 @@ let sketch: ReturnType<typeof SketchInfo> | null
 
 export type Sketch = ReturnType<typeof Sketch>
 
-export function Sketch(GL: GL, view: Rect, mat2d: WasmMatrix) {
+export function Sketch(GL: GL, view: Rect) {
   using $ = Signal()
 
   const sketch = SketchInfo(GL, view)
   // sketch ??= SketchInfo(GL, view)
 
   const { gl } = GL
-  const { info, range, write, writeGL, shapes, shape, draw: sketchDraw } = sketch
+  const { info, finish, writeGL, draw: sketchDraw } = sketch
   const { use } = info
 
   wasm.setFlushSketchFn(count => {
     DEBUG && log('[sketch] draw', count)
-
     writeGL(count)
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count)
-
-    range.begin =
-      range.end =
-      range.count = 0
   })
+
+  const scene = new Set<Shapes>()
 
   function draw() {
     use()
-
-    range.begin =
-      range.end =
-      range.count = 0
-
-    sketchDraw(
-      mat2d,
-      view,
-      0,
-      shapes.count
-    )
+    // DEBUG && console.log('[sketch] draw', scene)
+    for (const shapes of scene) {
+      sketchDraw(shapes)
+    }
+    finish()
   }
 
-  return { draw, shapes, shape, info, write }
+  return { draw, scene, info }
 }

@@ -3,13 +3,13 @@ import { $, Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
 import { Dsp } from '../dsp/dsp.ts'
-import { ShapeData } from '../gl/sketch.ts'
+import { Shape } from '../gl/sketch.ts'
 import { AstNode } from '../lang/interpreter.ts'
 import { Token } from '../lang/tokenize.ts'
 import { Source } from '../source.ts'
 import { state } from '../state.ts'
 import { Floats } from '../util/floats.ts'
-import { BoxData } from '../draws/grid.ts'
+// import { BoxData } from '../draws/grid.ts'
 import { saturate, luminate, hueshift } from 'utils'
 import { intToHex, hexToInt, toHex } from '../util/rgb.ts'
 import { createDemoNotes } from '../util/notes.ts'
@@ -29,9 +29,12 @@ export const enum TrackBoxKind {
 }
 
 export interface TrackBox {
+  track: Track
   kind: TrackBoxKind
-  rect: Rect
-  shape?: ShapeData.Box | null
+  rect: $<Rect>
+  // data?: BoxData
+  isFocused?: boolean
+  isHovering?: boolean
 }
 
 export type Track = ReturnType<typeof Track>
@@ -69,7 +72,6 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
     boxes: [] as TrackBox[],
     error: null as Error | null,
     floats: null as Floats | null,
-    shape: null as (ShapeData.Box & { data: BoxData }) | null,
     get notes() {
       $()
       const notes = createDemoNotes()
@@ -82,7 +84,8 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
       const { y, color } = this
       const hexColor = intToHex(color)
       const hexColorBright = saturate(luminate(hexColor, .015), 0.1)
-      const hexColorDark = luminate(saturate(hueshift(hexColor, 180), -1), -.45)
+      const hexColorInvDark = luminate(saturate(hueshift(hexColor, 180), -1), -.45)
+      const hexColorDark = luminate(saturate(hexColor, -.01), -.35)
       const hexColorBrighter = saturate(luminate(hexColor, .0030), 0.02)
       const hexColorBrightest = saturate(luminate(hexColor, .01), 0.02)
       const colorBright = hexToInt(hexColorBright)

@@ -1,6 +1,8 @@
 import { $ } from 'signal-jsx'
 
 export const MAX_NOTE = 121
+export const BLACK_KEYS = new Set([1, 3, 6, 8, 10])
+export const KEY_NAMES = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b']
 
 export type BoxNotes = Note[] & {
   ptr: number
@@ -20,7 +22,7 @@ export function createDemoNotes(
   step = 1,
   // length = 1,
 ) {
-  return Array.from({ length: 16 }, (_, i) => {
+  return Array.from({ length: 4 }, (_, i) => {
     const time = i * step * 4
     const length = 1 + Math.round(Math.random() * 4)
     // const count = 1 //+ Math.round(Math.random() * 2)
@@ -43,7 +45,7 @@ export function createDemoNotes(
 }
 
 export function byNoteN(a: Note, b: Note) {
-  return b.n - a.n
+  return b.n === a.n ? a.time - b.time : b.n - a.n
 }
 
 export function getNotesScale(notes: Note[]) {

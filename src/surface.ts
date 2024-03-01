@@ -5,7 +5,6 @@ import { Canvas } from './comp/Canvas.tsx'
 import { Sketch } from './gl/sketch.ts'
 import { state } from './state.ts'
 import { LerpMatrix } from './util/geometry.ts'
-import { WasmMatrix } from './util/wasm-matrix.ts'
 import { WebGL } from './webgl.ts'
 import { World } from './world/world.ts'
 
@@ -26,14 +25,12 @@ export function Surface(view: Rect, intentMatrix: Matrix, viewMatrix: LerpMatrix
   const canvas = Canvas(world)
   canvas.style.imageRendering = 'pixelated'
 
-  const mat2d = WasmMatrix(view, viewMatrix)
   $.fx(() => {
     anim.ticks.add(viewMatrix.tick)
     return () => {
       anim.ticks.delete(viewMatrix.tick)
     }
   })
-
   $.fx(() => {
     const { a, b, c, d, e, f } = viewMatrix
     {
@@ -50,7 +47,7 @@ export function Surface(view: Rect, intentMatrix: Matrix, viewMatrix: LerpMatrix
       anim.ticks.delete(webgl.draw)
     }
   })
-  const sketch = Sketch(webgl.GL, view, mat2d)
+  const sketch = Sketch(webgl.GL, view)
   webgl.add($, sketch)
 
   $.fx(() => ([

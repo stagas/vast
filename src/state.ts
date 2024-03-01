@@ -35,7 +35,7 @@ class State {
   isLoadOpen = false
   loadOpenCategory = 'synths'
 
-  isHoveringToolbar = false
+  // isHoveringToolbar = false
   isHoveringHeads = false
 
   focusedBox = null as null | any
@@ -62,7 +62,6 @@ class State {
   meshes = new Set<Mesh>()
 
   tracks = [] as Track[]
-
 
   t1_source = $(new Source<Token>(tokenize), {
     code: `;;;kick
@@ -117,16 +116,16 @@ clip 8*
 
   t4_source = $(new Source<Token>(tokenize), {
     code: `;;;radio signals
-[sin 344]
-[sin 32] *
-[sin 186
- [sin .125 co* t .25*] 3700 * +]
+[sin 244]
+[sin 142] *
+[sin 386
+ [sin .125 co* t .25*] 3710 * +]
 [exp 1 co* t] * +
-[delay 11 .91]
+[delay 24 .91]
 [clip 2] 1.49 *
-[exp 16 co* t] [lp] *
-[shp 1250]
-@ [slp 833]
+[exp 24 co* t] .45^ [lp] *
+[shp 2250]
+@ [slp 1833]
 1.5 *
 `
   })

@@ -1,6 +1,6 @@
 import { Signal } from 'signal-jsx'
 import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
-import { ShapeData } from '../gl/sketch.ts'
+import { Shape } from '../gl/sketch.ts'
 import { Surface } from '../surface.ts'
 import { Floats } from '../util/floats.ts'
 import { waveform } from '../util/waveform.ts'
@@ -33,7 +33,7 @@ export function CodeDraw(surface: Surface) {
       0, // offset
       0xff00ff, // color
       1.0, // alpha
-    ] as ShapeData.Wave).flat()
+    ] as Shape.Wave).flat()
 
     sketch.shapes.count = 0
     sketch.write(Float32Array.from(wave))

@@ -51,7 +51,7 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
       }
 
       if (info.hoveringTrack) {
-        grid.updateHoveringBox(info.hoveringTrack.info.shape?.data ?? null)
+        // grid.updateHoveringBox(info.hoveringTrack.info.boxes[0]?. ?? null)
       }
 
       dom.body.style.cursor = 'pointer'

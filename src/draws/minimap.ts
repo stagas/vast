@@ -37,7 +37,7 @@ export function Minimap(grid: Grid) {
     function moveToTarget(e: MouseEvent) {
       const x = (e.pageX - rect.left) / view.w
       const y = (e.pageY - rect.top) / view.h
-      const width = grid.info.boxes.right
+      const width = grid.info.boxes!.info.right
 
       grid.intentMatrix.e = -x * width * grid.intentMatrix.a + grid.view.w / 2
       grid.lastFarMatrix.e = -x * width * grid.lastFarMatrix.a + grid.view.w / 2
@@ -61,25 +61,25 @@ export function Minimap(grid: Grid) {
   const matrix = new Matrix()
   $.fx(() => {
     const { info } = grid
-    const { boxes } = info
+    const { boxes } = $.of(info)
     const { pr } = view
     $()
     Matrix.viewBox(matrix, view, {
       x: 0,
       y: 0,
-      w: boxes.right / view.pr,
-      h: boxes.rows.length / view.pr - (1 / view.h),
+      w: boxes.info.right / view.pr,
+      h: boxes.info.rows.length / view.pr - (1 / view.h),
     })
     c.save()
     c.scale(pr, pr)
     view.clear(c)
     c.setTransform(matrix)
-    for (const row of boxes.rows) {
+    for (const row of boxes.info.rows) {
       c.beginPath()
       let color
-      for (const box of row) {
-        const { x, y, w, h } = box.data
-        color = box.data.track.info.color
+      for (const { rect, trackBox } of row) {
+        const { x, y, w, h } = rect
+        color = trackBox.track.info.color
         c.rect(x, y + 10 * (1 / view.h), w, h - 20 * (1 / view.h))
       }
       c.fillStyle = '#' + (color ?? 0x0).toString(16).padStart(6, '0')

@@ -2,21 +2,24 @@ import { flushSketch } from '../env'
 import { Floats } from '../util'
 import { MAX_GL_INSTANCES, VertOpts } from './sketch-shared'
 
+/**
+ * Sketch holds the data that is sent to WebGL.
+ */
 export class Sketch {
   ptr: u32 = 0
-  shapes: Floats
+  // shapes: Floats
   // a_opts: Floats
   a_vert: Floats
   a_style: Floats
   // a_lineWidth: Floats
   constructor(
-    public shapes$: usize,
+    // public shapes$: usize,
     // public a_opts$: usize,
     public a_vert$: usize,
     public a_style$: usize,
     // public a_lineWidth$: usize,
   ) {
-    this.shapes = changetype<Floats>(shapes$)
+    // this.shapes = changetype<Floats>(shapes$)
     // this.a_opts = changetype<Floats>(a_opts$)
     this.a_vert = changetype<Floats>(a_vert$)
     this.a_style = changetype<Floats>(a_style$)

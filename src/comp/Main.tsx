@@ -20,7 +20,7 @@ import { dspGens } from '../../generated/typescript/dsp-gens.ts'
 import { getAllProps } from '../dsp/util.ts'
 import { Floats } from '../util/floats.ts'
 import { tokenize } from '../lang/tokenize.ts'
-import { Track, TrackBoxKind } from '../dsp/track.ts'
+import { Track, TrackBox, TrackBoxKind } from '../dsp/track.ts'
 import { Source } from '../source.ts'
 import { Heads } from '../draws/heads.ts'
 
@@ -59,11 +59,14 @@ export function Main() {
   function addTrack(source: $<Source<any>>) {
     const y = state.tracks.length
     const t = Track(dsp, source, y)
+    const proto = { track: t }
     t.info.boxes = Array.from({ length: 8 }, (_, x) => $({
+      __proto__: proto,
       kind: x % 2 === 0 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
       rect: $(new Rect, { x, y, w: 1, h: 1 }),
-      shape: null
-    }))
+      isFocused: false,
+      isHovering: false,
+    }) as $<TrackBox & { __proto__: typeof proto }>)
     state.tracks = [...state.tracks, t]
   }
 
@@ -130,16 +133,16 @@ export function Main() {
   //   code.info.brand = hoveringBox.hexColorBrighter
   // })
 
-  $.fx(() => {
-    const { isHoveringToolbar } = state
-    $()
-    if (isHoveringToolbar) {
-      document.body.style.cursor = 'pointer'
-    }
-    else {
-      document.body.style.cursor = ''
-    }
-  })
+  // $.fx(() => {
+  //   const { isHoveringToolbar } = state
+  //   $()
+  //   if (isHoveringToolbar) {
+  //     document.body.style.cursor = 'pointer'
+  //   }
+  //   else {
+  //     document.body.style.cursor = ''
+  //   }
+  // })
 
   const loadDiv = <div />
   $.fx(() => {
@@ -359,7 +362,7 @@ export function Main() {
           // codeDraw.write()
 
           info.grid ??= Grid(surface)
-          info.grid.write()
+          // info.grid.write()
 
           textDraw ??= TextDraw(surface, info.grid, view)
           headsDraw ??= Heads(textDraw.c, surface, info.grid, view)

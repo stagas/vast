@@ -1,32 +1,25 @@
 import { logf, logf2, logf3, logf4, logf6, logi } from '../env'
 import { Sketch } from './sketch-class'
-import { Box, SHAPE_LENGTH, Matrix, Wave, ShapeOpts, Shape, Line, WAVE_MIPMAPS } from './sketch-shared'
+import { Box, Matrix, Wave, ShapeOpts, Shape, Line, WAVE_MIPMAPS } from './sketch-shared'
 
 const MAX_ZOOM: f32 = 0.5
 const BASE_SAMPLES: f32 = 48000
 const NUM_SAMPLES: f32 = BASE_SAMPLES / MAX_ZOOM
-
 const WAVE_MIPMAPS_THRESHOLD = 3000
 
 const enum WaveMode {
   Scaled,
   Normal,
-  Far,
-  VeryFar,
 }
 
 export function draw(
   sketch$: usize,
-
+  ptrs$: usize,
   matrix$: usize,
   width: f32,
   height: f32,
-
-  begin: i32,
-  end: i32,
 ): void {
   const sketch = changetype<Sketch>(sketch$)
-  const shapes$ = sketch.shapes$
 
   const m = changetype<Matrix>(matrix$)
   const ma: f64 = m.a
@@ -39,23 +32,23 @@ export function draw(
   let line: Line
   let wave: Wave
 
-  // let wave_step: f32 = Mathf.max(0.01, Mathf.min(1.0, .005 * ma ** 1.1))
-  // logf(wave_step)
-  const x_gap: f32 = ma > 5 ? 1 : 0 //ma > .5 ? ma / 5 : 0
+  const x_gap: f32 = ma > 5 ? 1 : 0
 
   let px: f32 = 0
   let py: f32 = 0
 
-  for (let i = begin; i < end; i++) {
-    const shape$ = shapes$ + ((i * SHAPE_LENGTH) << 2)
-    const opts = i32(changetype<Shape>(shape$).opts)
+  let ptrs = changetype<StaticArray<usize>>(ptrs$)
+  let ptr: usize
+  let i: i32 = 0
+  while (unchecked(ptr = ptrs[i++])) {
+    const opts = i32(changetype<Shape>(ptr).opts)
 
     switch (opts & 0b1111_1111) {
       //
       // Box
       //
       case ShapeOpts.Box: {
-        box = changetype<Box>(shape$)
+        box = changetype<Box>(ptr)
 
         const x = f32(box.x * ma + me)
         const y = f32(box.y * md + mf)
@@ -82,7 +75,7 @@ export function draw(
       // Line
       //
       case ShapeOpts.Line: {
-        line = changetype<Line>(shape$)
+        line = changetype<Line>(ptr)
 
         const x0 = f32(line.x0 * ma + me)
         const y0 = f32(line.y0 * md + mf)
@@ -118,8 +111,7 @@ export function draw(
       // Wave
       //
       case ShapeOpts.Wave: {
-        // continue
-        wave = changetype<Wave>(shape$)
+        wave = changetype<Wave>(ptr)
 
         const x = f32(wave.x * ma + me)
         const y = f32(wave.y * md + mf)
@@ -141,7 +133,7 @@ export function draw(
         //
         // setup wave pointers
         //
-        let p = i32(wave.ptr)
+        let p = i32(wave.floats$)
         let p_index: i32 = 0
         let n: f64 = 0
         let n_len = f64(wave.len)
@@ -210,19 +202,18 @@ export function draw(
         const hh: f32 = h / 2
         const yh = y + hh
 
+        // advance the pointer if left edge is offscreen
+        if (ox) {
+          n += Math.floor(ox / x_step)
+        }
+        n = Math.floor(n)
+
+        let nx = (n * n_step) % n_len
+
         switch (waveMode) {
           case WaveMode.Scaled: {
-            // advance the pointer if left edge is offscreen
-            if (ox) {
-              n += Math.floor(ox / x_step)
-            }
-            n = Math.floor(n)
-
-            // interpolate 2 samples
-            let nx = (n * n_step) % n_len
             let nfrac = nx - Math.floor(nx)
 
-            // move to v0
             let x0 = f32(cx)
             let y0 = yh + readSampleLerp(p, f32(nx), nfrac) * hh
 
@@ -263,13 +254,6 @@ export function draw(
           }
 
           case WaveMode.Normal: {
-            // advance the pointer if left edge is offscreen
-            if (ox) {
-              n += Math.floor(ox / x_step)
-            }
-            n = Math.floor(n)
-
-            let nx = (n * n_step) % n_len
             let s = f32.load(p + (i32(nx) << 2))
 
             // move to v0
@@ -309,94 +293,29 @@ export function draw(
 
             break
           }
-
-          // case WaveMode.Far: {
-          //   // advance the pointer if left edge is offscreen
-          //   if (ox) {
-          //     n += Mathf.floor(ox / x_step)
-          //   }
-          //   n = Mathf.floor(n)
-
-          //   let nx = (n * n_step) % n_len
-
-          //   let min: f32
-          //   let max: f32
-
-          //   let pos: i32
-
-          //   pos = i32(Mathf.floor(f32(p + (i32(nx) << 2)) / 2.0) * 2.0)
-
-          //   min = f32.load(p + (i32(nx) << 2))
-
-          //   // move to v0
-          //   let x0 = cx
-          //   let y0 = y + hh + min * hh // TODO: hh in shader?
-
-          //   if (opts & ShapeOpts.Join) {
-          //     sketch.drawLine(
-          //       px, py,
-          //       x0, y0,
-          //       wave.color, wave.alpha,
-          //       lw
-          //     )
-          //   }
-
-          //   let step_i: i32 = 0
-          //   let bcx = cx
-          //   let bnx = nx
-
-          //   do {
-          //     cx = f32(f64(bcx) + f64(step_i) * f64(x_step))
-          //     // the rounding here fixes flickering
-          //     nx = Mathf.round(f32((f64(bnx) + f64(step_i) * f64(n_step))) % n_len)
-
-          //     pos = i32(Mathf.floor(f32(p + (i32(nx) << 2)) / 2.0) * 2.0)
-          //     min = f32.load(pos)
-          //     max = f32.load(pos, 4)
-
-          //     const x1 = cx
-          //     const y1 = y + hh + min * hh
-
-          //     sketch.drawLine(
-          //       x0, y0,
-          //       x1, y1,
-          //       wave.color, wave.alpha,
-          //       lw
-          //     )
-
-          //     const x2 = cx
-          //     const y2 = y + hh + max * hh
-
-          //     sketch.drawLine(
-          //       x1, y1,
-          //       x2, y2,
-          //       wave.color, wave.alpha,
-          //       lw
-          //     )
-
-          //     x0 = x2
-          //     y0 = y2
-
-          //     step_i++
-          //   } while (cx < right)
-
-          //   px = x0
-          //   py = y0
-
-          //   break
-          // }
         }
 
         continue
       }
 
+      // default: {
+      //   logf(66666)
+      // }
+
     } // end switch
   } // end for
+}
 
+export function maybeFlushSketch(sketch$: usize): void {
+  const sketch = changetype<Sketch>(sketch$)
   if (sketch.ptr) {
     sketch.flush()
   }
 }
+
+//
+// helpers
+//
 
 // @ts-ignore
 @inline
