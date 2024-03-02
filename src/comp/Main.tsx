@@ -1,3 +1,4 @@
+import wasm from 'assembly'
 import { $, Signal } from 'signal-jsx'
 import { state } from '../state.ts'
 import { Bench, BenchResults } from './Bench.tsx'
@@ -23,6 +24,7 @@ import { tokenize } from '../lang/tokenize.ts'
 import { Track, TrackBox, TrackBoxKind } from '../dsp/track.ts'
 import { Source } from '../source.ts'
 import { Heads } from '../draws/heads.ts'
+import { Player } from '../dsp/player.ts'
 
 const DEBUG = true
 
@@ -54,12 +56,24 @@ export function Main() {
 
   const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
   const dsp = Dsp(ctx)
-  // const sound = dsp.Sound()
+  const player = Player(ctx)
+  const bar = wasm.alloc(Uint32Array, 16)
+  player.bars[0] = bar.ptr
+
+  $.fx(() => () => {
+    // TODO: player.dispose()
+    player.info.node?.stop()
+  })
+
+  // console.log(player)
 
   function addTrack(source: $<Source<any>>) {
     const y = state.tracks.length
     const t = Track(dsp, source, y)
+    bar[y] = t.pt.ptr
+
     const proto = { track: t }
+
     t.info.boxes = Array.from({ length: 8 }, (_, x) => $({
       __proto__: proto,
       kind: TrackBoxKind.Notes, //x % 2 === 0 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
@@ -67,6 +81,7 @@ export function Main() {
       isFocused: false,
       isHovering: false,
     }) as $<TrackBox & { __proto__: typeof proto }>)
+
     state.tracks = [...state.tracks, t]
   }
 
@@ -408,12 +423,16 @@ export function Main() {
       </div>,
 
       <div>
-        <Btn onclick={() => { }}>{/* play button */}
+        <Btn onpointerdown={() => {
+          player.info.node?.start()
+        }}>{/* play button */}
           <svg xmlns="http://www.w3.org/2000/svg" class="h-[27px] w-6" preserveAspectRatio="xMidYMid slice" viewBox="0 0 24 24">
             <path fill="none" stroke={() => state.colors.primary} stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M7 17.259V6.741a1 1 0 0 1 1.504-.864l9.015 5.26a1 1 0 0 1 0 1.727l-9.015 5.259A1 1 0 0 1 7 17.259" />
           </svg>
         </Btn>
-        <Btn onclick={() => { }}>{/* stop button */}
+        <Btn onpointerdown={() => {
+          player.info.node?.stop()
+        }}>{/* stop button */}
           <svg xmlns="http://www.w3.org/2000/svg" class="h-[22.5px] w-5" preserveAspectRatio="xMidYMid slice" viewBox="0 0 24 24">
             <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M5 8.2v7.6c0 1.12 0 1.68.218 2.107c.192.377.497.683.874.875c.427.218.987.218 2.105.218h7.607c1.118 0 1.676 0 2.104-.218c.376-.192.682-.498.874-.875c.218-.427.218-.986.218-2.104V8.197c0-1.118 0-1.678-.218-2.105a2 2 0 0 0-.874-.874C17.48 5 16.92 5 15.8 5H8.2c-1.12 0-1.68 0-2.108.218a1.999 1.999 0 0 0-.874.874C5 6.52 5 7.08 5 8.2" />
           </svg>

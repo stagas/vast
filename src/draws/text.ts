@@ -65,7 +65,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   $.fx(() => dom.on(canvas, 'wheel', (e) => {
     grid.handleWheelZoom(e)
     handleHover(e)
-  }))
+  }, { passive: true }))
 
   $.fx(() => {
     const { mode } = state

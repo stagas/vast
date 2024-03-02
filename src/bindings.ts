@@ -2,6 +2,7 @@ import { TypedArray, TypedArrayConstructor } from 'gl-util'
 import { instantiate } from '../as/build/assembly.js'
 import { log } from './state.ts'
 import { wasmSourceMap } from 'utils'
+import url from '../as/build/assembly.wasm?url'
 
 const DEBUG = false
 
@@ -23,7 +24,6 @@ if (import.meta.env) {
   mod = await WebAssembly.compile(binary)
 }
 else {
-  const url = (await import('../as/build/assembly.wasm?url')).default
   mod = await WebAssembly.compileStreaming(fetch(url))
 }
 

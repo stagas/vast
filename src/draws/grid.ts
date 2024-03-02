@@ -482,7 +482,6 @@ export function Grid(surface: Surface, dsp: Dsp) {
       else {
         if (++clicks >= 2) {
           zoomFull()
-          console.log('should zoom full')
         }
       }
     }

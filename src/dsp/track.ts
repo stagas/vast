@@ -1,18 +1,18 @@
 import wasm from 'assembly'
 import { $, Signal } from 'signal-jsx'
 import { Rect } from 'std'
+import { hueshift, luminate, saturate } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
 import { Dsp } from '../dsp/dsp.ts'
-import { Shape } from '../gl/sketch.ts'
 import { AstNode } from '../lang/interpreter.ts'
 import { Token } from '../lang/tokenize.ts'
 import { Source } from '../source.ts'
 import { state } from '../state.ts'
 import { Floats } from '../util/floats.ts'
-// import { BoxData } from '../draws/grid.ts'
-import { saturate, luminate, hueshift } from 'utils'
-import { intToHex, hexToInt, toHex } from '../util/rgb.ts'
 import { createDemoNotes } from '../util/notes.ts'
+import { hexToInt, intToHex, toHex } from '../util/rgb.ts'
+import { Player } from './player.ts'
+import { PlayerTrack } from './player-shared.ts'
 
 const DEBUG = true
 
@@ -46,6 +46,16 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
   const { clock } = dsp
   const sound = dsp.Sound()
 
+  const ptData = wasm.alloc(Uint8Array, PlayerTrack.byteLength)
+  const pt = PlayerTrack(ptData)
+  const out_L = wasm.alloc(Float32Array, BUFFER_SIZE)
+  const out_R = wasm.alloc(Float32Array, BUFFER_SIZE)
+  const out_LR = wasm.alloc(Float32Array, BUFFER_SIZE)
+  pt.out_L$ = out_L.ptr
+  pt.out_R$ = out_R.ptr
+  pt.out_LR$ = out_LR.ptr
+
+
   const info = $({
     y,
     get sy() {
@@ -59,7 +69,7 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
       let max = 0
       for (const { kind, rect } of this.boxes) {
         // if (kind === TrackBoxKind.Audio) {
-          if (rect.w > max) max = rect.w
+        if (rect.w > max) max = rect.w
         // }
       }
       return max
@@ -174,6 +184,18 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
 
       info.floats?.free()
       info.floats = Floats(f)
+
+      // update bars
+      pt.len = info.floats.len
+      pt.offset = 0
+      pt.coeff = 1.0
+      pt.pan = 0.0
+      pt.vol = 1.0
+      pt.floats_LR$ = info.floats.ptr
+
+      // bar[y] = pt.ptr
+      // console.log(player.bars, bar)
+
       info.audioBuffer.getChannelData(0).set(f)
     }
     catch (e) {
@@ -186,5 +208,5 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
     }
   })
 
-  return { info, source, play }
+  return { info, pt, source, play }
 }

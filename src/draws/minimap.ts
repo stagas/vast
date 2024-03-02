@@ -29,7 +29,7 @@ export function Minimap(grid: Grid) {
     grid.mousePos.y = 0
     grid.handleWheelScaleX(e)
     DEBUG && log('wheel', grid.mousePos.x, grid.mousePos.y)
-  }))
+  }, { passive: true }))
 
   $.fx(() => dom.on(handle, 'mousedown', e => {
     const rect = handle.getBoundingClientRect()

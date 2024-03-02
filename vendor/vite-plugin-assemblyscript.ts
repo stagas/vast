@@ -6,24 +6,32 @@ import type { Plugin } from 'vite'
 
 interface AssemblyScriptPluginOptions {
   projectRoot: string
+  configFile: string
   srcMatch: string
   srcEntryFile: string
+  mapFile: string
+  sourceRoot: string
+  extra: string[]
 }
 
 const defaultOptions: AssemblyScriptPluginOptions = {
   projectRoot: '.',
+  sourceRoot: '/',
+  configFile: 'asconfig.json',
   srcMatch: 'as/assembly',
   srcEntryFile: 'as/assembly/index.ts',
+  mapFile: './as/build/assembly.wasm.map',
+  extra: []
 }
 
-async function compile(entryFile: string, mode: 'debug' | 'release') {
+async function compile(entryFile: string, mode: 'debug' | 'release', options: AssemblyScriptPluginOptions) {
   console.log('[asc] compiling...')
 
   const { error, stdout, stderr, stats } = await asc.main([
     entryFile,
+    '--config', options.configFile,
     '--target', mode,
-    '--transform', './vendor/unroll.js',
-    '--transform', './vendor/update-dsp-gens.js',
+    ...(options.extra.flat(Infinity)),
   ], {})
 
   if (error) {
@@ -34,13 +42,12 @@ async function compile(entryFile: string, mode: 'debug' | 'release') {
   else {
     console.log(stdout.toString())
     console.log(stats.toString())
-    const mapFile = join(__dirname, '..', 'as', 'build', 'assembly.wasm.map')
+    const mapFile = join(options.projectRoot, options.mapFile)
     const mapJson = fs.readFileSync(mapFile, 'utf-8')
     const map = JSON.parse(mapJson)
 
     // This is the magic that makes paths work for open-in-editor from devtools console.
-    // TODO: should be made configurable.
-    map.sourceRoot = '/'
+    map.sourceRoot = options.sourceRoot
 
     fs.writeFileSync(mapFile, JSON.stringify(map), 'utf-8')
   }
@@ -65,11 +72,11 @@ export default function assemblyScriptPlugin(
       if (file.startsWith(matchPath)) {
         if (timestamp === handledTimestamp) return
         handledTimestamp = timestamp
-        await compile(entryFile, 'debug')
+        await compile(entryFile, 'debug', options)
       }
     },
     async buildStart() {
-      await compile(entryFile, 'release')
+      await compile(entryFile, 'release', options)
     },
   }
 }

@@ -9,7 +9,7 @@ export class Sample extends Gen {
   _lastTrig: i32 = -1
 
   _floats: StaticArray<f32> | null = null
-  _floatsSampleRate: f64 = 44100
+  _floatsSampleRate: f64 = 48000
 
   _index: f64 = 0
   _step: f64 = 0

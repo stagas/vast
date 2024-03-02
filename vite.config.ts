@@ -3,12 +3,13 @@ import fs from 'fs'
 import openInEditor from 'open-in-editor'
 import os from 'os'
 import path from 'path'
-import { defineConfig } from 'vite'
+import { defineConfig, transformWithEsbuild } from 'vite'
 import externalize from "vite-plugin-externalize-dependencies"
 import { watchAndRun } from 'vite-plugin-watch-and-run'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import assemblyScriptPlugin from './vendor/vite-plugin-assemblyscript'
 import ViteUsing from './vendor/vite-plugin-using'
+import bundledEntryPlugin from './vendor/vite-plugin-bundled-entry'
 
 import type { HmrContext, Plugin } from 'vite'
 
@@ -109,6 +110,52 @@ const hexLoader: Plugin = {
   }
 }
 
+// const fileRegex = /worklet/gi
+
+// const workletPlugin: Plugin = {
+//   name: 'worklet',
+
+//   async transform(code, id) {
+//     if (fileRegex.test(id)) {
+//       const result = await build({
+//         entryPoints: [id],
+//         bundle: true,
+//         plugins: [
+//           {
+//             name: 'hex-loader',
+//             setup(build) {
+//               build.onLoad({ filter: /\?raw-hex$/ }, (args) => {
+//                 const result = hexLoader.transform(code, args.path) ?? ''
+//                 return {
+//                   contents: result,
+//                   loader: 'js'
+//                 }
+//               })
+//             }
+//           },
+//           {
+//             name: 'url-loader',
+//             setup(build) {
+//               build.onLoad({ filter: /\?url$/ }, (args) => {
+//                 return {
+//                   contents: `export default "${path.relative(process.cwd(), args.path)}"`,
+//                   loader: 'js'
+//                 }
+//               })
+//             }
+//           },
+//         ]
+//       })
+//       const out = result.outputFiles?.[0].text
+//       console.log(out)
+//       return {
+//         code: out,
+//         map: null, // provide source map if available
+//       }
+//     }
+//   }
+// }
+
 const editor = openInEditor.configure({
   editor: 'code',
   dotfiles: 'allow',
@@ -165,6 +212,19 @@ export default defineConfig({
       },
     },
     ViteUsing(),
+    // bundledEntryPlugin({
+    //   id: '/player-worklet.js',
+    //   outFile: '/assets/player-worklet.[hash].js',
+    //   entryPoint: 'src/dsp/player-worklet.ts',
+    //   esbuildOptions: {
+    //     // (optional) esbuild options to use for bundling
+    //     // minify: process.env.NODE_ENV === 'production',
+    //     format: 'iife', // default "esm"
+    //   },
+    //   // transform(code) {
+    //   //   // (optional) transform to apply on generated bundle
+    //   // }
+    // }),
     hexLoader,
     tsconfigPaths(),
     externalize({
@@ -179,7 +239,21 @@ export default defineConfig({
     assemblyScriptPlugin({
       projectRoot: '.',
       srcMatch: 'as/assembly',
-      srcEntryFile: 'as/assembly/index.ts'
+      srcEntryFile: 'as/assembly/index.ts',
+      extra: [
+        '--transform', './vendor/unroll.js',
+        '--transform', './vendor/update-dsp-gens.js',
+      ]
+    }),
+    assemblyScriptPlugin({
+      configFile: 'asconfig-player.json',
+      projectRoot: '.',
+      srcMatch: 'as/assembly',
+      srcEntryFile: 'as/assembly/seq/player.ts',
+      mapFile: './as/build/player.wasm.map',
+      extra: [
+        '--transform', './vendor/unroll.js',
+      ]
     }),
     !IS_TEST && {
       name: 'open-in-editor',

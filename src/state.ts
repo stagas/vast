@@ -66,10 +66,10 @@ class State {
   t1_source = $(new Source<Token>(tokenize), {
     code: `;;;kick
 { x=
-[sin 52.01
-  500 [decay .45 8 x] +
+[sin 82.01
+  1000 [decay .45 38 x] +
   t x*
-] [decay .015 20 x]
+] [decay .035 60 x]
 } kick=
 
 [kick 4]
@@ -80,16 +80,16 @@ class State {
     code: `;;;hihat
 { hz=
 [saw hz t]
-[ramp hz t .39] +
+[ramp hz t .389] +
 } x=
-[x 130][x 400][x 300]
+[x 1130][x 450][x 300]
 [x 620][x 800][x 600]
 @  4*
 [dclipexp 4.1]
 clip 8*
-[bhp 7000 2.92]
-[bbp 8000 2.552]
-[exp 16 co* t] .41^ [lp 510] *
+[bhp 4800 1.42]
+[bbp 9400 1.42]
+[exp 16 co* t] .81^ [lp 70] *
 (.6 .48 1 .54) t 16 * ? *
 .2* clip 1*
 `
@@ -116,15 +116,15 @@ clip 8*
 
   t4_source = $(new Source<Token>(tokenize), {
     code: `;;;radio signals
-[sin 244]
-[sin 142] *
-[sin 386
- [sin .125 co* t .25*] 3710 * +]
+[saw 48]
+[sin 4] *
+[sin 486
+ [sin .125 co* t .25*] 4710 * +]
 [exp 1 co* t] * +
-[delay 24 .91]
+[delay 21.25 .91]
 [clip 2] 1.49 *
-[exp 24 co* t] .45^ [lp] *
-[shp 2250]
+[exp 2 co* t] .55^ [lp] *
+[shp 2150]
 @ [slp 1833]
 1.5 *
 `
@@ -133,13 +133,14 @@ clip 8*
   source = $(new Source<Token>(tokenize), {
     code: `;;;bass
 { tt= x=
-[saw (42.01 84 120) tt x * ?
- 1000 [decay 1.25 8 x] +
+[saw (40 62 42 40) tt x * ?
+ 200 [decay .125 8 x] +
  tt x*
-] [decay .015 20 x]
+] [decay .001 20 x]
 } bass=
 
-[bass 9 t .5*]
+[bass 8 t .5*]
+[slp 500 .3] 1*
 `
 
     //     `;;;kick

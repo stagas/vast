@@ -1,6 +1,8 @@
 export * from './gfx/draw'
 export * from './gfx/sketch'
 
+export * from './seq/player'
+
 export * from '../../generated/assembly/dsp-factory'
 export { run as dspRun } from '../../generated/assembly/dsp-runner'
 
