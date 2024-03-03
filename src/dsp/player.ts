@@ -1,13 +1,14 @@
 import wasm from 'assembly-player'
 import { Signal } from 'signal-jsx'
 import { getMemoryView } from 'utils'
-import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
+import { BUFFER_SIZE, MAX_TRACKS } from '../../as/assembly/dsp/constants.ts'
 import { MAX_BARS } from '../../as/assembly/seq/constants.ts'
 import { Out as OutType } from '../../as/assembly/seq/player-shared.ts'
 import { Clock } from './dsp-shared.ts'
 import { Out, PlayerMode } from './player-shared.ts'
 import type { PlayerProcessorOptions } from './player-worklet.ts'
 import playerWorkletUrl from './player-worklet.ts?url'
+import type { Track } from './track.ts'
 
 export class PlayerNode extends AudioWorkletNode {
   constructor(
@@ -67,12 +68,18 @@ export function Player(ctx: AudioContext) {
   const clock$ = wasm.getPlayerClock(+player$)
   const clock = Clock(view.memory.buffer, clock$)
   const bars$ = wasm.getPlayerBars(player$)
-  const bars = view.getU32(bars$, MAX_BARS)
+  const bars = Array.from({ length: MAX_BARS }, () =>
+    wasm.alloc(Uint32Array, MAX_TRACKS)
+  )
+  const barsData = view.getU32(bars$, MAX_BARS)
+  barsData.set(bars.map(bar => bar.ptr))
+
   const out = Out(wasm.alloc(Uint8Array, Out.byteLength)) satisfies OutType
   const L = wasm.alloc(Float32Array, BUFFER_SIZE)
   const R = wasm.alloc(Float32Array, BUFFER_SIZE)
   out.L$ = L.ptr
   out.R$ = R.ptr
+
   const info = $({
     isPlaying: false,
     node: $.unwrap(() =>
@@ -85,6 +92,7 @@ export function Player(ctx: AudioContext) {
         })
         .catch(console.error)
     ),
+    tracks: [] as Track[],
   })
 
   function start() {
@@ -99,5 +107,5 @@ export function Player(ctx: AudioContext) {
     })
   }
 
-  return { info, clock, bars, out: { view: out, L, R }, start, stop }
+  return { info, clock, barsData, bars, out: { view: out, L, R }, start, stop }
 }

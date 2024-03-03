@@ -1,4 +1,4 @@
-import wasm from 'assembly'
+import wasmDsp from 'assembly'
 import wasmPlayer from 'assembly-player'
 import { $, Signal } from 'signal-jsx'
 import { Rect } from 'std'
@@ -14,6 +14,7 @@ import { createDemoNotes } from '../util/notes.ts'
 import { hexToInt, intToHex, toHex } from '../util/rgb.ts'
 import { Player } from './player.ts'
 import { PlayerTrack } from './player-shared.ts'
+import type { Project, TrackData } from './project.ts'
 
 const DEBUG = true
 
@@ -31,6 +32,7 @@ export const enum TrackBoxKind {
 
 export interface TrackBox {
   track: Track
+  source: $<Source<Token>>
   kind: TrackBoxKind
   rect: $<Rect>
   // data?: BoxData
@@ -40,7 +42,7 @@ export interface TrackBox {
 
 export type Track = ReturnType<typeof Track>
 
-export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
+export function Track(dsp: Dsp, trackData: TrackData, y: number) {
   DEBUG && console.log('[track] create')
 
   using $ = Signal()
@@ -73,6 +75,14 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
         // }
       }
       return max
+    },
+    get right() {
+      return this.boxes.flat().reduce((p, n) =>
+        n.rect.right > p
+          ? n.rect.right
+          : p,
+        0
+      )
     },
     waveLength: 1, // computed during effect update_audio_buffer
     get audioBuffer() {
@@ -126,19 +136,10 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
     },
   })
 
-  function play() {
-    const { audioBuffer } = info
-    const bufferSource = dsp.ctx.createBufferSource()
-    bufferSource.buffer = audioBuffer
-    bufferSource.connect(dsp.ctx.destination)
-    bufferSource.start()
-  }
-
-  $.fx(function update_audio_buffer() {
-    const { tokens } = source
+  function renderSource(source: Source<Token>) {
     const { audioLength } = info
     if (!audioLength) return
-    $()
+
     try {
       sound.reset()
 
@@ -146,9 +147,9 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
       clock.barTime = 0
       clock.bpm = 144
 
-      wasm.updateClock(clock.ptr)
+      wasmDsp.updateClock(clock.ptr)
 
-      const { program, out, updateClock } = sound.process(tokens)
+      const { program, out, updateScalars } = sound.process(source.tokens)
 
       info.tokensAstNode = program.value.tokensAstNode
       info.waveLength = Math.floor(audioLength * clock.sampleRate / clock.coeff)
@@ -173,7 +174,7 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
             clock.time = (chunkCount * CHUNK_SIZE) * clock.timeStep
             clock.barTime = (chunkCount * CHUNK_SIZE) * clock.barTimeStep
 
-            updateClock()
+            updateScalars()
 
             chunkCount++
           }
@@ -206,7 +207,33 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
       }
       throw e
     }
+  }
+
+  $.fx(function update_audio_buffer() {
+    using $ = Signal()
+
+    for (const { source } of info.boxes) {
+      $.fx(() => {
+        const { tokens } = source
+        $()
+        renderSource(source)
+      })
+    }
+
+    // const { audioLength } = info
+    // if (!audioLength) return
+    // $()
+
+    return $.dispose
   })
 
-  return { info, pt, source, play }
+  function play() {
+    const { audioBuffer } = info
+    const bufferSource = dsp.ctx.createBufferSource()
+    bufferSource.buffer = audioBuffer
+    bufferSource.connect(dsp.ctx.destination)
+    bufferSource.start()
+  }
+
+  return { info, data: trackData, pt, play }
 }

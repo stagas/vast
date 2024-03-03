@@ -473,14 +473,14 @@ export function Dsp(ctx: AudioContext, {
       scope.rt = new AstNode(AstNode.Type.Result, { value: rt })
       scope.co = new AstNode(AstNode.Type.Result, { value: co })
 
-      function updateClock() {
+      function updateScalars() {
         scalars[sr.ptr] = clock.sampleRate
         scalars[t.ptr] = clock.barTime
         scalars[rt.ptr] = clock.time
         scalars[co.ptr] = clock.coeff
       }
 
-      updateClock()
+      updateScalars()
 
       const program = interpret(sound, scope, tokensCopy)
 
@@ -509,7 +509,7 @@ export function Dsp(ctx: AudioContext, {
         setup()
       }
 
-      return { program, out, updateClock, isNew }
+      return { program, out, updateScalars, isNew }
     }
 
     const sound = {

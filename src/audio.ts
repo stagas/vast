@@ -2,6 +2,7 @@ import wasm from 'assembly-player'
 import { Signal } from 'signal-jsx'
 import { Dsp } from './dsp/dsp.ts'
 import { Player } from './dsp/player.ts'
+import type { Project } from './dsp/project.ts'
 
 export type Audio = ReturnType<typeof Audio>
 
@@ -15,10 +16,13 @@ export function Audio() {
   const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
   const dsp = Dsp(ctx)
   const player = Player(ctx)
-  const bar = wasm.alloc(Uint32Array, 16)
-  player.bars[0] = bar.ptr
-  player.clock.bpm = 144
-  wasm.updateClock(player.clock.ptr)
+
+  function setBpm(bpm: number) {
+    player.clock.bpm = bpm
+    wasm.updateClock(player.clock.ptr)
+  }
+
+  setBpm(144)
 
   const info = $({
     timeNow: 0,
@@ -28,10 +32,12 @@ export function Audio() {
   let initial = true
 
   function tick() {
+    const time = player.clock.barTime
+
     const now =
       player.clock.barTime
       - (
-        player.info.isPlaying
+        player.info.isPlaying || time
           // compensate for the latency to the speakers
           // and our own lerp delay
           ? ctx.outputLatency - ctx.baseLatency + 0.020
@@ -41,7 +47,7 @@ export function Audio() {
     if (!initial || now >= 0) {
       initial = false
 
-      info.timeNow = modWrap(now, 1)
+      info.timeNow = modWrap(now, player.clock.endTime)
 
       if (!info.timeNow || info.timeNow < info.timeNowLerp) {
         info.timeNowLerp = info.timeNow
@@ -59,7 +65,7 @@ export function Audio() {
     }
   }
 
-  return { info, ctx, dsp, player, bar, tick }
+  return { info, ctx, dsp, player, tick }
 }
 
 export let audio = Audio()

@@ -20,12 +20,13 @@ import { SoundValueKind } from '../../as/assembly/dsp/vm/dsp-shared.ts'
 import { dspGens } from '../../generated/typescript/dsp-gens.ts'
 import { getAllProps } from '../dsp/util.ts'
 import { Floats } from '../util/floats.ts'
-import { tokenize } from '../lang/tokenize.ts'
+import { tokenize, type Token } from '../lang/tokenize.ts'
 import { Track, TrackBox, TrackBoxKind } from '../dsp/track.ts'
 import { Source } from '../source.ts'
 import { Heads } from '../draws/heads.ts'
 import { Player } from '../dsp/player.ts'
 import { audio } from '../audio.ts'
+import { Project, type ProjectData } from '../dsp/project.ts'
 
 const DEBUG = true
 
@@ -69,24 +70,96 @@ export function Main() {
     audio.player.stop()
   })
 
-  // console.log(player)
+  const sources: Source[] = [
+
+  ]
+
+  const project = Project({
+    id: 0,
+    timestamp: 0,
+    title: '',
+    creator: '',
+    remix_of: 0,
+    bpm: 0,
+    pitch: 0,
+    sources,
+    tracks: [],
+    comments: []
+  })
+
+  $.fx(() => {
+    const { sources, tracks } = project.info.data
+    $()
+    //$(new Source(tokenize), sources[box.source_id])
+    const sourcesMap = new Map<number, Source>()
+
+    const newTracks = []
+
+    let endTime = 0
+
+    for (let y = 0; y < tracks.length; y++) {
+      const track = tracks[y]
+      const t = Track(audio.dsp, track, y)
+
+      newTracks.push(t)
+
+      const boxes: TrackBox[] = []
+      for (const box of track.boxes) {
+        if (y !== 2 && box.time === 0) continue
+
+        const proto = { track: t }
+
+        let source = sourcesMap.get(box.source_id)
+        if (!source) sourcesMap.set(box.source_id,
+          source = $(new Source<Token>(tokenize), sources[box.source_id])
+        )
+
+        const trackBox = $({
+          __proto__: proto,
+          kind: y % 3 === 2 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
+          rect: $(new Rect, { x: box.time, y, w: box.length, h: 1 }),
+          source,
+          isFocused: false,
+          isHovering: false,
+        }) as $<TrackBox & { __proto__: typeof proto }>
+
+        for (let x = box.time; x < box.time + box.length; x++) {
+          const bar = audio.player.bars[x]
+          bar[bar.indexOf(0)] = t.pt.ptr
+        }
+
+        boxes.push(trackBox)
+      }
+
+      t.info.boxes = boxes
+
+      endTime = Math.max(endTime, t.info.right)
+    }
+
+    state.tracks = newTracks
+    audio.player.clock.endTime = endTime
+    // console.log(audio.player.barsData)
+  })
 
   function addTrack(source: $<Source<any>>) {
-    const y = state.tracks.length
-    const t = Track(audio.dsp, source, y)
-    audio.bar[y] = t.pt.ptr
+    let source_id = sources.indexOf(source)
+    if (source_id === -1) source_id = sources.push(source) - 1
+    console.log(source_id)
 
-    const proto = { track: t }
+    const trackData: ProjectData['tracks'][0] = $({
+      boxes: Array.from({ length: 4 }, (_, x) => $({
+        source_id,
+        time: x,
+        length: 1,
+        pitch: 0,
+        params: []
+      })),
+    })
 
-    t.info.boxes = Array.from({ length: 8 }, (_, x) => $({
-      __proto__: proto,
-      kind: y % 3 === 2 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
-      rect: $(new Rect, { x, y, w: 1, h: 1 }),
-      isFocused: false,
-      isHovering: false,
-    }) as $<TrackBox & { __proto__: typeof proto }>)
-
-    state.tracks = [...state.tracks, t]
+    project.info.data.tracks = [
+      ...project.info.data.tracks,
+      trackData
+    ]
   }
 
   $.batch(() => {
@@ -132,13 +205,17 @@ export function Main() {
     $()
     const offs = []
     for (const track of tracks) {
-      const editor = (editors[track.info.y] ??= code.createEditorView($(new Rect, { x: 0, y: track.info.y, w: 1, h: 1 })))
+      const editor = (editors[track.info.y] ??= code.createEditorView(
+        $(new Rect, { x: 0, y: track.info.y, w: 1, h: 1 })
+      ))
+
       offs.push($.fx(() => {
         const { hexColorBrightest } = track.info.colors
         $()
         editor.editorInfo.brand = hexColorBrightest
       }))
-      editor.editor.buffer.source = track.source
+
+      editor.editor.buffer.source = track.info.boxes[0].source
     }
     // console.log(editors)
     return offs
