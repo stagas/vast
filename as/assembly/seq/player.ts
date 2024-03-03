@@ -1,7 +1,6 @@
 import { Clock } from '../dsp/core/clock'
-import { fadeIn, fadeOut } from '../dsp/graph/fade'
-import { mul_audio_scalar_add_audio } from '../dsp/graph/math'
-import { logi } from '../env'
+import { fadeIn16, fadeOut16 } from '../dsp/graph/fade'
+import { mul_audio_scalar_add_audio16 } from '../dsp/graph/math'
 import { cubicMod, modWrap } from '../util'
 import { MAX_BARS } from './constants'
 import { Out, PlayerTrack } from './player-shared'
@@ -57,16 +56,16 @@ function writeOut(track: PlayerTrack, begin: i32, end: i32, out_L: usize, out_R:
   let input: usize
   if (track.out_L$) {
     input = changetype<usize>(track.out_L$)
-    mul_audio_scalar_add_audio(input, pan_L, out_L, begin, end, out_L)
+    mul_audio_scalar_add_audio16(input, pan_L, out_L, begin, end, out_L)
   }
   if (track.out_R$) {
     input = changetype<usize>(track.out_R$)
-    mul_audio_scalar_add_audio(input, pan_R, out_R, begin, end, out_R)
+    mul_audio_scalar_add_audio16(input, pan_R, out_R, begin, end, out_R)
   }
   if (track.out_LR$) {
     input = changetype<usize>(track.out_LR$)
-    mul_audio_scalar_add_audio(input, pan_L, out_L, begin, end, out_L)
-    mul_audio_scalar_add_audio(input, pan_R, out_R, begin, end, out_R)
+    mul_audio_scalar_add_audio16(input, pan_L, out_L, begin, end, out_L)
+    mul_audio_scalar_add_audio16(input, pan_R, out_R, begin, end, out_R)
   }
 }
 
@@ -77,15 +76,15 @@ function fadeOutTrack(track: PlayerTrack, samples: u32, begin: i32, end: i32): v
 
   if (track.out_L$) {
     input = changetype<usize>(track.out_L$)
-    fadeOut(samples, begin, end, input)
+    fadeOut16(samples, begin, end, input)
   }
   if (track.out_R$) {
     input = changetype<usize>(track.out_R$)
-    fadeOut(samples, begin, end, input)
+    fadeOut16(samples, begin, end, input)
   }
   if (track.out_LR$) {
     input = changetype<usize>(track.out_LR$)
-    fadeOut(samples, begin, end, input)
+    fadeOut16(samples, begin, end, input)
   }
 }
 
@@ -96,15 +95,15 @@ function fadeInTrack(track: PlayerTrack, samples: u32, begin: i32, end: i32): vo
 
   if (track.out_L$) {
     input = changetype<usize>(track.out_L$)
-    fadeIn(samples, begin, end, input)
+    fadeIn16(samples, begin, end, input)
   }
   if (track.out_R$) {
     input = changetype<usize>(track.out_R$)
-    fadeIn(samples, begin, end, input)
+    fadeIn16(samples, begin, end, input)
   }
   if (track.out_LR$) {
     input = changetype<usize>(track.out_LR$)
-    fadeIn(samples, begin, end, input)
+    fadeIn16(samples, begin, end, input)
   }
 }
 
@@ -292,7 +291,14 @@ export function updateClock(clock$: usize): void {
 
 export function playerProcess(player$: usize, begin: u32, end: u32, out$: usize): void {
   const player = changetype<Player>(player$)
-  player.process(begin, end, out$)
+  const step: u32 = 16
+  let b: u32 = begin
+  let e: u32 = begin + step
+  while (b < end) {
+    player.process(b, e, out$)
+    b += step
+    e += step
+  }
 }
 
 export function clearLastBar(player$: usize): void {

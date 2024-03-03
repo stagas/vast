@@ -105,7 +105,7 @@ export function Main() {
 
       const boxes: TrackBox[] = []
       for (const box of track.boxes) {
-        if (y !== 2 && box.time === 0) continue
+        if (Math.random() > .5) continue
 
         const proto = { track: t }
 
@@ -147,7 +147,7 @@ export function Main() {
     console.log(source_id)
 
     const trackData: ProjectData['tracks'][0] = $({
-      boxes: Array.from({ length: 4 }, (_, x) => $({
+      boxes: Array.from({ length: 16 }, (_, x) => $({
         source_id,
         time: x,
         length: 1,

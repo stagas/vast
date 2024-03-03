@@ -369,6 +369,41 @@ export function mul_audio_scalar_add_audio(
   }
 }
 
+export function mul_audio_scalar_add_audio16(
+  in0: usize,
+  scalar: f32,
+  in1: usize,
+  begin: u32,
+  end: u32,
+  out: usize,
+): void {
+  const scalarv: v128 = f32x4.splat(scalar)
+
+  let in0v: v128
+  let in1v: v128
+  let resv: v128
+
+  let i: u32 = begin
+
+  const offset = begin << 2
+  in0 += offset
+  in1 += offset
+  out += offset
+
+  for (; i < end; i += 16) {
+    unroll(4, () => {
+      in0v = v128.load(in0)
+      in0v = f32x4.mul(in0v, scalarv)
+      in1v = v128.load(in1)
+      resv = f32x4.add(in0v, in1v)
+      v128.store(out, resv)
+      in0 += 16
+      in1 += 16
+      out += 16
+    })
+  }
+}
+
 export function sub_audio_audio(
   in0: usize,
   in1: usize,
