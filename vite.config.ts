@@ -245,6 +245,16 @@ export default defineConfig({
         '--transform', './vendor/update-dsp-gens.js',
       ]
     }),
+    // assemblyScriptPlugin({
+    //   configFile: 'asconfig-nort.json',
+    //   projectRoot: '.',
+    //   srcMatch: 'as/assembly',
+    //   srcEntryFile: 'as/assembly/index.ts',
+    //   extra: [
+    //     '--transform', './vendor/unroll.js',
+    //     '--transform', './vendor/update-dsp-gens.js',
+    //   ]
+    // }),
     assemblyScriptPlugin({
       configFile: 'asconfig-player.json',
       projectRoot: '.',

@@ -626,7 +626,15 @@ export function Grid(surface: Surface, dsp: Dsp) {
         })]
       }
       else if (kind === TrackBoxKind.Audio) {
-        const waveform = boxes.Wave($({
+        const waveformBg = waveformShapes.Wave($({
+          get x() { return rect.x },
+          get y() { return rect.y + (rect.h - rect.hh) / 2 },
+          get w() { return rect.w },
+          get h() { return rect.hh },
+        }))
+        waveformBg.view.alpha = 0.6
+
+        const waveform = waveformShapes.Wave($({
           get x() { return rect.x },
           get y() { return rect.y + (rect.h - rect.hh) / 2 },
           get w() { return rect.w },
@@ -634,13 +642,20 @@ export function Grid(surface: Surface, dsp: Dsp) {
         }))
 
         return $.fx(() => {
-          const { track } = trackBox
-          const { floats } = $.of(track.info)
-          const { fg } = track.info.colors
+          const { track, isFocused } = trackBox
+          const { floats, colors } = $.of(track.info)
           $()
-          waveform.view.color = fg
+
+          waveformBg.visible = !!isFocused
+          waveformBg.view.floats$ = floats.ptr
+          waveformBg.view.len = floats.len
+          waveformBg.view.coeff = dsp.clock.coeff
+
+          waveform.view.color = isFocused ? colors.colorBright : colors.fg
           waveform.view.floats$ = floats.ptr
           waveform.view.len = floats.len
+          waveform.view.coeff = dsp.clock.coeff
+
           redraw(waveformShapes)
         })
       }

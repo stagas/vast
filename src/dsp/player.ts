@@ -4,7 +4,7 @@ import { getMemoryView } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
 import { MAX_BARS } from '../../as/assembly/seq/constants.ts'
 import { Out as OutType } from '../../as/assembly/seq/player-shared.ts'
-import { Out, PlayerMode } from './player-shared.ts'
+import { Clock, Out, PlayerMode } from './player-shared.ts'
 import type { PlayerProcessorOptions } from './player-worklet.ts'
 import playerWorkletUrl from './player-worklet.ts?url'
 
@@ -60,8 +60,11 @@ export type Player = ReturnType<typeof Player>
 
 export function Player(ctx: AudioContext) {
   using $ = Signal()
+  const pin = <T>(x: T): T => { wasm.__pin(+x); return x }
   const view = getMemoryView(wasm.memory)
   const player$ = wasm.createPlayer(ctx.sampleRate)
+  const clock$ = wasm.getPlayerClock(+player$)
+  const clock = Clock(view.memory.buffer, clock$)
   const bars$ = wasm.getPlayerBars(player$)
   const bars = view.getU32(bars$, MAX_BARS)
   const out = Out(wasm.alloc(Uint8Array, Out.byteLength)) satisfies OutType
@@ -70,6 +73,7 @@ export function Player(ctx: AudioContext) {
   out.L$ = L.ptr
   out.R$ = R.ptr
   const info = $({
+    isPlaying: false,
     node: $.unwrap(() =>
       ctx.audioWorklet.addModule(playerWorkletUrl)
         .then(() => {
@@ -82,5 +86,15 @@ export function Player(ctx: AudioContext) {
     ),
   })
 
-  return { info, bars, out: { view: out, L, R } }
+  function start() {
+    info.node?.start()
+    info.isPlaying = info.node?.isPlaying ?? false
+  }
+
+  function stop() {
+    info.node?.stop()
+    info.isPlaying = info.node?.isPlaying ?? false
+  }
+
+  return { info, clock, bars, out: { view: out, L, R }, start, stop }
 }

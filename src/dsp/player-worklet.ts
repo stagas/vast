@@ -31,7 +31,8 @@ async function createPlayerController(player: PlayerProcessor) {
     env: {
       abort: console.warn,
       log: console.log,
-      memory
+      memory,
+      flushSketch() {}
     }
   })
   const wasm: typeof WasmExports = instance.exports as any

@@ -1,3 +1,5 @@
+import { logi } from './env'
+
 export type Floats = StaticArray<f32>
 
 export function clamp255(x: f32): i32 {
@@ -197,10 +199,10 @@ export function cubicMod(floats: StaticArray<f32>, index: f64, length: u32): f32
 
   // TODO: we could possibly improve this perf by moding the index early
   // and branching, but lets keep it simple for now.
-  const xm = f64(floats[(i - 1) % length])
-  const x0 = f64(floats[(i) % length])
-  const x1 = f64(floats[(i + 1) % length])
-  const x2 = f64(floats[(i + 2) % length])
+  const xm = f64(unchecked(floats[(i - 1) % length]))
+  const x0 = f64(unchecked(floats[(i) % length]))
+  const x1 = f64(unchecked(floats[(i + 1) % length]))
+  const x2 = f64(unchecked(floats[(i + 2) % length]))
 
   const a: f64 = (3.0 * (x0 - x1) - xm + x2) * .5
   const b: f64 = 2.0 * x1 + xm - (5.0 * x0 + x2) * .5

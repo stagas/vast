@@ -55,7 +55,6 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
   pt.out_R$ = out_R.ptr
   pt.out_LR$ = out_LR.ptr
 
-
   const info = $({
     y,
     get sy() {

@@ -1,15 +1,15 @@
 {
   "targets": {
     "debug": {
-      "outFile": "./as/build/player.wasm",
-      "textFile": "./as/build/player.wat",
+      "outFile": "./as/build/nort.wasm",
+      "textFile": "./as/build/nort.wat",
       "sourceMap": true,
       "debug": true,
       "noAssert": true
     },
     "release": {
-      "outFile": "./as/build/player.wasm",
-      "textFile": "./as/build/player.wat",
+      "outFile": "./as/build/nort.wasm",
+      "textFile": "./as/build/nort.wat",
       "sourceMap": true,
       "debug": false,
       "optimizeLevel": 0,
@@ -24,11 +24,11 @@
       "relaxed-simd",
       "threads"
     ],
-    "importMemory": true,
     "sharedMemory": true,
     "initialMemory": 10000,
     "maximumMemory": 10000,
-    "bindings": "raw",
+    "memoryBase": 0,
+    "bindings": "esm",
     "runtime": false,
     "exportRuntime": false
   }

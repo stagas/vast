@@ -25,9 +25,9 @@
       "threads"
     ],
     "sharedMemory": true,
-    "initialMemory": 20000,
-    "maximumMemory": 20000,
-    "memoryBase": 1048576,
+    "initialMemory": 10000,
+    "maximumMemory": 10000,
+    "memoryBase": 0,
     "bindings": "raw",
     "runtime": "incremental",
     "exportRuntime": true

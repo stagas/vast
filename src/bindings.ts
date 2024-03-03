@@ -60,11 +60,11 @@ let allocs = 0
 function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   const bytes = length * ctor.BYTES_PER_ELEMENT
 // console.log('alloc')
-  if (++allocs === GC_EVERY) {
-    console.log('[gc]')
-    wasm.__collect()
-    allocs = 0
-  }
+  // if (++allocs === GC_EVERY) {
+  //   console.log('[gc]')
+  //   wasm.__collect()
+  //   allocs = 0
+  // }
 
   do {
     try {

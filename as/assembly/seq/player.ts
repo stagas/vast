@@ -21,7 +21,7 @@ function processTrack(track: PlayerTrack, index: f64, step: f64, begin: i32, end
 function hasTrack(bar: Bar, track: PlayerTrack): boolean {
   let i: i32 = 0
   let t: PlayerTrack | null
-  while (t = bar[i++]) {
+  while (unchecked(t = bar[i++])) {
     if (t === track) return true
   }
   return false
@@ -110,7 +110,7 @@ function fadeInTrack(track: PlayerTrack, samples: u32, begin: i32, end: i32): vo
 
 class Player {
   clock: Clock
-  bars: StaticArray<usize> = new StaticArray<usize>(MAX_BARS)
+  bars: StaticArray<Bar> = new StaticArray<Bar>(MAX_BARS)
   last: Bar | null = null
   constructor(public sampleRate: u32) {
     const clock = new Clock()
@@ -131,15 +131,16 @@ class Player {
     const coeff: f32 = f32(clock.coeff)
     const currBarIndex: i32 = i32(Math.floor(clock.barTime))
     const nextBarIndex: i32 = i32(Math.floor(clock.nextBarTime))
-    const curr: Bar | null = changetype<Bar>(bars[currBarIndex])
+    const curr: Bar | null = bars[currBarIndex]
     if (!curr) return
-    const next: Bar | null = nextBarIndex >= 0 ? changetype<Bar>(bars[nextBarIndex]) : null
+    const next: Bar | null = nextBarIndex >= 0 ? bars[nextBarIndex] : null
     const last: Bar | null = this.last
 
     let track: PlayerTrack | null
     let i: i32 = 0
     // logi(i)
     while (unchecked(track = curr[i++])) {
+      // logi(i32(track.floats_LR$))
       // if (!last || !hasTrack(last, track)) {
       //   // track.reset()
       // }
