@@ -1,6 +1,8 @@
 import { Signal } from 'signal-jsx'
 import { Matrix, Rect } from 'std'
 import { clamp, debounce, dom } from 'utils'
+import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
+import { Audio } from '../audio.ts'
 import { CODE_WIDTH } from '../constants.ts'
 import { Track, TrackBox, TrackBoxKind } from '../dsp/track.ts'
 import { Shapes } from '../gl/sketch.ts'
@@ -8,8 +10,6 @@ import { log, state } from '../state.ts'
 import { Surface } from '../surface.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
 import { BLACK_KEYS, MAX_NOTE, Note, byNoteN, getNotesScale } from '../util/notes.ts'
-import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
-import { Dsp } from '../dsp/dsp.ts'
 
 const DEBUG = true
 const SCALE_X = 1 / 16
@@ -19,10 +19,11 @@ const WAVES_MARGIN_NORMAL = 0.0775
 
 export type Grid = ReturnType<typeof Grid>
 
-export function Grid(surface: Surface, dsp: Dsp) {
+export function Grid(surface: Surface, audio: Audio) {
   using $ = Signal()
 
   const { anim, mouse, keyboard, view, intentMatrix, viewMatrix, sketch } = surface
+  const { dsp, player } = audio
   const { lastFarMatrix, targetMatrix, tracks } = state
 
   sketch.scene.clear()
@@ -41,6 +42,7 @@ export function Grid(surface: Surface, dsp: Dsp) {
 
   const info = $({
     redraw: 0,
+
     boxes: null as null | ReturnType<typeof Boxes>,
     focusedBox: null as null | GridBox,
     hoveringBox: null as null | GridBox,
@@ -745,7 +747,6 @@ export function Grid(surface: Surface, dsp: Dsp) {
     const pianoroll = Shapes(view, viewMatrix)
 
     const pianorollBg = pianoroll.Box(rect)
-    pianorollBg.view.opts = ShapeOpts.Box | ShapeOpts.NoMargin
     $.fx(() => {
       const { trackBox } = info
       pianorollBg.view.color = trackBox.track.info.colors.bgHover
@@ -759,7 +760,7 @@ export function Grid(surface: Surface, dsp: Dsp) {
         return rect.y
       },
       get w() {
-        return PIANO_WIDTH + 0.001
+        return PIANO_WIDTH //+ 0.001
       },
       get h() {
         return rect.h
@@ -1006,6 +1007,32 @@ export function Grid(surface: Surface, dsp: Dsp) {
     return { info, shapes }
   }
 
+  const overlay = Shapes(view, viewMatrix)
+  const rulerNow = overlay.Line(
+    $({ x: audio.info.$.timeNowLerp, y: -10 }),
+    $({ x: audio.info.$.timeNowLerp, get y() { return state.tracks.length + 10 } })
+  )
+  $.fx(() => {
+    rulerNow.view.color = state.primaryColorInt
+  })
+  sketch.scene.add(overlay)
+  overlay.update()
+
+  $.fx(() => {
+    const { timeNow } = audio.info
+    $()
+    redraw(overlay)
+    // console.log('yess', timeNow, rulerNow)
+  })
+
+  $.fx(() => {
+    const { isPlaying } = player.info
+    $()
+    surface?.anim.ticks.add(audio.tick)
+    audio.tick()
+    info.redraw++
+  })
+
   function redraw(shapes?: Shapes) {
     shapes?.update()
     info.redraw++
@@ -1050,6 +1077,7 @@ export function Grid(surface: Surface, dsp: Dsp) {
   $.fx(function redraw() {
     const { redraw } = $.of(info)
     $()
+    toFront(overlay)
     anim.info.epoch++
   })
 

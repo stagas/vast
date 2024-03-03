@@ -1,4 +1,4 @@
-import { Signal } from 'signal-jsx'
+import { $, Signal } from 'signal-jsx'
 import { Matrix, Rect } from 'std'
 import { dom } from 'utils'
 import { Canvas } from './comp/Canvas.tsx'
@@ -12,7 +12,7 @@ const DEBUG = false
 
 export type Surface = ReturnType<typeof Surface>
 
-export function Surface(view: Rect, intentMatrix: Matrix, viewMatrix: LerpMatrix, onresize?: () => void, alpha = false) {
+export function Surface(view: $<Rect>, intentMatrix: Matrix, viewMatrix: LerpMatrix, onresize?: () => void, alpha = false) {
   using $ = Signal()
 
   const info = $({

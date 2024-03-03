@@ -41,7 +41,10 @@
     "paths": {
       "assembly": [
         "./src/bindings"
-      ]
+      ],
+      "assembly-player": [
+        "./src/bindings-player"
+      ],
     }
   }
 }

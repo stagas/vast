@@ -265,6 +265,16 @@ export default defineConfig({
         '--transform', './vendor/unroll.js',
       ]
     }),
+    assemblyScriptPlugin({
+      configFile: 'asconfig-player-nort.json',
+      projectRoot: '.',
+      srcMatch: 'as/assembly',
+      srcEntryFile: 'as/assembly/seq/player.ts',
+      mapFile: './as/build/player-nort.wasm.map',
+      extra: [
+        '--transform', './vendor/unroll.js',
+      ]
+    }),
     !IS_TEST && {
       name: 'open-in-editor',
       configureServer(server) {

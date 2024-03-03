@@ -23,7 +23,7 @@ export function Anim() {
     epoch: 0,
   })
 
-  const ticks = new Set<() => void>()
+  const ticks = new Set<() => boolean | void>()
 
   let lastEpoch = -1 // cause initial draw to happen
   let animFrame: any
@@ -40,7 +40,7 @@ export function Anim() {
     lastEpoch = info.epoch
 
     for (const tick of ticks) {
-      tick()
+      if (tick()) info.epoch++
     }
 
     animFrame = requestAnimationFrame(tick)

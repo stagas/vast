@@ -1,10 +1,11 @@
-import wasm from 'assembly'
+import wasm from 'assembly-player'
 import { Signal } from 'signal-jsx'
 import { getMemoryView } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
 import { MAX_BARS } from '../../as/assembly/seq/constants.ts'
 import { Out as OutType } from '../../as/assembly/seq/player-shared.ts'
-import { Clock, Out, PlayerMode } from './player-shared.ts'
+import { Clock } from './dsp-shared.ts'
+import { Out, PlayerMode } from './player-shared.ts'
 import type { PlayerProcessorOptions } from './player-worklet.ts'
 import playerWorkletUrl from './player-worklet.ts?url'
 
@@ -40,11 +41,11 @@ export class PlayerNode extends AudioWorkletNode {
     this.mode[0] = PlayerMode.Play
   }
   stop() {
-    if (this.mode[0] === PlayerMode.Stop) {
-      // this.dsp.resetClock()
+    if (this.isPlaying) {
+      this.mode[0] = PlayerMode.Stop
     }
     else {
-      this.mode[0] = PlayerMode.Stop
+      // this.dsp.resetClock()
     }
   }
   reset() {
@@ -77,7 +78,7 @@ export function Player(ctx: AudioContext) {
     node: $.unwrap(() =>
       ctx.audioWorklet.addModule(playerWorkletUrl)
         .then(() => {
-          const sourcemapUrl = new URL('/as/build/player.wasm.map', location.origin).href
+          const sourcemapUrl = new URL('/as/build/player-nort.wasm.map', location.origin).href
           const node = new PlayerNode(ctx, +player$, out.ptr, sourcemapUrl)
           node.connect(ctx.destination)
           return node
@@ -93,7 +94,9 @@ export function Player(ctx: AudioContext) {
 
   function stop() {
     info.node?.stop()
-    info.isPlaying = info.node?.isPlaying ?? false
+    requestAnimationFrame(() => {
+      info.isPlaying = info.node?.isPlaying ?? false
+    })
   }
 
   return { info, clock, bars, out: { view: out, L, R }, start, stop }

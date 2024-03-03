@@ -1,15 +1,16 @@
 import wasm from 'assembly'
+import { Signal } from 'signal-jsx'
 import { Struct, fromEntries, getMemoryView, keys } from 'utils'
 import { BUFFER_SIZE, MAX_LISTS, MAX_LITERALS, MAX_SCALARS } from '../../as/assembly/dsp/constants.ts'
 import { DspBinaryOp, SoundData as SoundDataShape } from '../../as/assembly/dsp/vm/dsp-shared.ts'
 import { Gen, dspGens } from '../../generated/typescript/dsp-gens.ts'
 import { createVm } from '../../generated/typescript/dsp-vm.ts'
+import { AstNode, interpret } from '../lang/interpreter.ts'
+import { Token, tokenize } from '../lang/tokenize.ts'
+import { parseNumber } from '../lang/util.ts'
+import { Clock } from './dsp-shared.ts'
 import { getAllProps } from './util.ts'
 import { Value } from './value.ts'
-import { Token, tokenize } from '../lang/tokenize.ts'
-import { AstNode, interpret } from '../lang/interpreter.ts'
-import { parseNumber } from '../lang/util.ts'
-import { $ } from 'signal-jsx'
 
 const DEBUG = false
 
@@ -19,25 +20,6 @@ const SoundData = Struct({
   begin: 'i32',
   end: 'i32',
   pan: 'f32',
-})
-
-const Clock = Struct({
-  time: 'f64',
-  timeStep: 'f64',
-  prevTime: 'f64',
-  endTime: 'f64',
-  internalTime: 'f64',
-  bpm: 'f64',
-  coeff: 'f64',
-  barTime: 'f64',
-  barTimeStep: 'f64',
-  nextBarTime: 'f64',
-  loopStart: 'f64',
-  loopEnd: 'f64',
-  sampleRate: 'u32',
-  jumpBar: 'i32',
-  ringPos: 'u32',
-  nextRingPos: 'u32',
 })
 
 const dspGensKeys = keys(dspGens)
@@ -76,6 +58,8 @@ export function Dsp(ctx: AudioContext, {
 }: {
   core$?: ReturnType<typeof wasm.createCore>
 } = {}) {
+  using $ = Signal()
+
   core$ ??= wasm.createCore(ctx.sampleRate)
   const pin = <T>(x: T): T => { wasm.__pin(+x); return x }
   const engine$ = wasm.createEngine(ctx.sampleRate, core$)
@@ -552,7 +536,7 @@ export function Dsp(ctx: AudioContext, {
     return sound
   }
 
-  return { ctx, engine$, core$, clock, Sound }
+  return { info, ctx, engine$, core$, clock, Sound }
 }
 
 const commutative = new Set([DspBinaryOp.Add, DspBinaryOp.Mul])

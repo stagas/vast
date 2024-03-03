@@ -25,8 +25,8 @@
       "threads"
     ],
     "sharedMemory": true,
-    "initialMemory": 10000,
-    "maximumMemory": 10000,
+    "initialMemory": 1000,
+    "maximumMemory": 1000,
     "memoryBase": 0,
     "bindings": "esm",
     "runtime": false,

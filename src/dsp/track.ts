@@ -1,4 +1,5 @@
 import wasm from 'assembly'
+import wasmPlayer from 'assembly-player'
 import { $, Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { hueshift, luminate, saturate } from 'utils'
@@ -46,11 +47,11 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
   const { clock } = dsp
   const sound = dsp.Sound()
 
-  const ptData = wasm.alloc(Uint8Array, PlayerTrack.byteLength)
+  const ptData = wasmPlayer.alloc(Uint8Array, PlayerTrack.byteLength)
   const pt = PlayerTrack(ptData)
-  const out_L = wasm.alloc(Float32Array, BUFFER_SIZE)
-  const out_R = wasm.alloc(Float32Array, BUFFER_SIZE)
-  const out_LR = wasm.alloc(Float32Array, BUFFER_SIZE)
+  const out_L = wasmPlayer.alloc(Float32Array, BUFFER_SIZE)
+  const out_R = wasmPlayer.alloc(Float32Array, BUFFER_SIZE)
+  const out_LR = wasmPlayer.alloc(Float32Array, BUFFER_SIZE)
   pt.out_L$ = out_L.ptr
   pt.out_R$ = out_R.ptr
   pt.out_LR$ = out_LR.ptr
@@ -151,7 +152,7 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
 
       info.tokensAstNode = program.value.tokensAstNode
       info.waveLength = Math.floor(audioLength * clock.sampleRate / clock.coeff)
-      const f = new Float32Array(info.waveLength)
+      const f = wasmPlayer.alloc(Float32Array, info.waveLength)
 
       sound.data.begin = 0
       sound.data.end = 0
@@ -185,12 +186,12 @@ export function Track(dsp: Dsp, source: $<Source<Token>>, y: number) {
       info.floats = Floats(f)
 
       // update bars
-      pt.len = info.floats.len
+      pt.len = f.length
       pt.offset = 0
       pt.coeff = 1.0
       pt.pan = 0.0
       pt.vol = 1.0
-      pt.floats_LR$ = info.floats.ptr
+      pt.floats_LR$ = f.ptr
 
       // bar[y] = pt.ptr
       // console.log(player.bars, bar)

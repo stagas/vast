@@ -1,15 +1,15 @@
 {
   "targets": {
     "debug": {
-      "outFile": "./as/build/player.wasm",
-      "textFile": "./as/build/player.wat",
+      "outFile": "./as/build/player-nort.wasm",
+      "textFile": "./as/build/player-nort.wat",
       "sourceMap": true,
       "debug": true,
       "noAssert": true
     },
     "release": {
-      "outFile": "./as/build/player.wasm",
-      "textFile": "./as/build/player.wat",
+      "outFile": "./as/build/player-nort.wasm",
+      "textFile": "./as/build/player-nort.wat",
       "sourceMap": true,
       "debug": false,
       "optimizeLevel": 0,
@@ -25,11 +25,11 @@
       "threads"
     ],
     "sharedMemory": true,
-    "importMemory": false,
+    "importMemory": true,
     "initialMemory": 1000,
     "maximumMemory": 1000,
     "bindings": "raw",
-    "runtime": "incremental",
-    "exportRuntime": true
+    "runtime": false,
+    "exportRuntime": false
   }
 }

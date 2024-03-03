@@ -6,7 +6,7 @@ import { Task } from 'tinybench'
 import { Token, tokenize } from './lang/tokenize.ts'
 import { Source } from './source.ts'
 import { LerpMatrix } from './util/geometry.ts'
-import { hexToInt } from './util/rgb.ts'
+import { hexToInt, toHex } from './util/rgb.ts'
 import { Mesh } from './webgl.ts'
 import { AnimMode } from './world/anim.ts'
 import { Track } from './dsp/track.ts'
@@ -23,7 +23,7 @@ class State {
     return themes[state.theme]
   }
   get primaryColorInt() {
-    return hexToInt(state.colors.primary)
+    return hexToInt(toHex(state.colors.primary))
   }
 
   mode = storage('edit')

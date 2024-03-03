@@ -25,14 +25,7 @@ const transformUsing = (code: string): string => {
     const indexOfBlockEnd = findBlockEnd(code, index + match[0].length);
     if (!indexOfBlockEnd) return;
     const block = code.slice(index + match[0].length, indexOfBlockEnd);
-    const transformed = `
-      const ${assignment}
-      try {
-        ${block}
-      } finally {
-        ${async ?? ''}${name}[Symbol.${async ? 'asyncDispose' : 'dispose'}]?.();
-      }
-    `;
+    const transformed = `const ${assignment};try {${block}} finally {${async ?? ''}${name}[Symbol.${async ? 'asyncDispose' : 'dispose'}]?.();}`;
     code = code.slice(0, index) + transformed + code.slice(indexOfBlockEnd);
   });
   return code;

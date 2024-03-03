@@ -1,6 +1,7 @@
 import { logf, logf2, logf3, logf4, logf6, logi } from '../env'
 import { Sketch } from './sketch-class'
 import { Box, Matrix, Wave, ShapeOpts, Shape, Line, WAVE_MIPMAPS } from './sketch-shared'
+import { lineIntersectsRect } from './util'
 
 const MAX_ZOOM: f32 = 0.5
 const BASE_SAMPLES: f32 = 48000
@@ -92,19 +93,7 @@ export function draw(
         const y1 = f32(line.y1 * md + mf - hw)
 
         // check if visible
-        if (
-          (
-            x0 > width ||
-            y0 > height ||
-            x0 < 0 ||
-            y0 < 0
-          ) && (
-            x1 > width ||
-            y1 > height ||
-            x1 < 0 ||
-            y1 < 0
-          )
-        ) continue
+        if (!lineIntersectsRect(x0, y0, x1, y1, 0, 0, width, height)) continue
 
         sketch.drawLine(
           x0, y0,

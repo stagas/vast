@@ -1,8 +1,9 @@
 import { getMemoryView, toRing, wasmSourceMap } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
-import type { __AdaptedExports as WasmExports } from '../../as/build/player'
-import hex from '../../as/build/player.wasm?raw-hex'
-import { Clock, Out, PlayerMode } from './player-shared.ts'
+import type { __AdaptedExports as WasmExports } from '../../as/build/player-nort'
+import hex from '../../as/build/player-nort.wasm?raw-hex'
+import { Clock } from './dsp-shared.ts'
+import { Out, PlayerMode } from './player-shared.ts'
 
 type AudioProcess = (inputs: Float32Array[], outputs: Float32Array[]) => void
 
@@ -32,7 +33,6 @@ async function createPlayerController(player: PlayerProcessor) {
       abort: console.warn,
       log: console.log,
       memory,
-      flushSketch() {}
     }
   })
   const wasm: typeof WasmExports = instance.exports as any
