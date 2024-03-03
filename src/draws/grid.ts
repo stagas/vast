@@ -1008,6 +1008,7 @@ export function Grid(surface: Surface, audio: Audio) {
   }
 
   const overlay = Shapes(view, viewMatrix)
+
   const rulerNow = overlay.Line(
     $({ x: audio.info.$.timeNowLerp, y: -10 }),
     $({ x: audio.info.$.timeNowLerp, get y() { return state.tracks.length + 10 } })
@@ -1022,7 +1023,6 @@ export function Grid(surface: Surface, audio: Audio) {
     const { timeNow } = audio.info
     $()
     redraw(overlay)
-    // console.log('yess', timeNow, rulerNow)
   })
 
   $.fx(() => {
