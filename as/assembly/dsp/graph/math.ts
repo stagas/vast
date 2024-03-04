@@ -1,6 +1,6 @@
 // math_op(out_0, 80.0, begin, i, out_1)
 
-import { logi } from '../../env'
+import { logf, logf4, logi } from '../../env'
 
 export function pow_scalar_scalar(
   n1: f32,
@@ -402,6 +402,22 @@ export function mul_audio_scalar_add_audio16(
       out += 16
     })
   }
+}
+
+// @ts-ignore
+@inline
+export function mul_audio_scalar_add_audio1(
+  in0: usize,
+  scalar: f32,
+  in1: usize,
+  pos: u32,
+  out: usize,
+): void {
+  const offset = pos << 2
+  const in0v = f32.load(in0 + offset) * scalar
+  const in1v = f32.load(in1 + offset)
+  const resv = in0v + in1v
+  f32.store(out + offset, resv)
 }
 
 export function sub_audio_audio(

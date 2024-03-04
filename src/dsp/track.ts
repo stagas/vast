@@ -212,7 +212,12 @@ export function Track(dsp: Dsp, trackData: TrackData, y: number) {
   $.fx(function update_audio_buffer() {
     using $ = Signal()
 
+    const sources = new Set<Source<Token>>()
     for (const { source } of info.boxes) {
+      sources.add(source)
+    }
+
+    for (const source of sources) {
       $.fx(() => {
         const { tokens } = source
         $()
