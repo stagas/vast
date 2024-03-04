@@ -12,6 +12,7 @@ export enum ShapeOpts {
   Box /*      */ = 0b0000_0000_0001,
   Line /*     */ = 0b0000_0000_0010,
   Wave /*     */ = 0b0000_0000_0100,
+  Notes /*    */ = 0b0000_0000_1000,
   // flags
   Collapse /* */ = 0b0001_0000_0000,
   NoMargin /* */ = 0b0010_0000_0000,
@@ -36,6 +37,34 @@ export class Box {
 
   color: f32 = 255
   alpha: f32 = 1.0
+}
+
+@unmanaged
+export class Notes {
+  opts: f32 = f32(ShapeOpts.Notes)
+
+  x: f32 = 0
+  y: f32 = 0
+  w: f32 = 0
+  h: f32 = 0
+
+  color: f32 = 255
+  alpha: f32 = 1.0
+
+  isFocused: f32 = 0
+  notes$: f32 = 0
+  hoveringNote$: f32 = 0
+
+  min: f32 = 0
+  max: f32 = 0
+}
+
+@unmanaged
+export class Note {
+  n: f32 = 0
+  time: f32 = 0
+  length: f32 = 0
+  vel: f32 = 0
 }
 
 @unmanaged

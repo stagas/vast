@@ -5,6 +5,7 @@ import { Canvas } from '../comp/Canvas.tsx'
 import { log, state } from '../state.ts'
 import { Grid } from './grid.ts'
 import { CODE_WIDTH } from '../constants.ts'
+import { toHex } from '../util/rgb.ts'
 
 const DEBUG = true
 
@@ -14,13 +15,13 @@ export function Minimap(grid: Grid) {
   using $ = Signal()
 
   const view = $(new Rect, { w: 250, h: 34, pr: state.$.pr })
-  const handleView = $(new Rect, { w: 250, h: 38, pr: state.$.pr })
+  const handleView = $(new Rect, { w: 260, h: 42, pr: state.$.pr })
 
   const canvas = Canvas({ view })
   const handle = Canvas({ view: handleView })
   handle.style.position = 'absolute'
-  handle.style.left = '0'
-  handle.style.top = '-2px'
+  handle.style.left = '-5px'
+  handle.style.top = '-4px'
   canvas.style.marginBottom = '-1px'
 
   $.fx(() => dom.on(handle, 'wheel', e => {
@@ -35,12 +36,18 @@ export function Minimap(grid: Grid) {
     const rect = handle.getBoundingClientRect()
 
     function moveToTarget(e: MouseEvent) {
+      const m = grid.intentMatrix
+      const l = grid.lastFarMatrix
+      const boxes = grid.info.boxes
+      if (!boxes) return
+
       const x = (e.pageX - rect.left) / view.w
       const y = (e.pageY - rect.top) / view.h
-      const width = grid.info.boxes!.info.right
 
-      grid.intentMatrix.e = -x * width * grid.intentMatrix.a + grid.view.w / 2
-      grid.lastFarMatrix.e = -x * width * grid.lastFarMatrix.a + grid.view.w / 2
+      const { left, width } = boxes.info
+
+      m.e = -x * width * m.a + (grid.view.w + CODE_WIDTH + 55) / 2 - left * m.a
+      l.e = -x * width * l.a + grid.view.w / 2 - left * l.a
     }
 
     const off = dom.on(window, 'mousemove', e => {
@@ -56,23 +63,26 @@ export function Minimap(grid: Grid) {
     moveToTarget(e)
   }))
 
-  const c = canvas.getContext('2d', { alpha: false })!
+  const c = canvas.getContext('2d', { alpha: true })!
   const hc = handle.getContext('2d', { alpha: true })!
   const matrix = new Matrix()
   $.fx(() => {
     const { info } = grid
     const { boxes } = $.of(info)
+    const { left, width, rows } = boxes.info
+    const { colors } = state
     const { pr } = view
     $()
     Matrix.viewBox(matrix, view, {
-      x: 0,
+      x: left,
       y: 0,
-      w: boxes.info.right / view.pr,
-      h: boxes.info.rows.length / view.pr - (1 / view.h),
+      w: width / view.pr,
+      h: rows.length / view.pr - (1 / view.h),
     })
     c.save()
     c.scale(pr, pr)
     view.clear(c)
+    // view.fill(c, toHex(colors['base-100']))
     c.setTransform(matrix)
     for (const row of boxes.info.rows) {
       c.beginPath()
@@ -92,6 +102,11 @@ export function Minimap(grid: Grid) {
     const { a, b, c: mc, d, e, f } = grid.intentMatrix
     const { w: vw, h: vh } = grid.view
     const { pr } = handleView
+    const { info } = grid
+    const { boxes } = $.of(info)
+    const { left } = boxes.info
+    const { colors } = state
+
     $()
     const c = hc
 
@@ -101,30 +116,32 @@ export function Minimap(grid: Grid) {
     c.translate(.5, 2.5)
 
     const padX = state.mode === 'wide' ? 0 : CODE_WIDTH + 55.5
-    const x = -((e - padX) / a / pr) * matrix.a
+    const x = -((e - padX + left * a) / a / pr) * matrix.a + 2
     const y = -((f) / d / pr) * matrix.d
-    const w = ((vw - padX - 5) / a / pr) * matrix.a
-    const h = (vh / d / pr) * matrix.d - 2
+    const w = ((vw - padX - 5) / a / pr) * matrix.a + 9
+    const h = (vh / d / pr) * matrix.d + 2
 
     c.beginPath()
-    c.moveTo(x + w, y)
-    c.lineTo(x + w, y + h)
-    c.lineTo(x, y + h)
-    c.fillStyle = '#fff1'
+    c.rect(x, y, w, h)
+    // c.moveTo(x + w, y)
+    // c.lineTo(x + w, y + h)
+    // c.lineTo(x, y + h)
+    const color = toHex(colors['base-content'])
+    c.fillStyle = color + '22'
     c.fill()
-    c.strokeStyle = '#000c'
-    c.lineWidth = 2.1
-    c.stroke()
+    // c.strokeStyle = color
+    // c.lineWidth = 2.1
+    // c.stroke()
 
-    c.beginPath()
-    c.moveTo(x, y + h)
-    c.lineTo(x, y)
-    c.lineTo(x + w, y)
-    c.fillStyle = '#fff1'
-    c.fill()
-    c.strokeStyle = '#fff'
-    c.lineWidth = 2.1
-    c.stroke()
+    // c.beginPath()
+    // c.moveTo(x, y + h)
+    // c.lineTo(x, y)
+    // // c.lineTo(x + w, y)
+    // c.fillStyle = '#fff1'
+    // c.fill()
+    // c.strokeStyle = '#fff'
+    // c.lineWidth = 2.1
+    // c.stroke()
 
 
     c.restore()

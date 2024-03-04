@@ -88,7 +88,7 @@ function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   // We shouldn't refresh if the failure is right after a new refresh,
   // otherwise we enter into infinite refreshes loop.
   if (+new Date() - +new Date(performance.timeOrigin) > 10_000) {
-    location.href = location.href
+    // location.href = location.href
   }
 
   throw new Error('Cannot allocate wasm memory.')

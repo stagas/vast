@@ -18,7 +18,7 @@ interface ParamData {
   values: ValueData[]
 }
 
-interface BoxData {
+export interface BoxData {
   source_id: number
   time: number
   length: number
@@ -63,6 +63,7 @@ export function Project(data: ProjectData, isSaved: boolean = true) {
     data: $(data, {
       tracks: data.tracks.map(track => $(track, {
         boxes: track.boxes.map(box => $(box, {
+          track,
           params: box.params.map(param => $(param, {
             values: param.values.map(value => $(value)),
           })),

@@ -3,7 +3,7 @@ import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Matrix, Rect, RectLike } from 'std'
 import { PointLike, Struct } from 'utils'
-import { Box, Line, MAX_GL_INSTANCES, ShapeOpts, VertOpts, Wave } from '../../as/assembly/gfx/sketch-shared.ts'
+import { Box, Line, MAX_GL_INSTANCES, ShapeOpts, VertOpts, Wave, type Notes } from '../../as/assembly/gfx/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
 import { log } from '../state.ts'
 import { WasmMatrix } from '../util/wasm-matrix.ts'
@@ -126,6 +126,47 @@ export namespace Shape {
 
     color: number,
     alpha: number,
+  ]
+
+  //
+  // Notes
+  //
+  export const Notes = Struct({
+    opts: 'f32',
+
+    x: 'f32',
+    y: 'f32',
+    w: 'f32',
+    h: 'f32',
+
+    color: 'f32',
+    alpha: 'f32',
+
+    isFocused: 'f32',
+    notes$: 'f32',
+    hoveringNote$: 'f32',
+
+    min: 'f32',
+    max: 'f32',
+  })
+
+  export type Notes = [
+    opts: ShapeOpts.Notes,
+
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+
+    color: number,
+    alpha: number,
+
+    isFocused: number,
+    notes$: number,
+    hoveringNote$: number,
+
+    min: number,
+    max: number,
   ]
 
   //
@@ -283,6 +324,44 @@ export function Shapes(view: Rect, matrix: Matrix) {
     return shape
   }
 
+  function Notes(rect: RectLike) {
+    using $ = Signal()
+
+    const data = wasm.alloc(Uint8Array, Shape.Notes.byteLength)
+    const view = Shape.Notes(data) satisfies Notes
+
+    view.opts = ShapeOpts.Notes
+    view.alpha = 1.0
+    view.min = 0
+    view.max = 1
+
+    $.fx(() => {
+      const { x, y, w, h } = rect
+      $()
+      view.x = x
+      view.y = y
+      view.w = w
+      view.h = h
+    })
+
+    const shape = {
+      visible: true,
+      rect,
+      data,
+      view,
+      remove() {
+        $.dispose()
+        data.free()
+        shapes.delete(shape)
+        info.needUpdate = true
+      }
+    }
+
+    shapes.add(shape)
+
+    return shape
+  }
+
   function Line(p0: PointLike, p1: PointLike) {
     using $ = Signal()
 
@@ -366,7 +445,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
 
   return {
     info, mat2d, view, shapes, clear, update,
-    Box, Line, Wave
+    Box, Line, Wave, Notes,
   }
 }
 

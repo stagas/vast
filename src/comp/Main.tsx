@@ -26,7 +26,7 @@ import { Source } from '../source.ts'
 import { Heads } from '../draws/heads.ts'
 import { Player } from '../dsp/player.ts'
 import { audio } from '../audio.ts'
-import { Project, type ProjectData } from '../dsp/project.ts'
+import { Project, type BoxData, type ProjectData } from '../dsp/project.ts'
 
 const DEBUG = true
 
@@ -87,58 +87,72 @@ export function Main() {
     comments: []
   })
 
+  function addBox(t: Track, source: Source, box: BoxData) {
+    const proto = { track: t }
+    const y = t.info.y
+    const trackBox = $({
+      __proto__: proto,
+      data: box,
+      kind: y % 3 === 2 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
+      rect: $(new Rect, { x: box.time, y, w: box.length, h: 1 }),
+      source,
+      isFocused: false,
+      isHovering: false,
+    }) as $<TrackBox & { __proto__: typeof proto }>
+
+    for (let x = box.time; x < box.time + box.length; x++) {
+      const bar = audio.player.bars[x]
+      bar[bar.indexOf(0)] = t.pt.ptr
+    }
+
+    t.info.boxes = [...t.info.boxes, trackBox]
+  }
+
   $.fx(() => {
     const { sources, tracks } = project.info.data
     $()
-    //$(new Source(tokenize), sources[box.source_id])
     const sourcesMap = new Map<number, Source>()
-
     const newTracks = []
-
-    let endTime = 0
 
     for (let y = 0; y < tracks.length; y++) {
       const track = tracks[y]
-      const t = Track(audio.dsp, track, y)
+      const t = Track(audio.dsp, project, track, y)
 
       newTracks.push(t)
 
-      const boxes: TrackBox[] = []
       for (const box of track.boxes) {
-        if (Math.random() > .5) continue
-
-        const proto = { track: t }
-
         let source = sourcesMap.get(box.source_id)
         if (!source) sourcesMap.set(box.source_id,
           source = $(new Source<Token>(tokenize), sources[box.source_id])
         )
-
-        const trackBox = $({
-          __proto__: proto,
-          kind: y % 3 === 2 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
-          rect: $(new Rect, { x: box.time, y, w: box.length, h: 1 }),
-          source,
-          isFocused: false,
-          isHovering: false,
-        }) as $<TrackBox & { __proto__: typeof proto }>
-
-        for (let x = box.time; x < box.time + box.length; x++) {
-          const bar = audio.player.bars[x]
-          bar[bar.indexOf(0)] = t.pt.ptr
-        }
-
-        boxes.push(trackBox)
+        addBox(t, source, box)
       }
-
-      t.info.boxes = boxes
-
-      endTime = Math.max(endTime, t.info.right)
     }
 
     state.tracks = newTracks
-    audio.player.clock.endTime = endTime
-    // console.log(audio.player.barsData)
+  })
+
+  $.fx(() => {
+    let endTime = -Infinity
+    for (const t of state.tracks) {
+      endTime = Math.max(endTime, t.info.right)
+    }
+    if (!isFinite(endTime)) endTime = 0
+    let startTime = endTime
+    for (const t of state.tracks) {
+      startTime = Math.min(startTime, t.info.left)
+    }
+    $()
+    const { clock: c } = audio.player
+    const loopStart = Math.max(c.loopStart, startTime)
+    const loopEnd = Math.min(c.loopEnd, endTime)
+    c.loopStart = loopStart === startTime ? -Infinity : loopStart
+    c.loopEnd = loopEnd === endTime ? +Infinity : loopEnd
+    c.startTime = startTime
+    c.endTime = endTime
+    if (!audio.player.info.isPlaying) {
+      audio.resetClock()
+    }
   })
 
   function addTrack(source: $<Source<any>>) {
@@ -147,9 +161,9 @@ export function Main() {
     console.log(source_id)
 
     const trackData: ProjectData['tracks'][0] = $({
-      boxes: Array.from({ length: 16 }, (_, x) => $({
+      boxes: Array.from({ length: 4 }, (_, x) => $({
         source_id,
-        time: x,
+        time: 1024 + x,
         length: 1,
         pitch: 0,
         params: []

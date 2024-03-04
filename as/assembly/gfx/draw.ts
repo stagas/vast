@@ -1,6 +1,6 @@
 import { logf, logf2, logf3, logf4, logf6, logi } from '../env'
 import { Sketch } from './sketch-class'
-import { Box, Matrix, Wave, ShapeOpts, Shape, Line, WAVE_MIPMAPS } from './sketch-shared'
+import { Box, Line, Matrix, Notes, Shape, ShapeOpts, WAVE_MIPMAPS, Wave, Note } from './sketch-shared'
 import { lineIntersectsRect } from './util'
 
 const MAX_ZOOM: f32 = 0.5
@@ -32,6 +32,7 @@ export function draw(
   let box: Box
   let line: Line
   let wave: Wave
+  let notes: Notes
 
   const x_gap: f32 = ma > 5 ? 1 : 0
 
@@ -76,6 +77,76 @@ export function draw(
           x, y, w, h,
           box.color, box.alpha
         )
+
+        continue
+      }
+
+      //
+      // Notes
+      //
+      case ShapeOpts.Notes: {
+        notes = changetype<Notes>(ptr)
+
+        const x = f32(notes.x * ma + me)
+        const y = f32(notes.y * md + mf)
+        const w = f32(notes.w * ma - x_gap)
+        let h = f32(notes.h * md)
+        if (
+          !(opts & ShapeOpts.NoMargin)
+          && (
+            (!(opts & ShapeOpts.Collapse) || h > 1.5)
+            && h > 1.5
+          )
+        ) {
+          h -= h > 3 ? 1.0 : h > 1.5 ? .5 : 0
+        }
+
+        // check if visible
+        if (x > width
+          || y > height
+          || x + w < 0
+          || y + h < 0
+        ) continue
+
+        const notesPtrs = changetype<StaticArray<usize>>(usize(i32(notes.notes$)))
+        const isFocused = notes.isFocused
+        const hoveringNote$ = usize(i32(notes.hoveringNote$))
+        let note: Note
+        let note$: usize
+        let i: i32 = 0
+        const min = notes.min
+        const SCALE_X: f32 = 1.0 / 16.0
+        const scale_N = notes.max - min
+
+        while (note$ = unchecked(notesPtrs[i++])) {
+          note = changetype<Note>(note$)
+          const n = note.n
+          const time = note.time
+          const length = note.length
+          const vel = note.vel
+
+          const alpha: f32 = isFocused
+            ? hoveringNote$ === note$
+              ? 1
+              : .45 + (.55 * vel)
+            : .2 + (.8 * vel)
+
+          const nx = (time * SCALE_X) * ma
+          if (nx >= w) return
+          const nh = h / scale_N
+          const ny = h - nh * (n + 1 - min) // y
+          let nw = (length * SCALE_X) * ma
+          if (nx + nw > w) {
+            nw = w - nx
+          }
+          sketch.drawBox(
+            x + f32(nx),
+            y + f32(ny),
+            f32(nw),
+            f32(nh),
+            notes.color, notes.alpha * alpha
+          )
+        }
 
         continue
       }
@@ -126,7 +197,7 @@ export function draw(
         //
         // sample coeff for zoom level
         //
-        let sample_coeff: f64 = f64( (NUM_SAMPLES / wave.coeff / 2.0) / ma)
+        let sample_coeff: f64 = f64((NUM_SAMPLES / wave.coeff / 2.0) / ma)
 
         //
         // setup wave pointers

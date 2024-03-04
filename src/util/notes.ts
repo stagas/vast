@@ -1,4 +1,6 @@
+import wasm from 'assembly'
 import { $ } from 'signal-jsx'
+import { Struct } from 'utils'
 
 export const MAX_NOTE = 121
 export const BLACK_KEYS = new Set([1, 3, 6, 8, 10])
@@ -14,7 +16,17 @@ export interface Note {
   time: number
   length: number
   vel: number
+  data: NoteView
 }
+
+export type NoteView = ReturnType<typeof NoteView>
+
+export const NoteView = Struct({
+  n: 'f32',
+  time: 'f32',
+  length: 'f32',
+  vel: 'f32',
+})
 
 export function createDemoNotes(
   base = 60, // middle C
@@ -31,13 +43,22 @@ export function createDemoNotes(
     const y = base + Math.round(Math.random() * 8)
 
     for (let n = 0; n < count; n++) {
-      const note = {
+      const note = $({
         n: y + n * (2 + Math.round(Math.random() * 2)),
         time,
         length,
-        vel: Math.random()
-      }
-      notes.push($(note))
+        vel: Math.random(),
+        data: NoteView(wasm.alloc(Uint8Array, NoteView.byteLength))
+      })
+      $.fx(() => {
+        const { n, time, length, vel } = note
+        $()
+        note.data.n = n
+        note.data.time = time
+        note.data.length = length
+        note.data.vel = vel
+      })
+      notes.push(note)
     }
 
     return notes

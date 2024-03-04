@@ -1,4 +1,4 @@
-import { of } from 'signal-jsx'
+import { $, of } from 'signal-jsx'
 import { History } from './editor/history.ts'
 
 export type Tokenize<T extends SourceToken = SourceToken> = (
@@ -16,8 +16,11 @@ export class Source<T extends SourceToken = SourceToken> {
   constructor(public tokenize: Tokenize<T>) { }
   code?: string
   viewState = History.createViewState()
+  epoch = 0
   get tokens(): T[] {
     const { code, tokenize } = of(this)
+    $()
+    this.epoch++
     return Array.from(tokenize(this as any))
   }
   get lines() {

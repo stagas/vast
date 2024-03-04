@@ -17,6 +17,11 @@ export function Audio() {
   const dsp = Dsp(ctx)
   const player = Player(ctx)
 
+  function resetClock() {
+    wasm.resetClock(player.clock.ptr)
+    info.timeNow = info.timeNowLerp = player.clock.barTime
+  }
+
   function setBpm(bpm: number) {
     player.clock.bpm = bpm
     wasm.updateClock(player.clock.ptr)
@@ -32,24 +37,26 @@ export function Audio() {
   let initial = true
 
   function tick() {
-    const time = player.clock.barTime
+    const c = player.clock
+
+    const time = c.barTime
 
     const now =
-      player.clock.barTime
+      c.barTime
       - (
-        player.info.isPlaying || time
+        player.info.isPlaying || (time !== c.startTime)
           // compensate for the latency to the speakers
           // and our own lerp delay
-          ? ctx.outputLatency - ctx.baseLatency + 0.020
+          ? ctx.outputLatency - 0.050
           : 0
       )
 
-    if (!initial || now >= 0) {
+    if (!initial || now >= c.startTime) {
       initial = false
 
-      info.timeNow = modWrap(now, player.clock.endTime)
+      info.timeNow = c.startTime + modWrap(now - c.startTime, c.endTime - c.startTime)
 
-      if (!info.timeNow || info.timeNow < info.timeNowLerp) {
+      if (info.timeNow === c.startTime || info.timeNow < info.timeNowLerp) {
         info.timeNowLerp = info.timeNow
       }
       else {
@@ -65,7 +72,7 @@ export function Audio() {
     }
   }
 
-  return { info, ctx, dsp, player, tick }
+  return { info, ctx, dsp, player, tick, resetClock }
 }
 
 export let audio = Audio()

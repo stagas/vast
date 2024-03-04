@@ -83,9 +83,6 @@ async function createPlayerController(player: PlayerProcessor) {
     [PlayerMode.Reset]() {
       next()
 
-      // next bar will be null, so tracks will fade out
-      clock.nextBarTime = -1
-
       wasm.playerProcess(player$, begin, end, out$)
       writeOutput()
 
@@ -99,9 +96,6 @@ async function createPlayerController(player: PlayerProcessor) {
     },
     [PlayerMode.Stop]() {
       next()
-
-      // next bar will be null, so tracks will fade out
-      clock.nextBarTime = -1
 
       wasm.playerProcess(player$, begin, end, out$)
       writeOutput()

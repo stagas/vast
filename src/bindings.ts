@@ -57,7 +57,7 @@ let allocs = 0
 
 function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   const bytes = length * ctor.BYTES_PER_ELEMENT
-// console.log('alloc')
+  // console.log('alloc')
   // if (++allocs === GC_EVERY) {
   //   console.log('[gc]')
   //   wasm.__collect()
@@ -74,8 +74,13 @@ function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
         ptr,
         free() {
           reg.unregister(unreg)
-          wasm.__unpin(ptr)
           lru.delete(ptr)
+          try {
+            wasm.__unpin(ptr)
+          }
+          catch (error) {
+            console.warn(error)
+          }
         }
       })
     }
@@ -84,7 +89,13 @@ function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
       console.error('Failed alloc:', bytes, ' - will attempt to free memory.')
       const [first, ...rest] = lru
       lru = new Set(rest)
-      wasm.__unpin(first)
+      try {
+        wasm.__unpin(first)
+      }
+      catch (error) {
+        console.warn(error)
+      }
+      // wasm.__collect()
       continue
     }
   } while (lru.size)
