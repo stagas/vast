@@ -145,6 +145,7 @@ export namespace Shape {
     isFocused: 'f32',
     notes$: 'f32',
     hoveringNote$: 'f32',
+    hoverColor: 'f32',
 
     min: 'f32',
     max: 'f32',
@@ -164,6 +165,7 @@ export namespace Shape {
     isFocused: number,
     notes$: number,
     hoveringNote$: number,
+    hoverColor: number,
 
     min: number,
     max: number,

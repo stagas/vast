@@ -134,14 +134,15 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
       const colorBrightest = hexToInt(hexColorBrightest)
       const colorDark = hexToInt(hexColorDark)
 
-      const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .09))
-      const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
-      const bgHover = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), -.01115))
+      const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
+      const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), -.01))
+      const bgHover = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), -.01))
+      const bgHover2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), -.04))
       const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
 
       return {
-        bg: y % 2 === 0 ? bg : bg2,
-        bgHover,
+        bg, //: y % 2 === 0 ? bg : bg2,
+        bgHover, //: y % 2 === 0 ? bgHover : bgHover2,
         fg,
         color,
         hexColor,

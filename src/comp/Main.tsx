@@ -135,11 +135,13 @@ export function Main() {
   $.fx(() => {
     let endTime = -Infinity
     for (const t of state.tracks) {
+      if (!t.info.width) continue
       endTime = Math.max(endTime, t.info.right)
     }
     if (!isFinite(endTime)) endTime = 0
     let startTime = endTime
     for (const t of state.tracks) {
+      if (!t.info.width) continue
       startTime = Math.min(startTime, t.info.left)
     }
     $()

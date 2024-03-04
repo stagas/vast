@@ -113,13 +113,55 @@ export function draw(
         const hoveringNote$ = usize(i32(notes.hoveringNote$))
         let note: Note
         let note$: usize
-        let i: i32 = 0
         const min = notes.min
         const SCALE_X: f32 = 1.0 / 16.0
         const scale_N = notes.max - min
 
+        if (isFocused) {
+          // draw shadows
+
+          let i: i32 = 0
+          while (note$ = unchecked(notesPtrs[i++])) {
+            note = changetype<Note>(note$)
+
+            const n = note.n
+            const time = note.time
+            const length = note.length
+            const vel = note.vel
+
+            const alpha: f32 = isFocused
+              ? hoveringNote$ === note$
+                ? 1
+                : .45 + (.55 * vel)
+              : .2 + (.8 * vel)
+
+            const color: f32 = 0
+
+            const nx = (time * SCALE_X) * ma
+            if (nx >= w) continue
+
+            let nh = h / scale_N
+            const ny = h - nh * (n + 1 - min) // y
+            let nw = (length * SCALE_X) * ma
+            if (nx + nw > w) {
+              nw = w - nx
+            }
+            nh -= nh > 3 ? 1.0 : nh > 1.5 ? .5 : 0
+            nh += f32(.008 * md)
+            sketch.drawBox(
+              x + f32(nx),
+              y + f32(ny),
+              f32(nw - x_gap),
+              f32(nh),
+              color, notes.alpha * alpha
+            )
+          }
+        }
+
+        let i: i32 = 0
         while (note$ = unchecked(notesPtrs[i++])) {
           note = changetype<Note>(note$)
+
           const n = note.n
           const time = note.time
           const length = note.length
@@ -131,20 +173,26 @@ export function draw(
               : .45 + (.55 * vel)
             : .2 + (.8 * vel)
 
+          const color = hoveringNote$ === note$
+            ? notes.hoverColor
+            : notes.color
+
           const nx = (time * SCALE_X) * ma
-          if (nx >= w) return
-          const nh = h / scale_N
+          if (nx >= w) continue
+
+          let nh = h / scale_N
           const ny = h - nh * (n + 1 - min) // y
           let nw = (length * SCALE_X) * ma
           if (nx + nw > w) {
             nw = w - nx
           }
+          nh -= nh > 3 ? 1.0 : nh > 1.5 ? .5 : 0
           sketch.drawBox(
             x + f32(nx),
             y + f32(ny),
-            f32(nw),
+            f32(nw - x_gap),
             f32(nh),
-            notes.color, notes.alpha * alpha
+            color, notes.alpha * alpha
           )
         }
 

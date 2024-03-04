@@ -54,6 +54,7 @@ export class Notes {
   isFocused: f32 = 0
   notes$: f32 = 0
   hoveringNote$: f32 = 0
+  hoverColor: f32 = 0
 
   min: f32 = 0
   max: f32 = 0

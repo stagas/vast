@@ -474,9 +474,9 @@ export function Grid(surface: Surface, audio: Audio) {
     // if (ev.type !== 'wheel' && state.isHoveringToolbar) return
 
     // clear the clicks when mouse is moved
-    if (ev.type !== 'mousedown' && ev.type !== 'mouseup') {
-      clicks = 0
-    }
+    // if (ev.type !== 'mousedown' && ev.type !== 'mouseup') {
+
+    // }
 
     isZooming = false
     if (ev.type === 'mouseout' || ev.type === 'mouseleave') {
@@ -690,7 +690,7 @@ export function Grid(surface: Surface, audio: Audio) {
       else if (kind === TrackBoxKind.Audio) {
         waveformBg = waveformShapes.Wave($({
           get x() { return rect.x },
-          get y() { return rect.y + (rect.h - rect.hh) / 2 },
+          get y() { return 0.01 + rect.y + (rect.h - rect.hh) / 2 },
           get w() { return rect.w },
           get h() { return rect.hh },
         }))
@@ -1009,9 +1009,10 @@ export function Grid(surface: Surface, audio: Audio) {
     $.fx(() => {
       const { track, isFocused } = trackBox
       const { colors } = track.info
-      // const { primaryColorInt } = state
+      const { primaryColorInt } = state
       $()
       notesShape.view.color = isFocused && !dimmed ? colors.colorBright : colors.fg
+      notesShape.view.hoverColor = primaryColorInt
     })
 
     $.fx(() => {
@@ -1027,6 +1028,13 @@ export function Grid(surface: Surface, audio: Audio) {
       const { isFocused } = trackBox
       $()
       notesShape.view.isFocused = Number(Boolean(isFocused))
+      if (isFocused) {
+        return $.fx(() => {
+          const { hoveringNote } = gridInfo
+          $()
+          notesShape.view.hoveringNote$ = hoveringNote?.data.ptr ?? 0
+        })
+      }
     })
 
     // const map = new Map<
@@ -1174,6 +1182,11 @@ export function Grid(surface: Surface, audio: Audio) {
     shapes?.update()
     info.redraw++
   }
+
+  $.fx(() => {
+    const { hoveringBox } = info
+    clicks = 0
+  })
 
   $.fx(function update_hovering_box_color() {
     const { hoveringBox } = $.of(info)
