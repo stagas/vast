@@ -10,6 +10,7 @@ import { Clock } from './dsp/core/clock'
 import { Core, Engine } from './dsp/core/engine'
 import { Sound } from './dsp/vm/sound'
 import { logf, logi } from './env'
+import { Box, Line, Matrix, Note, Notes, Wave } from './gfx/sketch-shared'
 
 export * from './alloc'
 
@@ -69,4 +70,28 @@ export function getSoundScalars(sound: Sound): usize {
 
 export function getSoundLists(sound: Sound): usize {
   return changetype<usize>(sound.lists)
+}
+
+export function createBox(): usize {
+  return changetype<usize>(new Box())
+}
+
+export function createLine(): usize {
+  return changetype<usize>(new Line())
+}
+
+export function createWave(): usize {
+  return changetype<usize>(new Wave())
+}
+
+export function createNotes(): usize {
+  return changetype<usize>(new Notes())
+}
+
+export function createNote(): usize {
+  return changetype<usize>(new Note())
+}
+
+export function createMatrix(): usize {
+  return changetype<usize>(new Matrix())
 }

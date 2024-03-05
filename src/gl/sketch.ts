@@ -293,8 +293,8 @@ export function Shapes(view: Rect, matrix: Matrix) {
   function Box(rect: RectLike) {
     using $ = Signal()
 
-    const data = wasm.alloc(Uint8Array, Shape.Box.byteLength)
-    const view = Shape.Box(data) satisfies Box
+    // const data = wasm.alloc(Uint8Array, Shape.Box.byteLength)
+    const view = Shape.Box(wasm.memory.buffer, wasm.createBox()) satisfies Box
 
     view.opts = ShapeOpts.Box
     view.alpha = 1.0
@@ -311,11 +311,11 @@ export function Shapes(view: Rect, matrix: Matrix) {
     const shape = {
       visible: true,
       rect,
-      data,
+      // data,
       view,
       remove() {
         $.dispose()
-        data.free()
+        // data.free()
         shapes.delete(shape)
         info.needUpdate = true
       }
@@ -329,8 +329,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
   function Notes(rect: RectLike) {
     using $ = Signal()
 
-    const data = wasm.alloc(Uint8Array, Shape.Notes.byteLength)
-    const view = Shape.Notes(data) satisfies Notes
+    const view = Shape.Notes(wasm.memory.buffer, wasm.createNotes()) satisfies Notes
 
     view.opts = ShapeOpts.Notes
     view.alpha = 1.0
@@ -349,11 +348,9 @@ export function Shapes(view: Rect, matrix: Matrix) {
     const shape = {
       visible: true,
       rect,
-      data,
       view,
       remove() {
         $.dispose()
-        data.free()
         shapes.delete(shape)
         info.needUpdate = true
       }
@@ -367,8 +364,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
   function Line(p0: PointLike, p1: PointLike) {
     using $ = Signal()
 
-    const data = wasm.alloc(Uint8Array, Shape.Line.byteLength)
-    const view = Shape.Line(data) satisfies Line
+    const view = Shape.Line(wasm.memory.buffer, wasm.createLine() ) satisfies Line
 
     view.opts = ShapeOpts.Line
     view.alpha = 1.0
@@ -392,11 +388,9 @@ export function Shapes(view: Rect, matrix: Matrix) {
       visible: true,
       p0,
       p1,
-      data,
       view,
       remove() {
         $.dispose()
-        data.free()
         shapes.delete(shape)
         info.needUpdate = true
       }
@@ -410,8 +404,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
   function Wave(rect: RectLike) {
     using $ = Signal()
 
-    const data = wasm.alloc(Uint8Array, Shape.Wave.byteLength)
-    const view = Shape.Wave(data) satisfies Wave
+    const view = Shape.Wave(wasm.memory.buffer, wasm.createWave()) satisfies Wave
 
     view.opts = ShapeOpts.Wave
     view.alpha = 1.0
@@ -430,11 +423,9 @@ export function Shapes(view: Rect, matrix: Matrix) {
     const shape = {
       visible: true,
       rect,
-      data,
       view,
       remove() {
         $.dispose()
-        data.free()
         shapes.delete(shape)
         info.needUpdate = true
       },
@@ -492,7 +483,7 @@ function SketchInfo(GL: GL, view: Rect) {
     return wasm.draw(
       +sketch$,
       ptrs.ptr,
-      mat2d.ptr,
+      mat2d.byteOffset,
       view.width,
       view.height,
     )

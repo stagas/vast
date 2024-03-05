@@ -35,7 +35,7 @@ export class Box {
   w: f32 = 0
   h: f32 = 0
 
-  color: f32 = 255
+  color: f32 = 0x0
   alpha: f32 = 1.0
 }
 
@@ -48,7 +48,7 @@ export class Notes {
   w: f32 = 0
   h: f32 = 0
 
-  color: f32 = 255
+  color: f32 = 0x0
   alpha: f32 = 1.0
 
   isFocused: f32 = 0
@@ -78,7 +78,7 @@ export class Line {
   x1: f32 = 0
   y1: f32 = 0
 
-  color: f32 = 255
+  color: f32 = 0x0
   alpha: f32 = 1.0
   lw: f32 = 1
 }
@@ -92,7 +92,7 @@ export class Wave {
   w: f32 = 0
   h: f32 = 0
 
-  color: f32 = 255
+  color: f32 = 0x0
   alpha: f32 = 1.0
   lw: f32 = 1
 

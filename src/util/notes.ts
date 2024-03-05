@@ -48,7 +48,7 @@ export function createDemoNotes(
         time,
         length,
         vel: Math.random(),
-        data: NoteView(wasm.alloc(Uint8Array, NoteView.byteLength))
+        data: NoteView(wasm.memory.buffer, wasm.createNote())
       })
       $.fx(() => {
         const { n, time, length, vel } = note

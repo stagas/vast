@@ -74,7 +74,7 @@ export function Player(ctx: AudioContext) {
   const barsData = view.getU32(bars$, MAX_BARS)
   barsData.set(bars.map(bar => bar.ptr))
 
-  const out = Out(wasm.alloc(Uint8Array, Out.byteLength)) satisfies OutType
+  const out = Out(wasm.memory.buffer, wasm.createOut()) satisfies OutType
   const L = wasm.alloc(Float32Array, BUFFER_SIZE)
   const R = wasm.alloc(Float32Array, BUFFER_SIZE)
   out.L$ = L.ptr

@@ -50,8 +50,7 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
   const { clock } = dsp
   const sound = dsp.Sound()
 
-  const ptData = wasmPlayer.alloc(Uint8Array, PlayerTrack.byteLength)
-  const pt = PlayerTrack(ptData)
+  const pt = PlayerTrack(wasmPlayer.memory.buffer, wasmPlayer.createPlayerTrack())
   const out_L = wasmPlayer.alloc(Float32Array, BUFFER_SIZE)
   const out_R = wasmPlayer.alloc(Float32Array, BUFFER_SIZE)
   const out_LR = wasmPlayer.alloc(Float32Array, BUFFER_SIZE)
@@ -289,7 +288,7 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
           const { epoch } = source
           $()
           const { voicesCount, notes } = info
-          console.log('RENDER')
+          // console.log('RENDER')
           renderSource(source, voicesCount, notes)
         })
       }

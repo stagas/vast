@@ -191,7 +191,7 @@ class Player {
       clock.update()
     }
   }
-        // logf(f32(index))
+  // logf(f32(index))
 
   // process(begin: u32, end: u32, out$: usize): void {
   //   const out = changetype<Out>(out$)
@@ -383,4 +383,12 @@ export function playerProcess(player$: usize, begin: u32, end: u32, out$: usize)
 export function clearLastBar(player$: usize): void {
   const player = changetype<Player>(player$)
   player.last = null
+}
+
+export function createPlayerTrack(): usize {
+  return changetype<usize>(new PlayerTrack())
+}
+
+export function createOut(): usize {
+  return changetype<usize>(new Out())
 }
