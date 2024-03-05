@@ -10,7 +10,7 @@ import { Token } from '../lang/tokenize.ts'
 import { Source } from '../source.ts'
 import { state } from '../state.ts'
 import { Floats } from '../util/floats.ts'
-import { createDemoNotes } from '../util/notes.ts'
+import { Note, createDemoNotes } from '../util/notes.ts'
 import { hexToInt, intToHex, toHex } from '../util/rgb.ts'
 import { Player } from './player.ts'
 import { PlayerTrack } from './player-shared.ts'
@@ -118,6 +118,19 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
       }
       return data
     },
+    get voicesCount() {
+      const { notes } = this
+      $()
+      const times = new Map<number, Note[]>()
+      let count = 0
+      for (const note of notes) {
+        let pressed = times.get(note.time)
+        if (!pressed) times.set(note.time, pressed = [])
+        pressed.push(note)
+        count = Math.max(pressed.length, count)
+      }
+      return count
+    },
     get color() {
       return Math.floor(palette[this.y % palette.length])
     },
@@ -159,7 +172,10 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
   })
 
   const renderedEpoch = new Map<Source<Token>, number>()
-  function renderSource(source: Source<Token>) {
+
+  let buffersLru = new Set<Float32Array & { ptr: number, free(): void }>()
+
+  function renderSource(source: Source<Token>, voicesCount: number, notes: Note[]) {
     if (source.epoch === renderedEpoch.get(source)) return
 
     const { audioLength } = info
@@ -174,32 +190,44 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
 
       wasmDsp.updateClock(clock.ptr)
 
-      const { program, out, updateScalars } = sound.process(source.tokens)
+      const { program, out, updateScalars, updateVoices } = sound.process(source.tokens, voicesCount)
 
       info.tokensAstNode = program.value.tokensAstNode
       info.waveLength = Math.floor(audioLength * clock.sampleRate / clock.coeff)
       const f = wasmPlayer.alloc(Float32Array, info.waveLength)
+      buffersLru.add(f)
+      if (buffersLru.size > 2) {
+        const [first, ...rest] = buffersLru
+        first.free()
+        buffersLru = new Set(rest)
+      }
+
+      // TODO: free
+
+      const CHUNK_SIZE = 64
+      let chunkCount = 0
+
+      updateScalars()
+      updateVoices(notes, clock.barTime, clock.barTime + clock.barTimeStep * CHUNK_SIZE)
 
       sound.data.begin = 0
       sound.data.end = 0
       sound.run()
-
-      const CHUNK_SIZE = 64
-      let chunkCount = 0
 
       if (out.LR)
         for (let x = 0; x < f.length; x += BUFFER_SIZE) {
           const end = x + BUFFER_SIZE > f.length ? f.length - x : BUFFER_SIZE
 
           for (let i = 0; i < end; i += CHUNK_SIZE) {
+            updateScalars()
+            updateVoices(notes, clock.barTime, clock.barTime + clock.barTimeStep * CHUNK_SIZE)
+
             sound.data.begin = i
             sound.data.end = i + CHUNK_SIZE > end ? end - i : i + CHUNK_SIZE
             sound.run()
 
             clock.time = (chunkCount * CHUNK_SIZE) * clock.timeStep
             clock.barTime = (chunkCount * CHUNK_SIZE) * clock.barTimeStep
-
-            updateScalars()
 
             chunkCount++
           }
@@ -250,15 +278,21 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
 
       for (const source of sources) {
         $.fx(() => {
+          const { voicesCount, notes } = info
+          for (const note of notes) {
+            const { n, time, length, vel } = note
+          }
+          $()
+          source.epoch++
+        })
+        $.fx(() => {
           const { epoch } = source
           $()
-          renderSource(source)
+          const { voicesCount, notes } = info
+          console.log('RENDER')
+          renderSource(source, voicesCount, notes)
         })
       }
-
-      // const { audioLength } = info
-      // if (!audioLength) return
-      // $()
 
       return $.dispose
     }

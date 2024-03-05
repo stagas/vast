@@ -40,10 +40,10 @@ const wasm = await instantiate(mod, {
 })
 
 const reg = new FinalizationRegistry((ptr: number) => {
+  lru.delete(ptr)
   try {
+    DEBUG && console.log('Freeing', ptr)
     wasm.__unpin(ptr)
-    lru.delete(ptr)
-    DEBUG && console.log('free', ptr)
   }
   catch (error) {
     console.error('Failed free:', ptr, error)
@@ -52,17 +52,18 @@ const reg = new FinalizationRegistry((ptr: number) => {
 
 let lru = new Set<number>()
 const TRIES = 16
-const GC_EVERY = 10000
+const GC_EVERY = 1024000
 let allocs = 0
 
 function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   const bytes = length * ctor.BYTES_PER_ELEMENT
-  // console.log('alloc')
-  // if (++allocs === GC_EVERY) {
-  //   console.log('[gc]')
-  //   wasm.__collect()
-  //   allocs = 0
-  // }
+  // console.warn('[dsp] alloc', length)
+  allocs += length
+  if (allocs > GC_EVERY) {
+    console.log('[dsp gc]')
+    wasm.__collect()
+    allocs = 0
+  }
 
   do {
     try {

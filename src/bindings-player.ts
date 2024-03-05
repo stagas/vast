@@ -32,10 +32,10 @@ const wasm = await instantiate(mod, {
 })
 
 const reg = new FinalizationRegistry((ptr: number) => {
+  lru.delete(ptr)
   try {
+    DEBUG && console.log('Freeing', ptr)
     wasm.__unpin(ptr)
-    lru.delete(ptr)
-    DEBUG && console.log('free', ptr)
   }
   catch (error) {
     console.error('Failed free:', ptr, error)
@@ -44,14 +44,15 @@ const reg = new FinalizationRegistry((ptr: number) => {
 
 let lru = new Set<number>()
 const TRIES = 16
-const GC_EVERY = 10000
+const GC_EVERY = 1024000
 let allocs = 0
 
 function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   const bytes = length * ctor.BYTES_PER_ELEMENT
-// console.log('alloc')
-  // if (++allocs === GC_EVERY) {
-  //   console.log('[gc]')
+  // console.warn('[player] alloc', length)
+  // allocs += length
+  // if (allocs > GC_EVERY) {
+  //   console.log('[player gc]')
   //   wasm.__collect()
   //   allocs = 0
   // }
@@ -66,8 +67,13 @@ function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
         ptr,
         free() {
           reg.unregister(unreg)
-          wasm.__unpin(ptr)
           lru.delete(ptr)
+          try {
+            wasm.__unpin(ptr)
+          }
+          catch (error) {
+            console.warn(error)
+          }
         }
       })
     }
@@ -76,7 +82,13 @@ function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
       console.error('Failed alloc:', bytes, ' - will attempt to free memory.')
       const [first, ...rest] = lru
       lru = new Set(rest)
-      wasm.__unpin(first)
+      try {
+        wasm.__unpin(first)
+      }
+      catch (error) {
+        console.warn(error)
+      }
+      // wasm.__collect()
       continue
     }
   } while (lru.size)

@@ -63,6 +63,17 @@ class State {
 
   tracks = [] as Track[]
 
+  source_midi = $(new Source<Token>(tokenize), {
+    code: `; a synth
+{ n= f= nt= v=
+[exp 1 nt] [lp] env=
+[saw f nt] v*
+[slp 233 1800 env * + ]
+env *
+} midi_in=
+`
+  })
+
   t1_source = $(new Source<Token>(tokenize), {
     code: `;;;kick
 { x=

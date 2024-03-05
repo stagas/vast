@@ -157,16 +157,16 @@ export function Main() {
     }
   })
 
-  function addTrack(source: $<Source<any>>) {
+  function addTrack(source: $<Source<any>>, length = 1, count = 4) {
     let source_id = sources.indexOf(source)
     if (source_id === -1) source_id = sources.push(source) - 1
     console.log(source_id)
 
     const trackData: ProjectData['tracks'][0] = $({
-      boxes: Array.from({ length: 4 }, (_, x) => $({
+      boxes: Array.from({ length: count }, (_, x) => $({
         source_id,
-        time: 1024 + x,
-        length: 1,
+        time: 1024 + (x * length),
+        length,
         pitch: 0,
         params: []
       })),
@@ -182,11 +182,13 @@ export function Main() {
     if (state.tracks.length) {
       state.tracks = []
     }
-    addTrack(state.source)
+    addTrack(state.source_midi, 4, 1)
+    // addTrack(state.source)
     addTrack(state.t1_source)
     addTrack(state.t2_source)
-    addTrack(state.t3_source)
-    addTrack(state.t4_source)
+    // addTrack(state.t3_source)
+    // addTrack(state.t4_source)
+
     // addTrack(state.t1_source)
     // addTrack(state.t1_source)
     // addTrack(state.t1_source)

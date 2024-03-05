@@ -11,6 +11,7 @@ import { parseNumber } from '../lang/util.ts'
 import { Clock } from './dsp-shared.ts'
 import { getAllProps } from './util.ts'
 import { Value } from './value.ts'
+import { Note } from '../util/notes.ts'
 
 const DEBUG = false
 
@@ -27,6 +28,9 @@ const dspGensKeys = keys(dspGens)
 export type Dsp = ReturnType<typeof Dsp>
 export type Sound = ReturnType<Dsp['Sound']>
 export type SoundContext = ReturnType<typeof getContext>
+
+const ntof = (n: number) =>
+  440 * 2 ** ((n - 69) / 12)
 
 function getContext() {
   return {
@@ -363,6 +367,36 @@ export function Dsp(ctx: AudioContext, {
       t: Value.Scalar
       rt: Value.Scalar
       co: Value.Scalar
+
+      n0n: Value.Scalar
+      n0f: Value.Scalar
+      n0t: Value.Scalar
+      n0v: Value.Scalar
+
+      n1n: Value.Scalar
+      n1f: Value.Scalar
+      n1t: Value.Scalar
+      n1v: Value.Scalar
+
+      n2n: Value.Scalar
+      n2f: Value.Scalar
+      n2t: Value.Scalar
+      n2v: Value.Scalar
+
+      n3n: Value.Scalar
+      n3f: Value.Scalar
+      n3t: Value.Scalar
+      n3v: Value.Scalar
+
+      n4n: Value.Scalar
+      n4f: Value.Scalar
+      n4t: Value.Scalar
+      n4v: Value.Scalar
+
+      n5n: Value.Scalar
+      n5f: Value.Scalar
+      n5t: Value.Scalar
+      n5v: Value.Scalar
     }
 
     const api = {
@@ -420,7 +454,7 @@ export function Dsp(ctx: AudioContext, {
 
     let prevHashId: any
 
-    function process(tokens: Token[]) {
+    function process(tokens: Token[], voicesCount: number) {
       const scope = {} as any
       const literals: AstNode[] = []
 
@@ -467,6 +501,15 @@ export function Dsp(ctx: AudioContext, {
       globals.rt = sound.Value.Scalar.create()
       globals.co = sound.Value.Scalar.create()
 
+      const g_any = globals as any
+      for (let i = 0; i < voicesCount; i++) {
+        for (const p of 'nftv') {
+          const name = `n${i}${p}`
+          const value = g_any[name] = sound.Value.Scalar.create()
+          scope[name] = new AstNode(AstNode.Type.Result, { value })
+        }
+      }
+
       const { sr, t, rt, co } = globals
       scope.sr = new AstNode(AstNode.Type.Result, { value: sr })
       scope.t = new AstNode(AstNode.Type.Result, { value: t })
@@ -482,11 +525,36 @@ export function Dsp(ctx: AudioContext, {
 
       updateScalars()
 
-      const program = interpret(sound, scope, tokensCopy)
+      let program = interpret(sound, scope, tokensCopy)
 
-      let L = program.scope.data['L']
-      let R = program.scope.data['R']
-      let LR = program.scope.data['LR']
+      if (voicesCount && program.scope.vars['midi_in']) {
+        const voices = tokenize({
+          code: Array.from({ length: voicesCount }, (_, i) =>
+            `[midi_in n${i}v n${i}t n${i}f n${i}n]`
+          ).join('\n') + ` @ ${voicesCount} / .15 *`
+        })
+        program = interpret(sound, scope, [...tokensCopy, ...voices])
+      }
+
+      const scalars_any = scalars as any
+      function updateVoices(notes: Note[], start: number, end: number) {
+        let i = 0
+        for (const note of notes) {
+          if (note.time / 16 >= start && note.time / 16 < end) {
+            const name = `n${i++}`
+            scalars_any[g_any[name + 'n'].ptr] = note.n
+            scalars_any[g_any[name + 'f'].ptr] = ntof(note.n)
+            scalars_any[g_any[name + 't'].ptr]++
+            scalars_any[g_any[name + 'v'].ptr] = note.vel
+          }
+        }
+      }
+
+      // console.log(program.scope)
+
+      let L = program.scope.vars['L']
+      let R = program.scope.vars['R']
+      let LR = program.scope.vars['LR']
 
       const slice = program.scope.stack.slice(-2)
       if (slice.length === 2) {
@@ -509,7 +577,13 @@ export function Dsp(ctx: AudioContext, {
         setup()
       }
 
-      return { program, out, updateScalars, isNew }
+      return {
+        program,
+        isNew,
+        out,
+        updateScalars,
+        updateVoices
+      }
     }
 
     const sound = {

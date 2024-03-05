@@ -81,7 +81,7 @@ export namespace AstNode {
 class Scope {
   constructor(
     public parent: Scope | null,
-    public data: Record<string, any> = {}
+    public vars: Record<string, any> = {}
   ) { }
   stack: any[] = []
   stackPop() {
@@ -111,7 +111,7 @@ class Scope {
   lookup(prop: string, climb?: boolean) {
     let s: Scope | null = this
     do {
-      if (prop in s.data) return s.data[prop]
+      if (prop in s.vars) return s.vars[prop]
       if (!climb) return
     } while (s = s.parent)
   }
@@ -259,12 +259,12 @@ export function interpret(sound: Sound, data: Record<string, any>, tokens: Token
             }
           }
           if (item) {
-            node.scope.data[p] = item
+            node.scope.vars[p] = item
           }
         }
 
         const genData = Object.fromEntries(
-          Object.entries(node.scope.data).map(([key, { value }]: any) =>
+          Object.entries(node.scope.vars).map(([key, { value }]: any) =>
             [key, value]
           )
         )
@@ -404,7 +404,7 @@ export function interpret(sound: Sound, data: Record<string, any>, tokens: Token
           if (!l) {
             throw new Error('Missing left operand.', { cause: { nodes: [t] } })
           }
-          scope.data[r.value] = l
+          scope.vars[r.value] = l
           return
         }
         switch (t.text) {

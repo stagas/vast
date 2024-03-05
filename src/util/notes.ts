@@ -29,13 +29,13 @@ export const NoteView = Struct({
 })
 
 export function createDemoNotes(
-  base = 60, // middle C
-  count = 3,
+  base = 32,
+  count = 1,
   step = 1,
   // length = 1,
 ) {
-  return Array.from({ length: 4 }, (_, i) => {
-    const time = i * step * 4
+  return Array.from({ length: 8 * 4 }, (_, i) => {
+    const time = i * step * 2 + step * 2
     const length = 1 + Math.round(Math.random() * 4)
     // const count = 1 //+ Math.round(Math.random() * 2)
     // const base = 12 //+ Math.floor(Math.random() * 12)
@@ -44,7 +44,7 @@ export function createDemoNotes(
 
     for (let n = 0; n < count; n++) {
       const note = $({
-        n: y + n * (2 + Math.round(Math.random() * 2)),
+        n: y + n * (4 + Math.round(Math.random() * 3)),
         time,
         length,
         vel: Math.random(),
