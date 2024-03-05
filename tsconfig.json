@@ -39,11 +39,14 @@
     "allowJs": true,
     "strict": true,
     "paths": {
-      "assembly": [
-        "./src/bindings"
+      "assembly-dsp": [
+        "./src/bindings-dsp"
       ],
-      "assembly-player": [
-        "./src/bindings-player"
+      "assembly-gfx": [
+        "./src/bindings-gfx"
+      ],
+      "assembly-seq": [
+        "./src/bindings-seq"
       ],
     }
   }

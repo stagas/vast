@@ -1,4 +1,4 @@
-import wasm from 'assembly'
+import wasm from 'assembly-gfx'
 import { Signal } from 'signal-jsx'
 import { Matrix, Rect } from 'std'
 import { log } from '../state.ts'

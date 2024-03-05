@@ -1,4 +1,4 @@
-import wasm from 'assembly'
+import wasm from 'assembly-gfx'
 import { $ } from 'signal-jsx'
 import { Struct } from 'utils'
 
@@ -85,3 +85,5 @@ export function getNotesScale(notes: Note[]) {
   const N = max - min
   return { min, max, N }
 }
+
+export const ntof = (n: number) => 440 * 2 ** ((n - 69) / 12)

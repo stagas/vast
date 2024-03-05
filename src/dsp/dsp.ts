@@ -1,4 +1,4 @@
-import wasm from 'assembly'
+import wasm from 'assembly-dsp'
 import { Signal } from 'signal-jsx'
 import { Struct, fromEntries, getMemoryView, keys } from 'utils'
 import { BUFFER_SIZE, MAX_LISTS, MAX_LITERALS, MAX_SCALARS } from '../../as/assembly/dsp/constants.ts'
@@ -11,7 +11,7 @@ import { parseNumber } from '../lang/util.ts'
 import { Clock } from './dsp-shared.ts'
 import { getAllProps } from './util.ts'
 import { Value } from './value.ts'
-import { Note } from '../util/notes.ts'
+import { Note, ntof } from '../util/notes.ts'
 
 const DEBUG = false
 
@@ -28,9 +28,6 @@ const dspGensKeys = keys(dspGens)
 export type Dsp = ReturnType<typeof Dsp>
 export type Sound = ReturnType<Dsp['Sound']>
 export type SoundContext = ReturnType<typeof getContext>
-
-const ntof = (n: number) =>
-  440 * 2 ** ((n - 69) / 12)
 
 function getContext() {
   return {

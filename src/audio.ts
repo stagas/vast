@@ -1,4 +1,4 @@
-import wasm from 'assembly-player'
+import wasm from 'assembly-seq'
 import { Signal } from 'signal-jsx'
 import { Dsp } from './dsp/dsp.ts'
 import { Player } from './dsp/player.ts'

@@ -1,5 +1,5 @@
 import { logf, logf2, logf3, logf4, logf6, logi } from '../env'
-import { Sketch } from './sketch-class'
+import { Sketch } from './sketch'
 import { Box, Line, Matrix, Notes, Shape, ShapeOpts, WAVE_MIPMAPS, Wave, Note } from './sketch-shared'
 import { lineIntersectsRect } from './util'
 

@@ -1,4 +1,4 @@
-import wasm from 'assembly'
+import wasm from 'assembly-gfx'
 import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Matrix, Rect, RectLike } from 'std'

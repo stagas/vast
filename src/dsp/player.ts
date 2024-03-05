@@ -1,4 +1,4 @@
-import wasm from 'assembly-player'
+import wasm from 'assembly-seq'
 import { Signal } from 'signal-jsx'
 import { getMemoryView } from 'utils'
 import { BUFFER_SIZE, MAX_TRACKS } from '../../as/assembly/dsp/constants.ts'

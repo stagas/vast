@@ -237,40 +237,42 @@ export default defineConfig({
     //   exclude: ['fs']
     // }),
     assemblyScriptPlugin({
+      configFile: 'asconfig-dsp.json',
       projectRoot: '.',
-      srcMatch: 'as/assembly',
-      srcEntryFile: 'as/assembly/index.ts',
+      srcMatch: 'as/assembly/dsp',
+      srcEntryFile: 'as/assembly/dsp/dsp.ts',
+      mapFile: './as/build/dsp.wasm.map',
       extra: [
         '--transform', './vendor/unroll.js',
         '--transform', './vendor/update-dsp-gens.js',
       ]
     }),
-    // assemblyScriptPlugin({
-    //   configFile: 'asconfig-nort.json',
-    //   projectRoot: '.',
-    //   srcMatch: 'as/assembly',
-    //   srcEntryFile: 'as/assembly/index.ts',
-    //   extra: [
-    //     '--transform', './vendor/unroll.js',
-    //     '--transform', './vendor/update-dsp-gens.js',
-    //   ]
-    // }),
     assemblyScriptPlugin({
-      configFile: 'asconfig-player.json',
+      configFile: 'asconfig-gfx.json',
       projectRoot: '.',
-      srcMatch: 'as/assembly',
-      srcEntryFile: 'as/assembly/seq/player.ts',
-      mapFile: './as/build/player.wasm.map',
+      srcMatch: 'as/assembly/gfx',
+      srcEntryFile: 'as/assembly/gfx/gfx.ts',
+      mapFile: './as/build/gfx.wasm.map',
       extra: [
         '--transform', './vendor/unroll.js',
       ]
     }),
     assemblyScriptPlugin({
-      configFile: 'asconfig-player-nort.json',
+      configFile: 'asconfig-seq.json',
       projectRoot: '.',
-      srcMatch: 'as/assembly',
-      srcEntryFile: 'as/assembly/seq/player.ts',
-      mapFile: './as/build/player-nort.wasm.map',
+      srcMatch: 'as/assembly/seq',
+      srcEntryFile: 'as/assembly/seq/seq.ts',
+      mapFile: './as/build/seq.wasm.map',
+      extra: [
+        '--transform', './vendor/unroll.js',
+      ]
+    }),
+    assemblyScriptPlugin({
+      configFile: 'asconfig-seq-nort.json',
+      projectRoot: '.',
+      srcMatch: 'as/assembly/seq',
+      srcEntryFile: 'as/assembly/seq/seq.ts',
+      mapFile: './as/build/seq-nort.wasm.map',
       extra: [
         '--transform', './vendor/unroll.js',
       ]

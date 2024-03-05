@@ -1,7 +1,7 @@
 import { getMemoryView, toRing, wasmSourceMap } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
-import type { __AdaptedExports as WasmExports } from '../../as/build/player-nort'
-import hex from '../../as/build/player-nort.wasm?raw-hex'
+import type { __AdaptedExports as WasmExports } from '../../as/build/seq-nort'
+import hex from '../../as/build/seq-nort.wasm?raw-hex'
 import { Clock } from './dsp-shared.ts'
 import { Out, PlayerMode } from './player-shared.ts'
 

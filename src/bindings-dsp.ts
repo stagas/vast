@@ -1,21 +1,22 @@
 import { TypedArray, TypedArrayConstructor } from 'gl-util'
-import { instantiate } from '../as/build/player.js'
+import { instantiate } from '../as/build/dsp.js'
 import { log } from './state.ts'
 import { wasmSourceMap } from 'utils'
-import url from '../as/build/player.wasm?url'
+import url from '../as/build/dsp.wasm?url'
+import asconfigDsp from '../asconfig-dsp.json'
 
 const DEBUG = false
 
 let mod: WebAssembly.Module
 
 if (import.meta.env) {
-  const hex = (await import('../as/build/player.wasm?raw-hex')).default
+  const hex = (await import('../as/build/dsp.wasm?raw-hex')).default
   const fromHexString = (hexString: string) => Uint8Array.from(
     hexString.match(/.{1,2}/g)!.map(byte =>
       parseInt(byte, 16)
     )
   )
-  const wasmMapUrl = new URL('/as/build/player.wasm.map', location.origin).href
+  const wasmMapUrl = new URL('/as/build/dsp.wasm.map', location.origin).href
   const uint8 = fromHexString(hex)
   const buffer = wasmSourceMap.setSourceMapURL(uint8.buffer, wasmMapUrl)
   const binary = new Uint8Array(buffer)
@@ -25,8 +26,19 @@ else {
   mod = await WebAssembly.compileStreaming(fetch(url))
 }
 
+let flushSketchFn = (count: number) => { }
+function setFlushSketchFn(fn: (count: number) => void) {
+  flushSketchFn = fn
+}
+
+const memory = new WebAssembly.Memory({
+  initial: asconfigDsp.options.initialMemory,
+  maximum: asconfigDsp.options.maximumMemory,
+  shared: asconfigDsp.options.sharedMemory,
+})
 const wasm = await instantiate(mod, {
   env: {
+    memory,
     log: console.log,
   }
 })
@@ -55,10 +67,9 @@ const funcs = new Map([
 
 function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   const bytes = length * ctor.BYTES_PER_ELEMENT
-  // console.warn('[player] alloc', length)
+
   allocs += length
   if (allocs > GC_EVERY) {
-    // console.log('[player gc]')
     wasm.__collect()
     allocs = 0
   }
@@ -114,7 +125,7 @@ function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   throw new Error('Cannot allocate wasm memory.')
 }
 
-export default Object.assign(wasm, { alloc })
+export default Object.assign(wasm, { alloc, setFlushSketchFn })
 
 if (import.meta.vitest) {
   describe('alloc', () => {

@@ -1,21 +1,21 @@
 import { TypedArray, TypedArrayConstructor } from 'gl-util'
-import { instantiate } from '../as/build/assembly.js'
+import { instantiate } from '../as/build/gfx.js'
 import { log } from './state.ts'
 import { wasmSourceMap } from 'utils'
-import url from '../as/build/assembly.wasm?url'
+import url from '../as/build/gfx.wasm?url'
 
 const DEBUG = false
 
 let mod: WebAssembly.Module
 
 if (import.meta.env) {
-  const hex = (await import('../as/build/assembly.wasm?raw-hex')).default
+  const hex = (await import('../as/build/gfx.wasm?raw-hex')).default
   const fromHexString = (hexString: string) => Uint8Array.from(
     hexString.match(/.{1,2}/g)!.map(byte =>
       parseInt(byte, 16)
     )
   )
-  const wasmMapUrl = new URL('/as/build/assembly.wasm.map', location.origin).href
+  const wasmMapUrl = new URL('/as/build/gfx.wasm.map', location.origin).href
   const uint8 = fromHexString(hex)
   const buffer = wasmSourceMap.setSourceMapURL(uint8.buffer, wasmMapUrl)
   const binary = new Uint8Array(buffer)

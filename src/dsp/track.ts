@@ -1,9 +1,11 @@
-import wasmDsp from 'assembly'
-import wasmPlayer from 'assembly-player'
+import wasmDsp from 'assembly-dsp'
+import wasmGfx from 'assembly-gfx'
+import wasmSeq from 'assembly-seq'
 import { $, Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { hueshift, luminate, saturate } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
+import { audio } from '../audio.ts'
 import { Dsp } from '../dsp/dsp.ts'
 import { AstNode } from '../lang/interpreter.ts'
 import { Token } from '../lang/tokenize.ts'
@@ -12,10 +14,8 @@ import { state } from '../state.ts'
 import { Floats } from '../util/floats.ts'
 import { Note, createDemoNotes } from '../util/notes.ts'
 import { hexToInt, intToHex, toHex } from '../util/rgb.ts'
-import { Player } from './player.ts'
 import { PlayerTrack } from './player-shared.ts'
 import type { BoxData, Project, TrackData } from './project.ts'
-import { audio } from '../audio.ts'
 
 const DEBUG = true
 
@@ -50,10 +50,10 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
   const { clock } = dsp
   const sound = dsp.Sound()
 
-  const pt = PlayerTrack(wasmPlayer.memory.buffer, wasmPlayer.createPlayerTrack())
-  const out_L = wasmPlayer.alloc(Float32Array, BUFFER_SIZE)
-  const out_R = wasmPlayer.alloc(Float32Array, BUFFER_SIZE)
-  const out_LR = wasmPlayer.alloc(Float32Array, BUFFER_SIZE)
+  const pt = PlayerTrack(wasmSeq.memory.buffer, wasmSeq.createPlayerTrack())
+  const out_L = wasmSeq.alloc(Float32Array, BUFFER_SIZE)
+  const out_R = wasmSeq.alloc(Float32Array, BUFFER_SIZE)
+  const out_LR = wasmSeq.alloc(Float32Array, BUFFER_SIZE)
   pt.out_L$ = out_L.ptr
   pt.out_R$ = out_R.ptr
   pt.out_LR$ = out_LR.ptr
@@ -108,10 +108,20 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
       const notes = createDemoNotes()
       return notes
     },
+    get notesJson() {
+      const { notes } = this
+      $()
+      return notes.map(note => ({
+        n: note.n,
+        time: note.time,
+        length: note.length,
+        vel: note.vel,
+      }))
+    },
     get notesData() {
       const { notes } = this
       $()
-      const data = wasmDsp.alloc(Uint32Array, notes.length + 1)
+      const data = wasmGfx.alloc(Uint32Array, notes.length + 1)
       for (let i = 0; i < notes.length; i++) {
         data[i] = notes[i].data.ptr
       }
@@ -193,7 +203,7 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
 
       info.tokensAstNode = program.value.tokensAstNode
       info.waveLength = Math.floor(audioLength * clock.sampleRate / clock.coeff)
-      const f = wasmPlayer.alloc(Float32Array, info.waveLength)
+      const f = wasmSeq.alloc(Float32Array, info.waveLength)
       buffersLru.add(f)
       if (buffersLru.size > 2) {
         const [first, ...rest] = buffersLru
@@ -203,6 +213,7 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
 
       // TODO: free
 
+      /////////////////////////////
       const CHUNK_SIZE = 64
       let chunkCount = 0
 
@@ -245,6 +256,8 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
       pt.pan = 0.0
       pt.vol = 1.0
       pt.floats_LR$ = f.ptr
+
+      /////////////////////////////////////
 
       // bar[y] = pt.ptr
       // console.log(player.bars, bar)
