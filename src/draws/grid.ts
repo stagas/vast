@@ -473,14 +473,13 @@ export function Grid(surface: Surface, audio: Audio) {
   mouse.targets.add(ev => {
     // if (ev.type !== 'wheel' && state.isHoveringToolbar) return
 
-    // clear the clicks when mouse is moved
-    // if (ev.type !== 'mousedown' && ev.type !== 'mouseup') {
-
-    // }
-
     isZooming = false
     if (ev.type === 'mouseout' || ev.type === 'mouseleave') {
-      // unhoverBox()
+      unhoverBox()
+      if (brush) {
+        brush.rect.x = OFFSCREEN_X
+        brush = null
+      }
       return
     }
     else if (ev.type === 'mousedown') {
