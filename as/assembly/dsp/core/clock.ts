@@ -1,4 +1,4 @@
-// @unmanaged
+@unmanaged
 export class Clock {
   time: f64 = 0
   timeStep: f64 = 0

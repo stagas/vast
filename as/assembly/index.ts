@@ -11,6 +11,8 @@ import { Core, Engine } from './dsp/core/engine'
 import { Sound } from './dsp/vm/sound'
 import { logf, logi } from './env'
 
+export * from './alloc'
+
 export function createCore(sampleRate: u32): Core {
   return new Core(sampleRate)
 }

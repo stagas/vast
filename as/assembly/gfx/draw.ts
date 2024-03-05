@@ -108,9 +108,9 @@ export function draw(
           || y + h < 0
         ) continue
 
-        const notesPtrs = changetype<StaticArray<usize>>(usize(i32(notes.notes$)))
+        const notesPtrs = changetype<StaticArray<usize>>(usize(notes.notes$))
         const isFocused = notes.isFocused
-        const hoveringNote$ = usize(i32(notes.hoveringNote$))
+        const hoveringNote$ = usize(notes.hoveringNote$)
         let note: Note
         let note$: usize
         const min = notes.min

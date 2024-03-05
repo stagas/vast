@@ -6,6 +6,8 @@ import { cubicMod, modWrap } from '../util'
 import { MAX_BARS } from './constants'
 import { Out, PlayerTrack } from './player-shared'
 
+export * from '../alloc'
+
 type Bar = StaticArray<PlayerTrack>
 
 // @ts-ignore

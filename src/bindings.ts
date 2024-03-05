@@ -38,7 +38,7 @@ const wasm = await instantiate(mod, {
     }
   }
 })
-
+console.log(wasm.memory)
 const reg = new FinalizationRegistry((ptr: number) => {
   lru.delete(ptr)
   try {
@@ -57,13 +57,13 @@ let allocs = 0
 
 function alloc<T extends TypedArrayConstructor>(ctor: T, length: number) {
   const bytes = length * ctor.BYTES_PER_ELEMENT
-  // console.warn('[dsp] alloc', length)
-  allocs += length
-  if (allocs > GC_EVERY) {
-    console.log('[dsp gc]')
-    wasm.__collect()
-    allocs = 0
-  }
+
+  // allocs += length
+  // if (allocs > GC_EVERY) {
+  //   console.log('[dsp gc]')
+  //   wasm.__collect()
+  //   allocs = 0
+  // }
 
   do {
     try {
