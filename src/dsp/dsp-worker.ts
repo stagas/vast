@@ -39,7 +39,7 @@ const worker = {
     sounds.set(+sound.sound$, sound)
     return +sound.sound$ as number
   },
-  async renderSource(sound$: number, audioLength: number, code: string, voicesCount: number, notes: Note[]) {
+  async renderSource(sound$: number, audioLength: number, code: string, voicesCount: number, hasMidiIn: boolean, notes: Note[]) {
     const dsp = this.dsp
     if (!dsp) {
       throw new Error('Dsp not ready.')
@@ -64,7 +64,7 @@ const worker = {
 
       wasmDsp.updateClock(clock.ptr)
 
-      const { program, out, updateScalars, updateVoices } = sound.process(tokens, voicesCount)
+      const { program, out, updateScalars, updateVoices, clearVoices } = sound.process(tokens, voicesCount, hasMidiIn)
 
       info.tokensAstNode = program.value.tokensAstNode
 
@@ -79,12 +79,10 @@ const worker = {
         buffersLru = new Set(rest)
       }
 
-      // TODO: free
-
-      /////////////////////////////
       const CHUNK_SIZE = 64
       let chunkCount = 0
 
+      clearVoices()
       updateScalars()
       updateVoices(notes, clock.barTime, clock.barTime + clock.barTimeStep * CHUNK_SIZE)
 
@@ -115,25 +113,6 @@ const worker = {
         }
 
       return { floats }
-      // info.floats?.free()
-      // info.floats = Floats(f)
-
-      // // update bars
-      // pt.len = f.length
-      // pt.offset = 0
-      // pt.coeff = 1.0
-      // pt.pan = 0.0
-      // pt.vol = 1.0
-      // pt.floats_LR$ = f.ptr
-
-      /////////////////////////////////////
-
-      // bar[y] = pt.ptr
-      // console.log(player.bars, bar)
-
-      // info.audioBuffer.getChannelData(0).set(f)
-      //
-      // renderedEpoch.set(source, source.epoch)
     }
     catch (e) {
       if (e instanceof Error) {

@@ -451,7 +451,7 @@ export function Dsp({ sampleRate, core$ }: {
 
     let prevHashId: any
 
-    function process(tokens: Token[], voicesCount: number) {
+    function process(tokens: Token[], voicesCount: number, hasMidiIn: boolean) {
       const scope = {} as any
       const literals: AstNode[] = []
 
@@ -522,9 +522,9 @@ export function Dsp({ sampleRate, core$ }: {
 
       updateScalars()
 
-      let program = interpret(sound, scope, tokensCopy)
+      let program: ReturnType<typeof interpret>
 
-      if (voicesCount && program.scope.vars['midi_in']) {
+      if (voicesCount && hasMidiIn) {
         const voices = tokenize({
           code: Array.from({ length: voicesCount }, (_, i) =>
             `[midi_in n${i}v n${i}t n${i}f n${i}n]`
@@ -532,8 +532,19 @@ export function Dsp({ sampleRate, core$ }: {
         })
         program = interpret(sound, scope, [...tokensCopy, ...voices])
       }
+      else {
+        program = interpret(sound, scope, tokensCopy)
+      }
 
       const scalars_any = scalars as any
+      function clearVoices() {
+        for (let i = 0; i < voicesCount; i++) {
+          for (const p of 'nftv') {
+            const name = `n${i}${p}`
+            scalars_any[g_any[name].ptr] = 0
+          }
+        }
+      }
       function updateVoices(notes: Note[], start: number, end: number) {
         let i = 0
         for (const note of notes) {
@@ -578,8 +589,9 @@ export function Dsp({ sampleRate, core$ }: {
         program,
         isNew,
         out,
+        clearVoices,
+        updateVoices,
         updateScalars,
-        updateVoices
       }
     }
 

@@ -207,7 +207,8 @@ export function Track(dsp: DspService, project: Project, trackData: TrackData, y
         audioLength,
         source.code,
         voicesCount,
-        notesJson
+        source.tokens.some(t => t.text === 'midi_in'),
+        notesJson,
       )
 
       info.waveLength = dspFloats.length

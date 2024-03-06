@@ -13,27 +13,32 @@ export { DspBinaryOp }
 export class Dsp {
   constructor() { }
 
+  @inline
   CreateGen(snd: Sound, kind_index: i32): void {
     const gen = Factory[kind_index](snd.engine)
     snd.gens.push(gen)
     snd.offsets.push(Offsets[kind_index])
   }
+  @inline
   CreateAudios(snd: Sound, count: i32): void {
     for (let x = 0; x < count; x++) {
       snd.audios.push(new StaticArray<f32>(BUFFER_SIZE))
     }
   }
+  @inline
   CreateValues(snd: Sound, count: i32): void {
     for (let x = 0; x < count; x++) {
       snd.values.push(new SoundValue(SoundValueKind.Null, 0))
     }
   }
+  @inline
   AudioToScalar(snd: Sound, audio$: i32, scalar$: i32): void {
     const yf: f32 = f32.load(
       changetype<usize>(snd.audios[audio$]) + (snd.begin << 2)
     )
     snd.scalars[scalar$] = yf
   }
+  @inline
   LiteralToAudio(snd: Sound, literal$: i32, audio$: i32): void {
     const xf: f32 = snd.literals[literal$]
     fill(
@@ -43,6 +48,7 @@ export class Dsp {
       i32(changetype<usize>(snd.audios[audio$]))
     )
   }
+  @inline
   Pick(snd: Sound, list$: i32, list_length: i32, list_index_value$: i32, out_value$: i32): void {
     const list_index = snd.values[list_index_value$]
     const out_value = snd.values[out_value$]
@@ -69,6 +75,7 @@ export class Dsp {
     out_value.kind = value.kind
     out_value.ptr = value.ptr
   }
+  @inline
   Pan(snd: Sound, value$: i32): void {
     const value = snd.values[value$]
     switch (value.kind) {
@@ -85,17 +92,20 @@ export class Dsp {
         break
     }
   }
+  @inline
   SetValue(snd: Sound, value$: i32, kind: i32, ptr: i32): void {
     const value = snd.values[value$]
     value.kind = kind
     value.ptr = ptr
   }
+  @inline
   SetValueDynamic(snd: Sound, value$: i32, scalar$: i32, audio$: i32): void {
     const value = snd.values[value$]
     value.kind = SoundValueKind.Dynamic
     value.scalar$ = scalar$
     value.audio$ = audio$
   }
+  @inline
   SetProperty(snd: Sound, gen$: i32, prop$: i32, kind: i32, value$: i32): void {
     const gen = snd.gens[gen$]
     const offsets = snd.offsets[gen$]
@@ -142,10 +152,12 @@ export class Dsp {
         break
     }
   }
+  @inline
   UpdateGen(snd: Sound, gen$: i32): void {
     const gen = snd.gens[gen$]
     gen._update()
   }
+  @inline
   ProcessAudio(snd: Sound, gen$: i32, audio$: i32): void {
     const gen = snd.gens[gen$]
     gen._update()
@@ -153,6 +165,7 @@ export class Dsp {
       changetype<usize>(snd.audios[audio$])
     )
   }
+  @inline
   ProcessAudioStereo(snd: Sound, gen$: i32, audio_0$: i32, audio_1$: i32): void {
     const gen = snd.gens[gen$]
     gen._update()
@@ -161,6 +174,7 @@ export class Dsp {
       changetype<usize>(snd.audios[audio_1$]),
     )
   }
+  @inline
   BinaryOp(snd: Sound, op: DspBinaryOp, lhs$: i32, rhs$: i32, out$: i32): void {
     const lhs_value = snd.values[lhs$]
     const rhs_value = snd.values[rhs$]
