@@ -1,9 +1,7 @@
 import { TypedArray, TypedArrayConstructor } from 'gl-util'
-import { instantiate } from '../as/build/dsp.js'
-import { log } from './state.ts'
 import { wasmSourceMap } from 'utils'
+import { instantiate } from '../as/build/dsp.js'
 import url from '../as/build/dsp.wasm?url'
-import asconfigDsp from '../asconfig-dsp.json'
 
 const DEBUG = false
 
@@ -31,14 +29,8 @@ function setFlushSketchFn(fn: (count: number) => void) {
   flushSketchFn = fn
 }
 
-const memory = new WebAssembly.Memory({
-  initial: asconfigDsp.options.initialMemory,
-  maximum: asconfigDsp.options.maximumMemory,
-  shared: asconfigDsp.options.sharedMemory,
-})
 const wasm = await instantiate(mod, {
   env: {
-    memory,
     log: console.log,
   }
 })

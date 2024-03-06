@@ -19,7 +19,6 @@ export enum DspBinaryOp {
   Pow,
 }
 
-@unmanaged
 export class SoundData {
   constructor() { }
   begin: i32 = 0

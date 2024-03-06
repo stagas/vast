@@ -1,32 +1,20 @@
 import wasm from 'assembly-gfx'
 import { $ } from 'signal-jsx'
-import { Struct } from 'utils'
+import { Note, NoteView } from './notes-shared.ts'
 
 export const MAX_NOTE = 121
 export const BLACK_KEYS = new Set([1, 3, 6, 8, 10])
 export const KEY_NAMES = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b']
 
-export type BoxNotes = Note[] & {
+export type BoxNotes = BoxNote[] & {
   ptr: number
   scale: ReturnType<typeof getNotesScale>
 }
 
-export interface Note {
-  n: number
-  time: number
-  length: number
-  vel: number
+export interface BoxNote {
+  info: Note
   data: NoteView
 }
-
-export type NoteView = ReturnType<typeof NoteView>
-
-export const NoteView = Struct({
-  n: 'f32',
-  time: 'f32',
-  length: 'f32',
-  vel: 'f32',
-})
 
 export function createDemoNotes(
   base = 32,
@@ -39,19 +27,21 @@ export function createDemoNotes(
     const length = 1 + Math.round(Math.random() * 4)
     // const count = 1 //+ Math.round(Math.random() * 2)
     // const base = 12 //+ Math.floor(Math.random() * 12)
-    const notes: Note[] = []
+    const notes: { info: Note, data: NoteView }[] = []
     const y = base + Math.round(Math.random() * 8)
 
     for (let n = 0; n < count; n++) {
-      const note = $({
-        n: y + n * (4 + Math.round(Math.random() * 3)),
-        time,
-        length,
-        vel: Math.random(),
+      const note = {
+        info: $({
+          n: y + n * (4 + Math.round(Math.random() * 3)),
+          time,
+          length,
+          vel: Math.random(),
+        }),
         data: NoteView(wasm.memory.buffer, wasm.createNote())
-      })
+      }
       $.fx(() => {
-        const { n, time, length, vel } = note
+        const { n, time, length, vel } = note.info
         $()
         note.data.n = n
         note.data.time = time
@@ -65,7 +55,7 @@ export function createDemoNotes(
   }).flat().sort(byNoteN)
 }
 
-export function byNoteN(a: Note, b: Note) {
+export function byNoteN({ info: a }: { info: Note }, { info: b }: { info: Note }) {
   return b.n === a.n ? a.time - b.time : b.n - a.n
 }
 

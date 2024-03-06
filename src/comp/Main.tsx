@@ -78,29 +78,30 @@ export function Main() {
     comments: []
   })
 
-  function addBox(t: Track, source: Source, box: BoxData) {
-    const proto = { track: t }
-    const y = t.info.y
-    const trackBox = $({
-      __proto__: proto,
-      data: box,
-      kind: y % 3 === 2 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
-      rect: $(new Rect, { x: box.time, y, w: box.length, h: 1 }),
-      source,
-      isFocused: false,
-      isHovering: false,
-    }) as $<TrackBox & { __proto__: typeof proto }>
+  // function addBox(t: Track, source: Source, box: BoxData) {
+  //   const proto = { track: t }
+  //   const y = t.info.y
+  //   const trackBox = $({
+  //     __proto__: proto,
+  //     data: box,
+  //     kind: y % 3 === 2 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
+  //     rect: $(new Rect, { x: box.time, y, w: box.length, h: 1 }),
+  //     source,
+  //     isFocused: false,
+  //     isHovering: false,
+  //   }) as $<TrackBox & { __proto__: typeof proto }>
 
-    for (let x = box.time; x < box.time + box.length; x++) {
-      const bar = audio.player.bars[x]
-      bar[bar.indexOf(0)] = t.pt.ptr
-    }
+  //   for (let x = box.time; x < box.time + box.length; x++) {
+  //     const bar = audio.player.bars[x]
+  //     bar[bar.indexOf(0)] = t.pt.ptr
+  //   }
 
-    t.info.boxes = [...t.info.boxes, trackBox]
-  }
+  //   t.info.boxes = [...t.info.boxes, trackBox]
+  // }
 
   $.fx(() => {
     const { sources, tracks } = project.info.data
+    const { dsp } = $.of(audio.dsp.info)
     $()
     const sourcesMap = new Map<number, Source>()
     const newTracks = []
@@ -116,7 +117,7 @@ export function Main() {
         if (!source) sourcesMap.set(box.source_id,
           source = $(new Source<Token>(tokenize), sources[box.source_id])
         )
-        addBox(t, source, box)
+        t.addBox(source, box)
       }
     }
 
@@ -226,7 +227,6 @@ export function Main() {
 
       editor.editor.buffer.source = track.info.boxes[0].source
     }
-    // console.log(editors)
     return offs
   })
 

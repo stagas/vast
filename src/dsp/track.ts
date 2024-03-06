@@ -12,10 +12,12 @@ import { Token } from '../lang/tokenize.ts'
 import { Source } from '../source.ts'
 import { state } from '../state.ts'
 import { Floats } from '../util/floats.ts'
-import { Note, createDemoNotes } from '../util/notes.ts'
+import { createDemoNotes } from '../util/notes.ts'
 import { hexToInt, intToHex, toHex } from '../util/rgb.ts'
 import { PlayerTrack } from './player-shared.ts'
 import type { BoxData, Project, TrackData } from './project.ts'
+import { DspService } from './dsp-service.ts'
+import { Note } from '../util/notes-shared.ts'
 
 const DEBUG = true
 
@@ -43,12 +45,10 @@ export interface TrackBox {
 
 export type Track = ReturnType<typeof Track>
 
-export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: number) {
+export function Track(dsp: DspService, project: Project, trackData: TrackData, y: number) {
   DEBUG && console.log('[track] create')
 
   using $ = Signal()
-  const { clock } = dsp
-  const sound = dsp.Sound()
 
   const pt = PlayerTrack(wasmSeq.memory.buffer, wasmSeq.createPlayerTrack())
   const out_L = wasmSeq.alloc(Float32Array, BUFFER_SIZE)
@@ -60,6 +60,7 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
 
   const info = $({
     y,
+    sound$: $.unwrap(() => dsp.ready.then(() => dsp.service.createSound())),
     get sy() {
       const { y } = this
       const { pr } = state
@@ -97,7 +98,7 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
     },
     waveLength: 1, // computed during effect update_audio_buffer
     get audioBuffer() {
-      return dsp.ctx.createBuffer(1, this.waveLength, dsp.ctx.sampleRate)
+      return audio.ctx.createBuffer(1, this.waveLength, audio.ctx.sampleRate)
     },
     tokensAstNode: new Map<Token, AstNode>(),
     boxes: [] as TrackBox[],
@@ -110,8 +111,7 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
     },
     get notesJson() {
       const { notes } = this
-      $()
-      return notes.map(note => ({
+      return notes.map(({ info: note }) => ({
         n: note.n,
         time: note.time,
         length: note.length,
@@ -132,7 +132,7 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
       $()
       const times = new Map<number, Note[]>()
       let count = 0
-      for (const note of notes) {
+      for (const { info: note } of notes) {
         let pressed = times.get(note.time)
         if (!pressed) times.set(note.time, pressed = [])
         pressed.push(note)
@@ -184,95 +184,66 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
 
   let buffersLru = new Set<Float32Array & { ptr: number, free(): void }>()
 
-  function renderSource(source: Source<Token>, voicesCount: number, notes: Note[]) {
-    if (source.epoch === renderedEpoch.get(source)) return
+  let isRendering = false
+  let toRender = new Set<Source<Token>>()
 
-    const { audioLength } = info
-    if (!audioLength) return
+  async function renderSource(source: Source<Token>) {
+    if (isRendering) {
+      toRender.add(source)
+      return
+    }
 
+    if (source.code == null || source.epoch === renderedEpoch.get(source)) return
+
+    const { sound$, audioLength } = info
+    if (!sound$ || !audioLength) return
+
+    const { voicesCount, notesJson } = info
+
+    isRendering = true
     try {
-      sound.reset()
+      const { floats: dspFloats } = await dsp.service.renderSource(
+        sound$,
+        audioLength,
+        source.code,
+        voicesCount,
+        notesJson
+      )
 
-      clock.time = 0
-      clock.barTime = 0
-      clock.bpm = 144
+      info.waveLength = dspFloats.length
 
-      wasmDsp.updateClock(clock.ptr)
+      const floats = wasmSeq.alloc(Float32Array, dspFloats.length)
+      floats.set(dspFloats)
 
-      const { program, out, updateScalars, updateVoices } = sound.process(source.tokens, voicesCount)
+      buffersLru.add(floats)
 
-      info.tokensAstNode = program.value.tokensAstNode
-      info.waveLength = Math.floor(audioLength * clock.sampleRate / clock.coeff)
-      const f = wasmSeq.alloc(Float32Array, info.waveLength)
-      buffersLru.add(f)
-      if (buffersLru.size > 2) {
+      if (buffersLru.size > 10) {
         const [first, ...rest] = buffersLru
         first.free()
         buffersLru = new Set(rest)
       }
 
-      // TODO: free
-
-      /////////////////////////////
-      const CHUNK_SIZE = 64
-      let chunkCount = 0
-
-      updateScalars()
-      updateVoices(notes, clock.barTime, clock.barTime + clock.barTimeStep * CHUNK_SIZE)
-
-      sound.data.begin = 0
-      sound.data.end = 0
-      sound.run()
-
-      if (out.LR)
-        for (let x = 0; x < f.length; x += BUFFER_SIZE) {
-          const end = x + BUFFER_SIZE > f.length ? f.length - x : BUFFER_SIZE
-
-          for (let i = 0; i < end; i += CHUNK_SIZE) {
-            updateScalars()
-            updateVoices(notes, clock.barTime, clock.barTime + clock.barTimeStep * CHUNK_SIZE)
-
-            sound.data.begin = i
-            sound.data.end = i + CHUNK_SIZE > end ? end - i : i + CHUNK_SIZE
-            sound.run()
-
-            clock.time = (chunkCount * CHUNK_SIZE) * clock.timeStep
-            clock.barTime = (chunkCount * CHUNK_SIZE) * clock.barTimeStep
-
-            chunkCount++
-          }
-
-          const chunk = sound.getAudio(out.LR.audio$).subarray(0, end)
-          f.set(chunk, x)
-        }
-
       info.floats?.free()
-      info.floats = Floats(f)
+      info.floats = Floats(floats)
 
-      // update bars
-      pt.len = f.length
+      pt.len = floats.length
       pt.offset = 0
       pt.coeff = 1.0
       pt.pan = 0.0
       pt.vol = 1.0
-      pt.floats_LR$ = f.ptr
+      pt.floats_LR$ = floats.ptr
 
-      /////////////////////////////////////
-
-      // bar[y] = pt.ptr
-      // console.log(player.bars, bar)
-
-      info.audioBuffer.getChannelData(0).set(f)
+      info.audioBuffer.getChannelData(0).set(floats)
 
       renderedEpoch.set(source, source.epoch)
     }
-    catch (e) {
-      if (e instanceof Error) {
-        console.warn(e)
-        console.warn(...((e as any)?.cause?.nodes ?? []))
-        info.error = e
+    finally {
+      isRendering = false
+      if (toRender.size) {
+        const [first, ...rest] = toRender
+        toRender = new Set(rest)
+        renderSource(first)
       }
-      throw e
     }
   }
 
@@ -292,17 +263,17 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
         $.fx(() => {
           const { voicesCount, notes } = info
           for (const note of notes) {
-            const { n, time, length, vel } = note
+            const { n, time, length, vel } = note.info
           }
           $()
           source.epoch++
         })
         $.fx(() => {
+          const { sound$ } = info
           const { epoch } = source
           $()
-          const { voicesCount, notes } = info
-          // console.log('RENDER')
-          renderSource(source, voicesCount, notes)
+          const { voicesCount, notesJson } = info
+          renderSource(source)
         })
       }
 
@@ -347,9 +318,9 @@ export function Track(dsp: Dsp, project: Project, trackData: TrackData, y: numbe
 
   function play() {
     const { audioBuffer } = info
-    const bufferSource = dsp.ctx.createBufferSource()
+    const bufferSource = audio.ctx.createBufferSource()
     bufferSource.buffer = audioBuffer
-    bufferSource.connect(dsp.ctx.destination)
+    bufferSource.connect(audio.ctx.destination)
     bufferSource.start()
   }
 

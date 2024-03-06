@@ -11,7 +11,8 @@ import { parseNumber } from '../lang/util.ts'
 import { Clock } from './dsp-shared.ts'
 import { getAllProps } from './util.ts'
 import { Value } from './value.ts'
-import { Note, ntof } from '../util/notes.ts'
+import { ntof } from '../util/notes.ts'
+import { Note } from '../util/notes-shared.ts'
 
 const DEBUG = false
 
@@ -54,16 +55,15 @@ function copyToken(token: Token) {
 
 let preludeTokens: Token[]
 
-export function Dsp(ctx: AudioContext, {
-  core$
-}: {
+export function Dsp({ sampleRate, core$ }: {
+  sampleRate: number
   core$?: ReturnType<typeof wasm.createCore>
-} = {}) {
+}) {
   using $ = Signal()
 
-  core$ ??= wasm.createCore(ctx.sampleRate)
+  core$ ??= wasm.createCore(sampleRate)
   const pin = <T>(x: T): T => { wasm.__pin(+x); return x }
-  const engine$ = wasm.createEngine(ctx.sampleRate, core$)
+  const engine$ = wasm.createEngine(sampleRate, core$)
   const clock$ = wasm.getEngineClock(engine$)
   const clock = Clock(wasm.memory.buffer, clock$)
 
@@ -607,7 +607,7 @@ export function Dsp(ctx: AudioContext, {
     return sound
   }
 
-  return { info, ctx, engine$, core$, clock, Sound }
+  return { info, engine$, core$, clock, Sound }
 }
 
 const commutative = new Set([DspBinaryOp.Add, DspBinaryOp.Mul])

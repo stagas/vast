@@ -9,7 +9,8 @@ import { Shapes, type Shape } from '../gl/sketch.ts'
 import { log, state } from '../state.ts'
 import { Surface } from '../surface.ts'
 import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
-import { BLACK_KEYS, MAX_NOTE, Note, byNoteN, getNotesScale } from '../util/notes.ts'
+import { BLACK_KEYS, BoxNote, MAX_NOTE, byNoteN, getNotesScale } from '../util/notes.ts'
+import { Note } from '../util/notes-shared.ts'
 
 const DEBUG = true
 const SCALE_X = 1 / 16
@@ -50,41 +51,50 @@ export function Grid(surface: Surface, audio: Audio) {
     focusedBox: null as null | GridBox,
     hoveringBox: null as null | GridBox,
     hoveringNoteN: -1,
-    hoveringNote: null as null | Note,
-    draggingNote: null as null | Note,
+    hoveringNote: null as null | BoxNote,
+    draggingNote: null as null | BoxNote,
   })
   const gridInfo = info
 
   let pianoroll: ReturnType<typeof Pianoroll> | undefined
 
-  info.boxes = Boxes(tracks)
+  $.fx(() => {
+    const { tracks } = state
+    $()
+    info.boxes = Boxes(tracks)
+  })
 
   function getInitialMatrixValues() {
     const boxes = info.boxes
-    if (!boxes) return
-    const a = Math.max(7.27, targetView.w / boxes.info.width, 1)
-    const d = targetView.h / Math.max(3, tracks.length)
-    const e = (state.mode === 'wide' ? 0 : CODE_WIDTH + 57) - boxes.info.left * a
+    const width = boxes?.info.width || 1
+    const height = tracks.length || 1
+    const a = Math.max(7.27, targetView.w / width, 1)
+    const d = targetView.h / Math.max(3, height)
+    const e = (state.mode === 'wide' ? 0 : CODE_WIDTH + 57) - (boxes?.info.left ?? 0) * a
     const f = 0
     return { a, d, e, f }
   }
 
-  $.untrack(function initial_scale() {
+  const offInitialScale = $.fx(function initial_scale() {
+    const { boxes } = $.of(info)
+    const { width } = boxes.info
+    $()
+    if (!width) return
     if (intentMatrix.a === 1) {
       const m = getInitialMatrixValues()
-      if (!m) return
       viewMatrix.a = intentMatrix.a = m.a
       viewMatrix.d = intentMatrix.d = m.d
       viewMatrix.e = intentMatrix.e = m.e
-
-      // lastFarMatrix.set(viewMatrix)
-      $.fx(function scale_rows_to_fit_height() {
-        const { h } = targetView
-        const { tracks } = state
-        $()
-        intentMatrix.d = h / Math.max(3, tracks.length)
-      })
     }
+    queueMicrotask(() => offInitialScale())
+  })
+
+  $.fx(function scale_rows_to_fit_height() {
+    const { h } = targetView
+    const { tracks } = state
+    $()
+    const height = tracks.length || 1
+    intentMatrix.d = h / Math.max(3, height)
   })
 
   //
@@ -303,7 +313,7 @@ export function Grid(surface: Surface, audio: Audio) {
     let found = false
     for (let i = notes.length - 1; i >= 0; i--) {
       const note = notes[i]
-      const { n, time, length } = note
+      const { n, time, length } = note.info
       if (n !== hn) continue
       if (x >= time && x <= time + length) {
         info.hoveringNote = note
@@ -365,7 +375,7 @@ export function Grid(surface: Surface, audio: Audio) {
     if (!info.draggingNote) return
 
     updateHoveringNoteN()
-    info.draggingNote.n = info.hoveringNoteN
+    info.draggingNote.info.n = info.hoveringNoteN
   }
 
   function updateMousePos() {
@@ -430,7 +440,6 @@ export function Grid(surface: Surface, audio: Audio) {
     viewMatrix.isRunning = true
     viewMatrix.speed = ZOOM_SPEED_SLOW
     const m = getInitialMatrixValues()
-    if (!m) return
     intentMatrix.a = m.a
     intentMatrix.d = m.d
     intentMatrix.e = m.e
@@ -671,17 +680,18 @@ export function Grid(surface: Surface, audio: Audio) {
         }, $.fx(() => {
           const { track, isFocused } = trackBox
           const { floats, colors } = $.of(track.info)
+          const { clock } = $.of(dsp.info)
           $()
 
           waveformBg.visible = Boolean(isFocused && !dimmed)
           waveformBg.view.floats$ = floats.ptr
           waveformBg.view.len = floats.len
-          waveformBg.view.coeff = dsp.clock.coeff
+          waveformBg.view.coeff = clock.coeff
 
           waveform.view.color = isFocused && !dimmed ? colors.colorBright : colors.fg
           waveform.view.floats$ = floats.ptr
           waveform.view.len = floats.len
-          waveform.view.coeff = dsp.clock.coeff
+          waveform.view.coeff = clock.coeff
 
           redraw(waveformShapes)
         })]
@@ -706,17 +716,18 @@ export function Grid(surface: Surface, audio: Audio) {
         return $.fx(() => {
           const { track, isFocused } = trackBox
           const { floats, colors } = $.of(track.info)
+          const { clock } = $.of(dsp.info)
           $()
 
           waveformBg.visible = Boolean(isFocused && !dimmed)
           waveformBg.view.floats$ = floats.ptr
           waveformBg.view.len = floats.len
-          waveformBg.view.coeff = dsp.clock.coeff
+          waveformBg.view.coeff = clock.coeff
 
           waveform.view.color = isFocused && !dimmed ? colors.colorBright : colors.fg
           waveform.view.floats$ = floats.ptr
           waveform.view.len = floats.len
-          waveform.view.coeff = dsp.clock.coeff
+          waveform.view.coeff = clock.coeff
 
           redraw(waveformShapes)
         })
@@ -847,7 +858,7 @@ export function Grid(surface: Surface, audio: Audio) {
     const info = $({
       trackBox,
       get scale() {
-        return getNotesScale(this.trackBox.track.info.notes)
+        return getNotesScale(this.trackBox.track.info.notesJson)
       },
     })
 
@@ -883,8 +894,9 @@ export function Grid(surface: Surface, audio: Audio) {
       pianoroll.update()
     })
 
+    // TODO: we should preallocate all the rows we need and show them
+    // conditionally with .visible
     const rows = Shapes(view, viewMatrix)
-
     $.fx(() => {
       const { scale } = info
       const { x: cx, y: cy, w: cw, h: ch } = rect
@@ -918,27 +930,6 @@ export function Grid(surface: Surface, audio: Audio) {
         })
         key.view.color = isBlack ? 0x0 : 0xffffff
       }
-      // const waveBgOuter = rows.Box({
-      //   x: cx,
-      //   y: rectCols.y + rectCols.h * NOTES_HEIGHT_NORMAL,
-      //   w: cw,
-      //   h: rectCols.h * WAVES_HEIGHT_NORMAL,
-      // })
-      // waveBgOuter.view.color = colors.bg
-      // // waveBgOuter.view.opts = ShapeOpts.Box | ShapeOpts.NoMargin
-      // waveBgOuter.view.alpha = 1.0
-
-      // const waveBg = rows.Box({
-      //   x: cx,
-      //   y: rectCols.y + rectCols.h * NOTES_HEIGHT_NORMAL
-      //     + rectCols.h * WAVES_MARGIN_NORMAL * 0.5,
-      //   w: cw,
-      //   h: rectCols.h * WAVES_HEIGHT_NORMAL - rectCols.h * WAVES_MARGIN_NORMAL,
-      // })
-      // waveBg.view.color = colors.bgHover
-      // waveBg.view.opts = ShapeOpts.Box | ShapeOpts.NoMargin
-      // waveBg.view.alpha = 1.0
-
       rows.update()
     })
 
@@ -989,7 +980,7 @@ export function Grid(surface: Surface, audio: Audio) {
     const info = $({
       trackBox,
       get scale() {
-        return getNotesScale(this.trackBox.track.info.notes)
+        return getNotesScale(this.trackBox.track.info.notesJson)
       },
       update: 0,
     })

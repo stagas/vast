@@ -37,7 +37,8 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
     r.y = 0
     r.h = (window.innerHeight - 44) * pr
     // r.zoomLinear(5)
-    const last = tracks.at(-1)!
+    const last = tracks.at(-1)
+    if (!last) return
     if (mousePos.withinRect(r) && mousePos.y < last.info.sy + dims.h) {
       state.isHoveringHeads = true
       // e.stopImmediatePropagation()

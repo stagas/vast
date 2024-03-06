@@ -1,8 +1,7 @@
 import wasm from 'assembly-seq'
 import { Signal } from 'signal-jsx'
-import { Dsp } from './dsp/dsp.ts'
+import { DspService } from './dsp/dsp-service.ts'
 import { Player } from './dsp/player.ts'
-import type { Project } from './dsp/project.ts'
 
 export type Audio = ReturnType<typeof Audio>
 
@@ -14,7 +13,7 @@ export function Audio() {
   using $ = Signal()
 
   const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
-  const dsp = Dsp(ctx)
+  const dsp = DspService(ctx)
   const player = Player(ctx)
 
   function resetClock() {

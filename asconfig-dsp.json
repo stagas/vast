@@ -25,7 +25,7 @@
       "threads"
     ],
     "sharedMemory": true,
-    "importMemory": true,
+    "importMemory": false,
     "initialMemory": 1000,
     "maximumMemory": 1000,
     "bindings": "raw",

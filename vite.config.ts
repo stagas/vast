@@ -212,19 +212,6 @@ export default defineConfig({
       },
     },
     ViteUsing(),
-    // bundledEntryPlugin({
-    //   id: '/player-worklet.js',
-    //   outFile: '/assets/player-worklet.[hash].js',
-    //   entryPoint: 'src/dsp/player-worklet.ts',
-    //   esbuildOptions: {
-    //     // (optional) esbuild options to use for bundling
-    //     // minify: process.env.NODE_ENV === 'production',
-    //     format: 'iife', // default "esm"
-    //   },
-    //   // transform(code) {
-    //   //   // (optional) transform to apply on generated bundle
-    //   // }
-    // }),
     hexLoader,
     tsconfigPaths(),
     externalize({
