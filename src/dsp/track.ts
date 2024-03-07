@@ -3,7 +3,7 @@ import wasmGfx from 'assembly-gfx'
 import wasmSeq from 'assembly-seq'
 import { $, Signal } from 'signal-jsx'
 import { Rect } from 'std'
-import { hueshift, luminate, saturate } from 'utils'
+import { Lru, hueshift, luminate, saturate } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
 import { audio } from '../audio.ts'
 import { Dsp } from '../dsp/dsp.ts'
@@ -28,19 +28,40 @@ const palette = [
   0x44aa99,
 ]
 
-export const enum TrackBoxKind {
-  Audio,
-  Notes,
-}
+// export const enum TrackBoxKind {
+//   Audio,
+//   Notes,
+// }
 
 export interface TrackBox {
   track: Track
-  data: BoxData
-  source: $<Source<Token>>
-  kind: TrackBoxKind
   rect: $<Rect>
-  isFocused?: boolean
-  isHovering?: boolean
+  info: $<{
+    source: $<Source<Token>>
+    isFocused: boolean
+    isHovering: boolean
+  }>
+  data: $<BoxData>
+}
+
+export function TrackBox(track: Track, source: $<Source<Token>>, box: $<BoxData>, rect?: $<Rect>): TrackBox {
+  using $ = Signal()
+
+  rect ??= $(new Rect, {
+    x: box.$.time,
+    y: track.info.$.y,
+    w: box.$.length,
+    h: 1
+  })
+
+  const info = $({
+    source,
+    isFocused: false,
+    isHovering: false,
+  })
+
+  const proto = { track }
+  return { __proto__: proto, rect, info, data: box } as TrackBox & { __proto__: typeof proto }
 }
 
 export type Track = ReturnType<typeof Track>
@@ -70,10 +91,8 @@ export function Track(dsp: DspService, project: Project, trackData: TrackData, y
     },
     get audioLength() {
       let max = 0
-      for (const { kind, rect } of this.boxes) {
-        // if (kind === TrackBoxKind.Audio) {
+      for (const { rect } of this.boxes) {
         if (rect.w > max) max = rect.w
-        // }
       }
       return max
     },
@@ -182,7 +201,7 @@ export function Track(dsp: DspService, project: Project, trackData: TrackData, y
 
   const renderedEpoch = new Map<Source<Token>, number>()
 
-  let buffersLru = new Set<Float32Array & { ptr: number, free(): void }>()
+  const getFloats = Lru(10, length => wasmSeq.alloc(Float32Array, length), item => item.fill(0), item => item.free())
 
   let isRendering = false
   let toRender = new Set<Source<Token>>()
@@ -202,7 +221,7 @@ export function Track(dsp: DspService, project: Project, trackData: TrackData, y
 
     isRendering = true
     try {
-      const { floats: dspFloats } = await dsp.service.renderSource(
+      const { floats: dspFloats, error } = await dsp.service.renderSource(
         sound$,
         audioLength,
         source.code,
@@ -211,18 +230,14 @@ export function Track(dsp: DspService, project: Project, trackData: TrackData, y
         notesJson,
       )
 
+      if (error || !dspFloats) {
+        throw new Error(error || 'renderSource failed.')
+      }
+
       info.waveLength = dspFloats.length
 
-      const floats = wasmSeq.alloc(Float32Array, dspFloats.length)
+      const floats = getFloats(dspFloats.length)
       floats.set(dspFloats)
-
-      buffersLru.add(floats)
-
-      if (buffersLru.size > 10) {
-        const [first, ...rest] = buffersLru
-        first.free()
-        buffersLru = new Set(rest)
-      }
 
       info.floats?.free()
       info.floats = Floats(floats)
@@ -251,7 +266,7 @@ export function Track(dsp: DspService, project: Project, trackData: TrackData, y
   $.fx(function update_audio_buffer() {
     const sources = new Set<Source<Token>>()
 
-    for (const { source } of info.boxes) {
+    for (const { info: { source } } of info.boxes) {
       sources.add(source)
     }
 
@@ -282,38 +297,12 @@ export function Track(dsp: DspService, project: Project, trackData: TrackData, y
     }
   })
 
-  function addBox(source: Source, box: BoxData) {
-    const proto = { track }
-
-    const y = track.info.y
-
-    const trackBox = $({
-      __proto__: proto,
-      data: box,
-      kind: y % 3 === 2 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
-      rect: $(new Rect, { x: box.time, y, w: box.length, h: 1 }),
-      source,
-      isFocused: false,
-      isHovering: false,
-    }) as $<TrackBox & { __proto__: typeof proto }>
-
-    for (let x = box.time; x < box.time + box.length; x++) {
-      const bar = audio.player.bars[x]
-      bar[bar.indexOf(0)] = track.pt.ptr
-    }
-
+  function addBox(source: $<Source<Token>>, box: $<BoxData>) {
+    const trackBox = TrackBox(track, source, box)
     track.info.boxes = [...track.info.boxes, trackBox]
   }
 
   function removeBox(trackBox: TrackBox) {
-    const box = trackBox.data
-    for (let x = box.time; x < box.time + box.length; x++) {
-      const bar = audio.player.bars[x]
-      const values = bar.slice(0, bar.indexOf(0))
-        .filter(ptr => ptr !== track.pt.ptr)
-      bar.fill(0)
-      bar.set(values)
-    }
     track.info.boxes = [...track.info.boxes].filter(tb => tb !== trackBox)
   }
 

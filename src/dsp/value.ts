@@ -49,6 +49,14 @@ export class Value<T extends Value.Kind = Value.Kind> {
       sound.vm.SetValue(this.value$, kind as number, this.ptr)
     }
   }
+  getAudio() {
+    if (this.kind === Value.Kind.Dynamic) {
+      return this.audio$
+    }
+    else {
+      return this.ptr
+    }
+  }
 }
 
 export namespace Value {

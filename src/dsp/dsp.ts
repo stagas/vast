@@ -13,14 +13,15 @@ import { getAllProps } from './util.ts'
 import { Value } from './value.ts'
 import { ntof } from '../util/notes.ts'
 import { Note } from '../util/notes-shared.ts'
+import { Op } from '../../generated/assembly/dsp-op.ts'
 
 const DEBUG = false
 
 const MAX_OPS = 4096
 
 const SoundData = Struct({
-  begin: 'i32',
-  end: 'i32',
+  begin: 'u32',
+  end: 'u32',
   pan: 'f32',
 })
 
@@ -67,11 +68,6 @@ export function Dsp({ sampleRate, core$ }: {
   const clock$ = wasm.getEngineClock(engine$)
   const clock = Clock(wasm.memory.buffer, clock$)
 
-  const info = $({
-    tokensAstNode: new Map<Token, AstNode>(),
-    error: null as null | Error,
-  })
-
   const view = getMemoryView(wasm.memory)
 
   preludeTokens ??= [...tokenize({
@@ -81,8 +77,7 @@ export function Dsp({ sampleRate, core$ }: {
       `[nrate 1]`
       // some builtin procedures
       + `{ .5* .5+ } norm=`
-      + `{ n= p= sp= 1 [inc sp co* t n*] clip - p^ * } decay=
-`
+    // + `{ n= p= sp= 1 [inc sp co* t n*] clip - p^ * } decay=`
   })]
 
   function Sound() {
@@ -130,6 +125,18 @@ export function Dsp({ sampleRate, core$ }: {
 
     function commit() {
       vm.End()
+
+      if (DEBUG) {
+        let op$: Op
+        let i = 0
+        while (op$ = ops[i++]) {
+          const op = Op[op$]
+          const len = (vm as any)[op].length
+          const slice = ops.subarray(i, i + len)
+          console.log(op, ...slice)
+          i += len
+        }
+      }
     }
 
     function setup() {
@@ -498,29 +505,28 @@ export function Dsp({ sampleRate, core$ }: {
       globals.rt = sound.Value.Scalar.create()
       globals.co = sound.Value.Scalar.create()
 
-      const g_any = globals as any
-      for (let i = 0; i < voicesCount; i++) {
-        for (const p of 'nftv') {
-          const name = `n${i}${p}`
-          const value = g_any[name] = sound.Value.Scalar.create()
-          scope[name] = new AstNode(AstNode.Type.Result, { value })
-        }
-      }
-
       const { sr, t, rt, co } = globals
       scope.sr = new AstNode(AstNode.Type.Result, { value: sr })
       scope.t = new AstNode(AstNode.Type.Result, { value: t })
       scope.rt = new AstNode(AstNode.Type.Result, { value: rt })
       scope.co = new AstNode(AstNode.Type.Result, { value: co })
 
-      function updateScalars() {
-        scalars[sr.ptr] = clock.sampleRate
-        scalars[t.ptr] = clock.barTime
-        scalars[rt.ptr] = clock.time
-        scalars[co.ptr] = clock.coeff
+      for (let i = 0; i < voicesCount; i++) {
+        for (const p of 'nftv') {
+          const name = `n${i}${p}`
+          const value = (globals as any)[name] = sound.Value.Scalar.create()
+          scope[name] = new AstNode(AstNode.Type.Result, { value })
+        }
       }
 
-      updateScalars()
+      // function updateScalars() {
+      //   scalars[sr.ptr] = clock.sampleRate
+      //   scalars[t.ptr] = clock.barTime
+      //   scalars[rt.ptr] = clock.time
+      //   scalars[co.ptr] = clock.coeff
+      // }
+
+      // updateScalars()
 
       let program: ReturnType<typeof interpret>
 
@@ -536,27 +542,20 @@ export function Dsp({ sampleRate, core$ }: {
         program = interpret(sound, scope, tokensCopy)
       }
 
-      const scalars_any = scalars as any
-      function clearVoices() {
-        for (let i = 0; i < voicesCount; i++) {
-          for (const p of 'nftv') {
-            const name = `n${i}${p}`
-            scalars_any[g_any[name].ptr] = 0
-          }
-        }
-      }
-      function updateVoices(notes: Note[], start: number, end: number) {
-        let i = 0
-        for (const note of notes) {
-          if (note.time / 16 >= start && note.time / 16 < end) {
-            const name = `n${i++}`
-            scalars_any[g_any[name + 'n'].ptr] = note.n
-            scalars_any[g_any[name + 'f'].ptr] = ntof(note.n)
-            scalars_any[g_any[name + 't'].ptr]++
-            scalars_any[g_any[name + 'v'].ptr] = note.vel
-          }
-        }
-      }
+      // const scalars_any = scalars as any
+
+      // function updateVoices(notes: Note[], start: number, end: number) {
+      //   let i = 0
+      //   for (const note of notes) {
+      //     if (note.time / 16 >= start && note.time / 16 < end) {
+      //       const name = `n${i++}`
+      //       scalars_any[g_any[name + 'n'].ptr] = note.n
+      //       scalars_any[g_any[name + 'f'].ptr] = ntof(note.n)
+      //       scalars_any[g_any[name + 't'].ptr]++
+      //       scalars_any[g_any[name + 'v'].ptr] = note.vel
+      //     }
+      //   }
+      // }
 
       // console.log(program.scope)
 
@@ -574,9 +573,9 @@ export function Dsp({ sampleRate, core$ }: {
       }
 
       const out = {
-        L: L?.value,
-        R: R?.value,
-        LR: LR?.value,
+        L: L?.value as Value.Audio | undefined,
+        R: R?.value as Value.Audio | undefined,
+        LR: LR?.value as Value.Audio | undefined,
       }
 
       commit()
@@ -589,9 +588,8 @@ export function Dsp({ sampleRate, core$ }: {
         program,
         isNew,
         out,
-        clearVoices,
-        updateVoices,
-        updateScalars,
+        // updateVoices,
+        // updateScalars,
       }
     }
 
@@ -619,7 +617,7 @@ export function Dsp({ sampleRate, core$ }: {
     return sound
   }
 
-  return { info, engine$, core$, clock, Sound }
+  return { engine$, core$, clock, Sound }
 }
 
 const commutative = new Set([DspBinaryOp.Add, DspBinaryOp.Mul])

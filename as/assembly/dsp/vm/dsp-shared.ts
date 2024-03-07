@@ -21,7 +21,7 @@ export enum DspBinaryOp {
 
 export class SoundData {
   constructor() { }
-  begin: i32 = 0
-  end: i32 = 0
+  begin: u32 = 0
+  end: u32 = 0
   pan: f32 = 0
 }

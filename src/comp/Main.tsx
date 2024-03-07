@@ -6,8 +6,8 @@ import { Grid } from '../draws/grid.ts'
 import { Heads } from '../draws/heads.ts'
 import { Minimap } from '../draws/minimap.ts'
 import { TextDraw } from '../draws/text.ts'
-import { Project, type BoxData, type ProjectData } from '../dsp/project.ts'
-import { Track, TrackBox, TrackBoxKind } from '../dsp/track.ts'
+import { Project, type ProjectData } from '../dsp/project.ts'
+import { Track } from '../dsp/track.ts'
 import { tokenize, type Token } from '../lang/tokenize.ts'
 import { Source } from '../source.ts'
 import { state } from '../state.ts'
@@ -103,7 +103,7 @@ export function Main() {
     const { sources, tracks } = project.info.data
     const { dsp } = $.of(audio.dsp.info)
     $()
-    const sourcesMap = new Map<number, Source>()
+    const sourcesMap = new Map<number, $<Source<Token>>>()
     const newTracks = []
 
     for (let y = 0; y < tracks.length; y++) {
@@ -117,7 +117,7 @@ export function Main() {
         if (!source) sourcesMap.set(box.source_id,
           source = $(new Source<Token>(tokenize), sources[box.source_id])
         )
-        t.addBox(source, box)
+        t.addBox(source, $(box))
       }
     }
 
@@ -149,10 +149,10 @@ export function Main() {
     }
   })
 
-  function addTrack(source: $<Source<any>>, length = 1, count = 4) {
+  function addTrack(source: $<Source<any>>, length = 1, count = 1) {
     let source_id = sources.indexOf(source)
     if (source_id === -1) source_id = sources.push(source) - 1
-    console.log(source_id)
+    // console.log(source_id)
 
     const trackData: ProjectData['tracks'][0] = $({
       boxes: Array.from({ length: count }, (_, x) => $({
@@ -174,10 +174,10 @@ export function Main() {
     if (state.tracks.length) {
       state.tracks = []
     }
-    addTrack(state.source_midi, 4, 1)
-    // addTrack(state.source)
-    addTrack(state.t1_source)
-    addTrack(state.t2_source)
+    addTrack(state.case_source)
+    // addTrack(state.source_midi, 4, 1)
+    // addTrack(state.t1_source)
+    // addTrack(state.t2_source)
     // addTrack(state.t3_source)
     // addTrack(state.t4_source)
 
@@ -225,7 +225,7 @@ export function Main() {
         editor.editorInfo.brand = hexColorBrightest
       }))
 
-      editor.editor.buffer.source = track.info.boxes[0].source
+      editor.editor.buffer.source = track.info.boxes[0].info.source
     }
     return offs
   })

@@ -12,6 +12,17 @@ export function getPlayerBars(player: Player): usize {
   return changetype<usize>(player.bars)
 }
 
+export function getPlayerNext(player: Player): usize {
+  return changetype<usize>(player.next)
+}
+
+export function swapBars(player: Player): void {
+  const curr = player.bars
+  const next = player.next
+  player.bars = next
+  player.next = curr
+}
+
 export function getPlayerClock(player$: usize): usize {
   const player = changetype<Player>(player$)
   return changetype<usize>(player.clock)

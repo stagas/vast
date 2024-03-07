@@ -5,8 +5,7 @@ self.document = {
 }
 
 import wasmDsp from 'assembly-dsp'
-import { rpc } from 'utils'
-import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
+import { Lru, rpc } from 'utils'
 import { AstNode } from '../lang/interpreter.ts'
 import { Token, tokenize } from '../lang/tokenize.ts'
 import { Note } from '../util/notes-shared.ts'
@@ -16,7 +15,8 @@ export type DspWorker = typeof worker
 
 const sounds = new Map<number, Sound>()
 
-let buffersLru = new Set<Float32Array & { ptr: number, free(): void }>()
+const getFloats = Lru(10, length => wasmDsp.alloc(Float32Array, length), item => item.fill(0), item => item.free())
+const getNotes = Lru(10, length => wasmDsp.alloc(Float32Array, length), item => item.fill(0), item => item.free())
 
 const worker = {
   dsp: null as null | Dsp,
@@ -64,53 +64,37 @@ const worker = {
 
       wasmDsp.updateClock(clock.ptr)
 
-      const { program, out, updateScalars, updateVoices, clearVoices } = sound.process(tokens, voicesCount, hasMidiIn)
+      const { program, out } = sound.process(tokens, voicesCount, hasMidiIn)
+
+      if (!out.LR) {
+        return { error: 'No audio in the stack.' }
+      }
 
       info.tokensAstNode = program.value.tokensAstNode
 
       const length = Math.floor(audioLength * clock.sampleRate / clock.coeff)
-      const floats = wasmDsp.alloc(Float32Array, length)
 
-      buffersLru.add(floats)
+      const floats = getFloats(length)
+      const notesData = getNotes(notes.length * 4) // * 4 elements: n, time, length, vel
 
-      if (buffersLru.size > 10) {
-        const [first, ...rest] = buffersLru
-        first.free()
-        buffersLru = new Set(rest)
+      let i = 0
+      for (const note of notes) {
+        const p = (i++) * 4
+        notesData[p] = note.n
+        notesData[p + 1] = note.time
+        notesData[p + 2] = note.length
+        notesData[p + 3] = note.vel
       }
 
-      const CHUNK_SIZE = 64
-      let chunkCount = 0
-
-      clearVoices()
-      updateScalars()
-      updateVoices(notes, clock.barTime, clock.barTime + clock.barTimeStep * CHUNK_SIZE)
-
-      sound.data.begin = 0
-      sound.data.end = 0
-      sound.run()
-
-      if (out.LR)
-        for (let x = 0; x < floats.length; x += BUFFER_SIZE) {
-          const end = x + BUFFER_SIZE > floats.length ? floats.length - x : BUFFER_SIZE
-
-          for (let i = 0; i < end; i += CHUNK_SIZE) {
-            updateScalars()
-            updateVoices(notes, clock.barTime, clock.barTime + clock.barTimeStep * CHUNK_SIZE)
-
-            sound.data.begin = i
-            sound.data.end = i + CHUNK_SIZE > end ? end - i : i + CHUNK_SIZE
-            sound.run()
-
-            clock.time = (chunkCount * CHUNK_SIZE) * clock.timeStep
-            clock.barTime = (chunkCount * CHUNK_SIZE) * clock.barTimeStep
-
-            chunkCount++
-          }
-
-          const chunk = sound.getAudio(out.LR.audio$).subarray(0, end)
-          floats.set(chunk, x)
-        }
+      wasmDsp.fillSound(sound.sound$,
+        sound.ops.ptr,
+        notesData.ptr,
+        notes.length,
+        out.LR.getAudio(),
+        0,
+        floats.length,
+        floats.ptr,
+      )
 
       return { floats }
     }
@@ -119,10 +103,10 @@ const worker = {
         console.warn(e)
         console.warn(...((e as any)?.cause?.nodes ?? []))
         info.error = e
+        return { error: e.message }
       }
       throw e
     }
-
   },
 }
 

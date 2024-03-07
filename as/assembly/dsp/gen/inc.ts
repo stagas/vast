@@ -1,4 +1,4 @@
-import { logi } from '../../env'
+import { logf, logi } from '../../env'
 import { Gen } from './gen'
 
 export class Inc extends Gen {
@@ -26,13 +26,11 @@ export class Inc extends Gen {
 
   _audio(begin: u32, end: u32, out: usize): void {
     const length: u32 = end - begin
-
     let i: u32 = begin
     end = i + length
 
     const offset = begin << 2
     out += offset
-
     const amt: f32 = this.amt * 0.001
     let value: f32 = this._value
 

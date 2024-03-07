@@ -1,6 +1,6 @@
 import { Factory } from '../../../../generated/assembly/dsp-factory'
 import { Offsets } from '../../../../generated/assembly/dsp-offsets'
-import { logi } from '../../env'
+import { logf, logf2, logi } from '../../env'
 import { modWrap } from '../../util'
 import { BUFFER_SIZE } from '../constants'
 import { fill } from '../graph/fill'
@@ -134,6 +134,8 @@ export class Dsp {
             )
             f32.store(ptr, xf)
             break
+          default:
+            throw new Error('Invalid binary op.')
         }
         break
 
@@ -150,6 +152,9 @@ export class Dsp {
         x = snd.floats[value.ptr]
         i32.store(ptr, x)
         break
+
+      default:
+        throw new Error('Invalid property write.')
     }
   }
   @inline

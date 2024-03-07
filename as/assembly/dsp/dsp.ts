@@ -40,6 +40,27 @@ export function clearSound(sound: Sound): void {
   sound.clear()
 }
 
+export function fillSound(
+  sound: Sound,
+  ops$: usize,
+  notes$: usize,
+  notesCount: u32,
+  audio_LR$: usize,
+  begin: u32,
+  end: u32,
+  out$: usize
+): void {
+  sound.fill(
+    ops$,
+    notes$,
+    notesCount,
+    audio_LR$,
+    begin,
+    end,
+    out$
+  )
+}
+
 export function getSoundData(sound: Sound): usize {
   return changetype<usize>(sound.data)
 }

@@ -50,7 +50,7 @@ export function Audio() {
           : 0
       )
 
-    if (!initial || now >= c.startTime) {
+    if (!initial || now > c.startTime) {
       initial = false
 
       info.timeNow = c.startTime + modWrap(now - c.startTime, c.endTime - c.startTime)
