@@ -66,15 +66,18 @@ class State {
   case_source = $(new Source<Token>(tokenize), {
     code: `{ n= f= nt= v=
 
-[adsr 2.5 50 .3 50 nt t 16 * .8 +]
-env=
+[adsr 2.5 50 .3 50
+ nt t 16 * .8 +]
+ env=
 
 [saw f [sqr .1] .10 * +]
  env * v *
 
 [slp 500 5700 env * + .61]
 
-A= A [delay 122 20 [tri .25 co*] * + ] A @ clip
+A= A [delay 122 20
+ [tri .25 co*] * + ] A
+ @ clip
 
 } midi_in=
 `

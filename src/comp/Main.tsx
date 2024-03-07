@@ -149,7 +149,7 @@ export function Main() {
     }
   })
 
-  function addTrack(source: $<Source<any>>, length = 1, count = 1) {
+  function addTrack(source: $<Source<any>>, length = 4, count = 1) {
     let source_id = sources.indexOf(source)
     if (source_id === -1) source_id = sources.push(source) - 1
     // console.log(source_id)
