@@ -281,6 +281,7 @@ export function Grid(surface: Surface, audio: Audio) {
     notePos.y = y
 
     const { notes } = hoveringBox.info
+    if (!notes.info.scale) return
 
     info.hoveringNoteN = clamp(
       0,
@@ -855,9 +856,13 @@ export function Grid(surface: Surface, audio: Audio) {
 
     const info = $({
       trackBox,
-      get scale() {
-        return getNotesScale(this.trackBox.track.info.notesJson)
-      },
+      scale: null as null | ReturnType<typeof getNotesScale>
+    })
+
+    $.fx(() => {
+      const { draggingNote } = gridInfo
+      if (draggingNote) return
+      info.scale = getNotesScale(trackBox.track.info.notesJson)
     })
 
     const rect = $(new Rect)
@@ -896,7 +901,7 @@ export function Grid(surface: Surface, audio: Audio) {
     // conditionally with .visible
     const rows = Shapes(view, viewMatrix)
     $.fx(() => {
-      const { scale } = info
+      const { scale } = $.of(info)
       const { x: cx, y: cy, w: cw, h: ch } = rect
       const { colors } = trackBox.track.info
       $()
@@ -976,11 +981,15 @@ export function Grid(surface: Surface, audio: Audio) {
     const shapes = Shapes(view, viewMatrix)
 
     const info = $({
-      trackBox,
-      get scale() {
-        return getNotesScale(this.trackBox.track.info.notesJson)
-      },
       update: 0,
+      trackBox,
+      scale: null as null | ReturnType<typeof getNotesScale>
+    })
+
+    $.fx(() => {
+      const { draggingNote } = gridInfo
+      if (draggingNote) return
+      info.scale = getNotesScale(trackBox.track.info.notesJson)
     })
 
     const r = trackBox.rect
@@ -1004,12 +1013,13 @@ export function Grid(surface: Surface, audio: Audio) {
     })
 
     $.fx(() => {
-      const { scale } = info
+      const { scale } = $.of(info)
       const { notesData } = trackBox.track.info
       $()
       notesShape.view.notes$ = notesData.ptr
       notesShape.view.min = scale.min
       notesShape.view.max = scale.max
+      redraw(shapes)
     })
 
     $.fx(() => {
@@ -1024,118 +1034,6 @@ export function Grid(surface: Surface, audio: Audio) {
         })
       }
     })
-
-    // const map = new Map<
-    //   Note,
-    //   {
-    //     noteBg: ReturnType<typeof shapes.Box>,
-    //     noteShape: ReturnType<typeof shapes.Box>
-    //   }
-    // >()
-
-    // const getAlpha = (vel: number, isFocused?: boolean, isHoveringNote?: boolean) =>
-    //   (isFocused
-    //     ? isHoveringNote
-    //       ? 1
-    //       : .45 + (.55 * vel)
-    //     : .2 + (.8 * vel)) * (dimmed ? 0.2 : 1.0)
-
-    // $.fx(() => {
-    //   const { scale } = info
-    //   const { track, rect } = trackBox
-    //   const { x: cx, y: cy, w: cw } = rect
-    //   const ch = rect.h * NOTES_HEIGHT_NORMAL
-    //   const { notes } = track.info
-    //   $()
-    //   shapes.clear()
-    //   map.clear()
-    //   notes.sort(byNoteN).forEach(note => {
-    //     const { n, time, length, vel } = note
-
-    //     const x = time * SCALE_X // x
-    //     if (x >= cw) return
-
-    //     const h = ch / scale.N
-    //     const y = ch - h * (n + 1 - scale.min) // y
-
-    //     let w = length * SCALE_X // w
-    //     if (x + w > cw) {
-    //       w = cw - x
-    //     }
-
-    //     const noteBg = shapes.Box({
-    //       x: cx + x,
-    //       y: cy + y,
-    //       w,
-    //       h: h + .0065,
-    //     })
-    //     noteBg.view.opts = ShapeOpts.Box | ShapeOpts.Collapse
-    //     noteBg.visible = false
-
-    //     const noteShape = shapes.Box({
-    //       x: cx + x,
-    //       y: cy + y,
-    //       w,
-    //       h,
-    //     })
-    //     noteShape.view.opts = ShapeOpts.Box | ShapeOpts.Collapse
-
-    //     map.set(note, { noteBg, noteShape })
-    //   })
-    //   shapes.update()
-    //   info.update++
-    // })
-
-    // $.fx(() => {
-    //   const { isFocused, track } = trackBox
-    //   const { colors } = track.info
-    //   const { primaryColorInt } = state
-    //   const { update } = info
-    //   $()
-    //   if (isFocused && !dimmed) {
-    //     const noteColor = colors.colorBright
-
-    //     map.forEach(({ noteBg, noteShape }, note) => {
-    //       noteBg.visible = true
-    //       noteBg.view.alpha = noteShape.view.alpha = getAlpha(note.vel, true)
-    //       noteShape.view.color = noteColor
-    //     })
-    //     redraw(shapes)
-
-    //     return $.fx(() => {
-    //       const { hoveringNote } = $.of(gridInfo)
-    //       $()
-    //       const noteShapes = map.get(hoveringNote)
-    //       if (!noteShapes) return
-
-    //       const { noteBg, noteShape } = noteShapes
-
-    //       noteBg.view.alpha =
-    //         noteShape.view.alpha =
-    //         getAlpha(hoveringNote.vel, true, true)
-
-    //       noteShape.view.color = primaryColorInt
-
-    //       redraw(shapes)
-    //       return () => {
-    //         noteBg.view.alpha =
-    //           noteShape.view.alpha =
-    //           getAlpha(hoveringNote.vel, true, false)
-
-    //         noteShape.view.color = noteColor
-    //         redraw(shapes)
-    //       }
-    //     })
-    //   }
-    //   else {
-    //     map.forEach(({ noteBg, noteShape }, note) => {
-    //       noteBg.visible = false
-    //       noteShape.view.alpha = getAlpha(note.vel)
-    //       noteShape.view.color = colors.fg
-    //     })
-    //     redraw(shapes)
-    //   }
-    // })
 
     return { info, shapes }
   }
