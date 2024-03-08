@@ -176,8 +176,8 @@ export function Main() {
     }
     addTrack(state.case_source)
     // addTrack(state.source_midi, 4, 1)
-    // addTrack(state.t1_source)
-    // addTrack(state.t2_source)
+    addTrack(state.t1_source)
+    addTrack(state.t2_source)
     // addTrack(state.t3_source)
     // addTrack(state.t4_source)
 

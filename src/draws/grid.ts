@@ -18,6 +18,11 @@ const WAVES_HEIGHT_NORMAL = 1 - NOTES_HEIGHT_NORMAL
 const WAVES_MARGIN_NORMAL = 0.0775
 const OFFSCREEN_X = -100_000
 
+export enum ZoomState {
+  In,
+  Out,
+}
+
 export type Grid = ReturnType<typeof Grid>
 
 export function Grid(surface: Surface, audio: Audio) {
@@ -84,6 +89,7 @@ export function Grid(surface: Surface, audio: Audio) {
       viewMatrix.a = intentMatrix.a = m.a
       viewMatrix.d = intentMatrix.d = m.d
       viewMatrix.e = intentMatrix.e = m.e
+      lastFarMatrix.set(viewMatrix)
     }
     queueMicrotask(() => offInitialScale())
   })
@@ -176,7 +182,7 @@ export function Grid(surface: Surface, audio: Audio) {
     const delta_d = (d + (delta * d ** 0.9)) / d
 
     m.translate(x, y).scale(1, delta_d)
-    m.d = clamp(0.01, 2000, m.d)
+    m.d = clamp(0.01, 64000, m.d)
     m.translate(-x, -y)
   }
 
@@ -251,6 +257,7 @@ export function Grid(surface: Surface, audio: Audio) {
     if (state.isHoveringHeads) return
     // if (state.isHoveringToolbar) return
     if (info.draggingNote) return
+    if (!surface.info.isHovering) return
 
     let { x, y } = mouse.screenPos
     x = Math.floor(x)
@@ -328,47 +335,73 @@ export function Grid(surface: Surface, audio: Audio) {
     log('hover note', hn, x, y)
   }
 
-  function handleWheelZoom(e: WheelEvent) {
-    if (e.deltaY > 0) {
-      if (state.zoomState === 'zooming') {
-        viewMatrix.speed = ZOOM_SPEED_NORMAL
-        log(intentMatrix.d)
-        if (intentMatrix.d < 100) {
-          if (!info.draggingNote) {
-            if (info.focusedBox) {
-              info.hoveringBox = info.focusedBox
-            }
-            info.focusedBox = null
-          }
-        }
-        const amt = Math.min(.5, Math.abs(
-          e.deltaY / ((viewMatrix.a * 0.008) ** 0.82)
-          * ((targetMatrix.a * 0.05) ** 1.15) * .85) * .0001
-        )
-        lerpMatrix(intentMatrix, lastFarMatrix, amt)
-        if (Matrix.compare(intentMatrix, lastFarMatrix, 30.0)) {
-          zoomFar()
-        }
-      }
-    }
-    else {
-      if (state.zoomState === 'far') {
-        state.zoomState = 'zooming'
-        lastFarMatrix.set(intentMatrix)
-      }
-      if (state.zoomState === 'zooming') {
-        if (!info.hoveringBox) return
-        if (!info.draggingNote) {
-          if (intentMatrix.d > 150) {
-            info.focusedBox = info.hoveringBox
-          }
-        }
-        const amt = Math.min(.5, Math.abs(
-          e.deltaY * ((viewMatrix.a * 0.008) ** 0.92)
-          / ((targetMatrix.a * 0.05) ** 0.5) * .85) * .0028)
-        lerpMatrix(intentMatrix, targetMatrix, amt)
-      }
-    }
+  const minScale = {
+    x: 0.01,
+    y: 0.01,
+  }
+  const maxScale = {
+    x: 64000,
+    y: 64000,
+  }
+  function handleZoom(e: WheelEvent) {
+    updateMousePos()
+    handleWheelScaleX(e)
+    handleWheelScaleY(e)
+
+    // const delta = e.deltaY / 100
+    // console.log(delta)
+    // if (delta < 0) {
+    //   if (state.zoomState === ZoomState.Out) {
+    //     state.zoomState = ZoomState.In
+    //     lastFarMatrix.set(intentMatrix)
+    //   }
+    // }
+    // else {
+    //   if (state.zoomState === ZoomState.In) {
+    //     state.zoomState = ZoomState.Out
+    //   }
+    // }
+    // lerpMatrix(lastFarMatrix, targetMatrix, minScale, maxScale, delta)
+    // if (e.deltaY > 0) {
+    //   if (state.zoomState === ZoomState.In) {
+    //     viewMatrix.speed = ZOOM_SPEED_NORMAL
+    //     log(intentMatrix.d)
+    //     if (intentMatrix.d < 100) {
+    //       if (!info.draggingNote) {
+    //         if (info.focusedBox) {
+    //           info.hoveringBox = info.focusedBox
+    //         }
+    //         info.focusedBox = null
+    //       }
+    //     }
+    //     const amt = Math.min(.5, Math.abs(
+    //       e.deltaY / ((viewMatrix.a * 0.008) ** 0.82)
+    //       * ((targetMatrix.a * 0.05) ** 1.15) * .85) * .0001
+    //     )
+    //     lerpMatrix(intentMatrix, lastFarMatrix, amt)
+    //     if (Matrix.compare(intentMatrix, lastFarMatrix, 30.0)) {
+    //       zoomFar()
+    //     }
+    //   }
+    // }
+    // else {
+    //   if (state.zoomState === ZoomState.Out) {
+    //     state.zoomState = ZoomState.In
+    //     lastFarMatrix.set(intentMatrix)
+    //   }
+    //   if (state.zoomState === ZoomState.In) {
+    //     if (!info.hoveringBox) return
+    //     if (!info.draggingNote) {
+    //       if (intentMatrix.d > 150) {
+    //         info.focusedBox = info.hoveringBox
+    //       }
+    //     }
+    //     const amt = Math.min(.5, Math.abs(
+    //       e.deltaY * ((viewMatrix.a * 0.008) ** 0.92)
+    //       / ((targetMatrix.a * 0.05) ** 0.5) * .85) * .0028)
+    //     lerpMatrix(intentMatrix, targetMatrix, amt)
+    //   }
+    // }
   }
 
   function handleDraggingNoteMove() {
@@ -428,7 +461,7 @@ export function Grid(surface: Surface, audio: Audio) {
 
   const zoomBox = $.fn(function zoomBox(box: GridBox) {
     isWheelHoriz = false
-    state.zoomState = 'zooming'
+    state.zoomState = ZoomState.In
     viewMatrix.isRunning = true
     viewMatrix.speed = ZOOM_SPEED_SLOW
     applyBoxMatrix(intentMatrix, box)
@@ -436,7 +469,7 @@ export function Grid(surface: Surface, audio: Audio) {
 
   const zoomFull = $.fn(function zoomFull() {
     isWheelHoriz = false
-    state.zoomState = 'zooming'
+    state.zoomState = ZoomState.Out
     viewMatrix.isRunning = true
     viewMatrix.speed = ZOOM_SPEED_SLOW
     const m = getInitialMatrixValues()
@@ -444,15 +477,16 @@ export function Grid(surface: Surface, audio: Audio) {
     intentMatrix.d = m.d
     intentMatrix.e = m.e
     intentMatrix.f = m.f
-    lastFarMatrix.set(intentMatrix)
+    // lastFarMatrix.set(intentMatrix)
   })
 
   const zoomFar = $.fn(function zoomFar() {
     if (!info.draggingNote) {
+      info.hoveringNote = null
       info.focusedBox = null
     }
     viewMatrix.speed = ZOOM_SPEED_NORMAL
-    state.zoomState = 'far'
+    state.zoomState = ZoomState.Out
     intentMatrix.set(lastFarMatrix)
   })
 
@@ -516,9 +550,9 @@ export function Grid(surface: Surface, audio: Audio) {
             $.flush()
           }
           else if (clicks >= 2) {
-            if (state.zoomState === 'far') {
-              lastFarMatrix.set(intentMatrix)
-            }
+            // if (state.zoomState === ZoomState.Out) {
+            //   lastFarMatrix.set(intentMatrix)
+            // }
             info.focusedBox = info.hoveringBox
             zoomBox(info.hoveringBox)
             return
@@ -572,17 +606,27 @@ export function Grid(surface: Surface, audio: Audio) {
 
       if (isHoriz || e.altKey) {
         mouse.matrix = viewMatrix
-        const de = (e.deltaX - (e.altKey ? e.deltaY : 0)) * 2.5 * 0.08 * (intentMatrix.a ** 0.18)
-        intentMatrix.e -= de
+        if (e.shiftKey) {
+          const df = -(e.deltaX - (e.altKey ? e.deltaY : 0)) * 2.5 * 0.08 * (intentMatrix.d ** 0.18)
+          intentMatrix.f -= df
+        }
+        else {
+          const de = (e.deltaX - (e.altKey ? e.deltaY : 0)) * 2.5 * 0.08 * (intentMatrix.a ** 0.18)
+          intentMatrix.e -= de
+        }
       }
       else {
         if (e.ctrlKey) {
           updateMousePos()
           handleWheelScaleX(e)
         }
-        else {
+        if (e.shiftKey) {
+          updateMousePos()
+          handleWheelScaleY(e)
+        }
+        if (!e.ctrlKey && !e.shiftKey) {
           isZooming = true
-          handleWheelZoom(e)
+          handleZoom(e)
         }
       }
     }
@@ -1124,7 +1168,7 @@ export function Grid(surface: Surface, audio: Audio) {
     mousePos,
     intentMatrix,
     lastFarMatrix,
-    handleWheelZoom,
+    handleZoom,
     handleWheelScaleX,
     updateHoveringBox,
   }

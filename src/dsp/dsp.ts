@@ -3,6 +3,7 @@ import { Signal } from 'signal-jsx'
 import { Struct, fromEntries, getMemoryView, keys } from 'utils'
 import { BUFFER_SIZE, MAX_LISTS, MAX_LITERALS, MAX_SCALARS } from '../../as/assembly/dsp/constants.ts'
 import { DspBinaryOp, SoundData as SoundDataShape } from '../../as/assembly/dsp/vm/dsp-shared.ts'
+import { Op } from '../../generated/assembly/dsp-op.ts'
 import { Gen, dspGens } from '../../generated/typescript/dsp-gens.ts'
 import { createVm } from '../../generated/typescript/dsp-vm.ts'
 import { AstNode, interpret } from '../lang/interpreter.ts'
@@ -11,9 +12,6 @@ import { parseNumber } from '../lang/util.ts'
 import { Clock } from './dsp-shared.ts'
 import { getAllProps } from './util.ts'
 import { Value } from './value.ts'
-import { ntof } from '../util/notes.ts'
-import { Note } from '../util/notes-shared.ts'
-import { Op } from '../../generated/assembly/dsp-op.ts'
 
 const DEBUG = false
 
@@ -77,7 +75,7 @@ export function Dsp({ sampleRate, core$ }: {
       `[nrate 1]`
       // some builtin procedures
       + `{ .5* .5+ } norm=`
-    // + `{ n= p= sp= 1 [inc sp co* t n*] clip - p^ * } decay=`
+      + `{ n= p= sp= 1 [inc sp co* t n*] clip - p^ * } decay=`
   })]
 
   function Sound() {
@@ -519,15 +517,6 @@ export function Dsp({ sampleRate, core$ }: {
         }
       }
 
-      // function updateScalars() {
-      //   scalars[sr.ptr] = clock.sampleRate
-      //   scalars[t.ptr] = clock.barTime
-      //   scalars[rt.ptr] = clock.time
-      //   scalars[co.ptr] = clock.coeff
-      // }
-
-      // updateScalars()
-
       let program: ReturnType<typeof interpret>
 
       if (voicesCount && hasMidiIn) {
@@ -541,23 +530,6 @@ export function Dsp({ sampleRate, core$ }: {
       else {
         program = interpret(sound, scope, tokensCopy)
       }
-
-      // const scalars_any = scalars as any
-
-      // function updateVoices(notes: Note[], start: number, end: number) {
-      //   let i = 0
-      //   for (const note of notes) {
-      //     if (note.time / 16 >= start && note.time / 16 < end) {
-      //       const name = `n${i++}`
-      //       scalars_any[g_any[name + 'n'].ptr] = note.n
-      //       scalars_any[g_any[name + 'f'].ptr] = ntof(note.n)
-      //       scalars_any[g_any[name + 't'].ptr]++
-      //       scalars_any[g_any[name + 'v'].ptr] = note.vel
-      //     }
-      //   }
-      // }
-
-      // console.log(program.scope)
 
       let L = program.scope.vars['L']
       let R = program.scope.vars['R']
@@ -588,8 +560,6 @@ export function Dsp({ sampleRate, core$ }: {
         program,
         isNew,
         out,
-        // updateVoices,
-        // updateScalars,
       }
     }
 

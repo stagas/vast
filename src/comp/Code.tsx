@@ -74,7 +74,7 @@ export function Code() {
   const bigScrollbarRect = $(new Rect)
   let bigScrollbarHandleHeight = 0
   function drawBigScrollbar() {
-    if (state.tracks.length < 3) return
+    // if (state.tracks.length < 3) return
 
     const m = state.viewMatrix
     c.save()
@@ -168,7 +168,7 @@ export function Code() {
   const target = {
     rect: bigScrollbarRect,
     handler: () => {
-      if (state.tracks.length < 3) return
+      // if (state.tracks.length < 3) return
 
       const m = state.matrix
       if (pointer.type === PointerEventType.Down) {

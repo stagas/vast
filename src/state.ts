@@ -10,6 +10,7 @@ import { hexToInt, toHex } from './util/rgb.ts'
 import { Mesh } from './webgl.ts'
 import { AnimMode } from './world/anim.ts'
 import { Track } from './dsp/track.ts'
+import { ZoomState } from './draws/grid.ts'
 
 const DEBUG = true
 
@@ -57,7 +58,7 @@ class State {
   codeViewMatrix = $(new LerpMatrix(), { threshold: .00015 })
   lastFarMatrix = $(new Matrix())
   targetMatrix = $(new Matrix())
-  zoomState = 'far'
+  zoomState: ZoomState = ZoomState.Out
 
   meshes = new Set<Mesh>()
 
