@@ -53,7 +53,7 @@ export class Scroll extends Comp {
       if (!(line in lineBottoms)) {
         throw new Error('Invalid line state.')
       }
-      y = lineBottoms[line] + lineHeight + 3//+ scrollbarSize.h + 2
+      y = lineBottoms[line]// + lineHeight + 3//+ scrollbarSize.h + 2
       dy = y - viewBottom
       if (dy > 0) {
         this.animSettings = Scroll.AnimSettings.Slow
@@ -104,7 +104,7 @@ export class Scroll extends Comp {
     const top = -h
       + Math.min(
         lineBottoms.at(-1) || 0,
-        view.h / 2 // TODO: this is weird //- lineHeight //- 3.5
+        view.h / 2 + lineHeight
       )
     const left = -Math.max(0, (w - view.w) + overscrollX)
 

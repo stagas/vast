@@ -1,11 +1,11 @@
 import { Signal } from 'signal-jsx'
 import { Matrix, Rect } from 'std'
 import { dom } from 'utils'
-import { Canvas } from '../comp/Canvas.tsx'
+import { CODE_WIDTH, HEADS_WIDTH } from '../constants.ts'
+import { Grid } from '../draws/grid.ts'
 import { log, state } from '../state.ts'
-import { Grid } from './grid.ts'
-import { CODE_WIDTH } from '../constants.ts'
 import { toHex } from '../util/rgb.ts'
+import { Canvas } from './Canvas.tsx'
 
 const DEBUG = true
 
@@ -17,16 +17,16 @@ export function Minimap(grid: Grid) {
   const view = $(new Rect, { w: 250, h: 34, pr: state.$.pr })
   const handleView = $(new Rect, { w: 260, h: 42, pr: state.$.pr })
 
-  const canvas = Canvas({ view })
-  const handle = Canvas({ view: handleView })
-  handle.style.position = 'absolute'
-  handle.style.left = '-5px'
-  handle.style.top = '-4px'
-  canvas.style.marginBottom = '-1px'
+  const canvas = <Canvas view={view} class="-mb-[1px]" /> as Canvas
+  const handle = <Canvas view={handleView} class="absolute -left-[5px] -top-[4px]" /> as Canvas
+  const el = <div class="relative m-1.5 h-8">
+    {canvas}
+    {handle}
+  </div>
 
   $.fx(() => dom.on(handle, 'wheel', e => {
     const m = grid.intentMatrix
-    grid.mousePos.x = ((state.mode === 'wide' ? 0 : CODE_WIDTH + 55) - m.e) / m.a
+    grid.mousePos.x = (HEADS_WIDTH - m.e) / m.a
     grid.mousePos.y = 0
     grid.handleWheelScaleX(e)
     DEBUG && log('wheel', grid.mousePos.x, grid.mousePos.y)
@@ -46,7 +46,7 @@ export function Minimap(grid: Grid) {
 
       const { left, width } = boxes.info
 
-      m.e = -x * width * m.a + (grid.view.w + CODE_WIDTH + 55) / 2 - left * m.a
+      m.e = -x * width * m.a + (grid.view.w + HEADS_WIDTH) / 2 - left * m.a
       l.e = -x * width * l.a + grid.view.w / 2 - left * l.a
     }
 
@@ -90,7 +90,7 @@ export function Minimap(grid: Grid) {
       for (const { rect, trackBox } of row) {
         const { x, y, w, h } = rect
         color = trackBox.track.info.color
-        c.rect(x, y + 10 * (1 / view.h), w, h - 20 * (1 / view.h))
+        c.rect(x, y + 10 * (1 / view.h), w - (1.5 / matrix.a) * pr, h - 20 * (1 / view.h))
       }
       c.fillStyle = '#' + (color ?? 0x0).toString(16).padStart(6, '0')
       c.fill()
@@ -115,8 +115,8 @@ export function Minimap(grid: Grid) {
     handleView.clear(c)
     c.translate(.5, 2.5)
 
-    const padX = state.mode === 'wide' ? 0 : CODE_WIDTH + 55.5
-    const x = -((e - padX + left * a) / a / pr) * matrix.a + 2
+    const padX = HEADS_WIDTH
+    const x = -((e - padX + left * a) / a / pr) * matrix.a
     const y = -((f) / d / pr) * matrix.d
     const w = ((vw - padX - 5) / a / pr) * matrix.a + 9
     const h = (vh / d / pr) * matrix.d + 2
@@ -147,5 +147,5 @@ export function Minimap(grid: Grid) {
     c.restore()
   })
 
-  return { canvas, handle }
+  return { el, canvas, handle }
 }

@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .pixelated {
+    image-rendering: pixelated;
+  }
+}
+
 @font-face {
   font-family: 'Mono';
   src: url('/Hermit-Regular.woff2');

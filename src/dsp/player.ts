@@ -4,11 +4,12 @@ import { getMemoryView } from 'utils'
 import { BUFFER_SIZE, MAX_TRACKS } from '../../as/assembly/dsp/constants.ts'
 import { MAX_BARS } from '../../as/assembly/seq/constants.ts'
 import { Out as OutType } from '../../as/assembly/seq/player-shared.ts'
-import { state } from '../state.ts'
 import { Clock } from './dsp-shared.ts'
 import { Out, PlayerMode } from './player-shared.ts'
 import type { PlayerProcessorOptions } from './player-worklet.ts'
 import playerWorkletUrl from './player-worklet.ts?url'
+import { Project } from './project.ts'
+import { lib } from '../lib.ts'
 
 export class PlayerNode extends AudioWorkletNode {
   constructor(
@@ -110,7 +111,9 @@ export function Player(ctx: AudioContext) {
   })
 
   $.fx(() => {
-    const { tracks } = state
+    const { project } = $.of(lib)
+    const { tracks } = $.of(project.info)
+
     for (const t of tracks) {
       for (const b of t.info.boxes) {
         b.data.time

@@ -12,6 +12,7 @@ export function DspService(ctx: AudioContext) {
   const deferred = Deferred<void>()
   const ready = deferred.promise
   const worker = new Worker(dspWorkerUrl, { type: 'module' })
+
   const service = rpc<DspWorker>(worker, {
     async isReady() {
       deferred.resolve()

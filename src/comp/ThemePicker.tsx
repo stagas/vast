@@ -14,7 +14,7 @@ export function ThemePicker() {
         <circle stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.85" cx="8" cy="8" r="6" />
       </svg>
     </button>
-    <ul tabindex="0" class="dropdown-content z-[1] bg-base-300 menu menu-s p-2 shadow grid-rows-8 grid grid-cols-4 w-[400px] right-0">
+    <ul tabindex="0" class="dropdown-content z-[1] bg-base-300 menu menu-s p-2 shadow grid-rows-7 grid grid-cols-5 w-[550px] right-0">
       {Object.keys(themes).map(theme =>
         <li><a
           class={() => [

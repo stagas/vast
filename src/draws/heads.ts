@@ -1,13 +1,12 @@
 import { Signal } from 'signal-jsx'
 import { Point, Rect } from 'std'
-import { dom, luminate } from 'utils'
-import { Canvas } from '../comp/Canvas.tsx'
-import { CODE_WIDTH } from '../constants.ts'
+import { dom } from 'utils'
+import { Track } from '../dsp/track.ts'
+import { lib } from '../lib.ts'
 import { state } from '../state.ts'
 import { Surface } from '../surface.ts'
 import { fromSvg } from '../util/svg-to-image.ts'
 import { Grid } from './grid.ts'
-import { Track } from '../dsp/track.ts'
 
 const DEBUG = true
 
@@ -27,7 +26,9 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
   })
 
   function handleHover(e: MouseEvent | WheelEvent) {
-    const { tracks, pr } = state
+    const { pr } = state
+    if (!lib.project) return
+    const { project: { info: { tracks } } } = lib
     mousePos.x = e.pageX * pr
     mousePos.y = e.pageY * pr
     mousePos.y -= 44 * pr
@@ -44,7 +45,7 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
       // e.stopImmediatePropagation()
       // e.preventDefault()
 
-      for (const track of state.tracks) {
+      for (const track of tracks) {
         if (mousePos.y > track.info.sy && mousePos.y < track.info.sy + dims.h) {
           info.hoveringTrack = track
           break
@@ -82,15 +83,17 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
     }
   }), { capture: true }))
 
-  $.fx(() => {
-    const { mode } = state
-    $()
-    selfView.set(view)
-    if (mode === 'edit' || mode === 'dev') {
-      selfView.w -= CODE_WIDTH
-      selfView.x += CODE_WIDTH
-    }
-  })
+  selfView.set(view)
+
+  // $.fx(() => {
+  //   const { mode } = state
+  //   $()
+  //   selfView.set(view)
+  //   if (mode === 'edit' || mode === 'dev') {
+  //     selfView.w -= CODE_WIDTH
+  //     selfView.x += CODE_WIDTH
+  //   }
+  // })
 
   const icons = $({
     play: $.unwrap(() => fromSvg(/*html*/`
@@ -140,7 +143,7 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
   })
 
   const tick = () => {
-    c.restore()
+    // c.restore()
     c.save()
 
     r.set(hitArea).clear(c)
@@ -155,7 +158,8 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
 
     const { w, h } = dims
 
-    for (const track of state.tracks) {
+    if (!lib.project) return
+    for (const track of lib.project.info.tracks) {
       let y = track.info.sy
       let th = h
       if (y + th < 0) continue
@@ -176,8 +180,8 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
         // info.hoveringTrack === track
         //   ? icons.play.img_hover
         //   :
-          icons.play.img
-          , 0, y)
+        icons.play.img
+        , 0, y)
       c.restore()
       c.beginPath()
       c.moveTo(w, y)
@@ -188,7 +192,7 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
     }
 
     c.restore()
-    c.save()
+    // c.save()
   }
 
   $.fx(() => {

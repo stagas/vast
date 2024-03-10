@@ -1,17 +1,33 @@
 import { Signal } from 'signal-jsx'
 import { Point, Rect } from 'std'
 import { clamp, dom, isMobile } from 'utils'
-import { CODE_WIDTH } from '../constants.ts'
+import { CODE_WIDTH, HEADER_HEIGHT } from '../constants.ts'
 import { Editor, createEditor } from '../editor/editor.ts'
 import { Keyboard } from '../editor/keyboard.ts'
 import { Pointer, PointerEventType } from '../editor/pointer.ts'
 import { Token } from '../lang/tokenize.ts'
+import { lib } from '../lib.ts'
 import { state } from '../state.ts'
-import { Canvas } from './Canvas.tsx'
 import { toHex } from '../util/rgb.ts'
+import { Canvas } from './Canvas.tsx'
 
 export function Code() {
   using $ = Signal()
+
+  const codeHeight = (window.innerHeight - HEADER_HEIGHT) / 2
+  const view = $(new Rect, {
+    x: 0,
+    y: codeHeight + HEADER_HEIGHT,
+    w: CODE_WIDTH,
+    h: codeHeight,
+    pr: state.$.pr,
+  })
+  const editorView = $(new Rect, {
+    x: 0,
+    y: 0,
+    w: CODE_WIDTH * state.pr,
+    h: codeHeight * state.pr
+  })
 
   const info = $({
     redraw: 0,
@@ -31,24 +47,19 @@ export function Code() {
   //   [AstNode.Type.Id]: '#888',
   // } as any
 
-
   let metrics: any
 
   const sparePoint = $(new Point)
 
-  const view = $(new Rect, { pr: state.$.pr, y: 44, w: CODE_WIDTH, h: window.innerHeight - 44 })
-  // const rect = $(new Rect, { pr: state.$.pr })
+  // const view = $(new Rect, { pr: state.$.pr, y: 44, w: CODE_WIDTH, h: window.innerHeight - 44 })
 
-  let c: CanvasRenderingContext2D
-  const canvas = Canvas({ view, onresize })
-  canvas.style.position = 'absolute'
-  canvas.style.left = '0'
-  canvas.style.zIndex = '10'
-  c = canvas.getContext('2d', { alpha: true })!
+  const canvas = <Canvas view={view} onresize={onresize} class="absolute left-0 z-10" /> as Canvas
+  canvas.style.top = view.y + 'px'
+  const c = canvas.getContext('2d', { alpha: true })!
 
   function drawSeparators() {
     c.save()
-    for (const t of state.tracks) {
+    for (const t of lib.project!.info.tracks) {
       c.lineWidth = state.pr * 2
       c.beginPath()
       let y = t.info.sy
@@ -72,23 +83,21 @@ export function Code() {
   // big scrollbar
   //
   const bigScrollbarRect = $(new Rect)
-  let bigScrollbarHandleHeight = 0
-  function drawBigScrollbar() {
-    // if (state.tracks.length < 3) return
 
+  function drawBigScrollbar() {
     const m = state.viewMatrix
     c.save()
     c.scale(state.pr, state.pr)
     const vh = view.h
 
-    const co = (vh / (m.d * 2 * (state.tracks.length)))
+    const co = (vh / (m.d * 2 * (lib.project!.info.tracks.length)))
 
     const w = 30
     const x = view.w - (5 + w)
-    let y = -.5 - m.f * co * 2 //* state.pr
+    let y = -.5 - m.f * co * 2
     const bottom = window.innerHeight - 47
 
-    let h = vh * co * state.pr //* (1/m.d) * vh / 2
+    let h = vh * co * state.pr
 
     if (y < 0) {
       h += y
@@ -103,7 +112,6 @@ export function Code() {
     bigScrollbarRect.y = 0
     bigScrollbarRect.w = w
     bigScrollbarRect.h = vh
-    bigScrollbarHandleHeight = h
 
     if (isHoveringBigScrollbar) {
       bigScrollbarRect.fill(c, state.colors['base-content'] + '33')
@@ -113,9 +121,9 @@ export function Code() {
     c.rect(x, y - 1, w, h + 1)
     c.fillStyle = state.colors['base-content'] + '44'
     c.fill()
-    for (const t of state.tracks) {
+    for (const t of lib.project!.info.tracks) {
       c.beginPath()
-      const h = (view.h / (state.tracks.length))
+      const h = (view.h / (lib.project!.info.tracks.length))
       const y = (t.info.y) * h
       // c.moveTo(x + 10, y)
       c.moveTo(x + 8 + w - 10, y)
@@ -125,25 +133,10 @@ export function Code() {
       c.stroke()
     }
 
-    // c.lineWidth = 2
-    // c.beginPath()
-    // // c.moveTo(x, y + h)
-    // c.moveTo(x, y)
-    // c.lineTo(x + w, y)
-    // c.strokeStyle = state.colors.secondary //'#fff'
-    // c.stroke()
-    // c.beginPath()
-    // // c.moveTo(x + w, y)
-    // c.moveTo(x + w, y + h)
-    // c.lineTo(x, y + h)
-    // // c.strokeStyle = '#fff'
-    // c.stroke()
-
     c.restore()
   }
 
   function onresize() {
-    // c?.scale(state.pr, state.pr)
     info.redraw++
   }
 
@@ -160,24 +153,21 @@ export function Code() {
   pointer.element = canvas
   pointer.offset.y = 44
 
-  let beginDragY = -1
-  let beginDragF = 0
-  let isDraggingBigScrollbar = false
   let isHoveringBigScrollbar = false
 
   const target = {
     rect: bigScrollbarRect,
     handler: () => {
-      // if (state.tracks.length < 3) return
-
       const m = state.matrix
+
       if (pointer.type === PointerEventType.Down) {
         pointer.isDown = true
 
         const handle = (e: MouseEvent) => {
           e.stopImmediatePropagation()
           e.preventDefault()
-          const { tracks } = state
+          if (!lib.project) return
+          const { tracks } = lib.project.info
           const th = (view.h / (tracks.length - 1)) //* m.d
           const n = clamp(0, 1.0, (e.pageY - 44 - th / 2) / (view.h - th))
           m.f = -n * (m.d * (tracks.length - 1))
@@ -197,7 +187,6 @@ export function Code() {
       }
 
       document.body.style.cursor = 'pointer'
-      // console.log('in scrollbar')
     }
   }
 
@@ -246,8 +235,9 @@ export function Code() {
   }
 
   function createEditorView(rect: Rect) {
-
     const editorInfo = $({
+      rect,
+
       redraw: 0,
 
       brand: '#ff381f',
@@ -273,13 +263,8 @@ export function Code() {
     })
 
     const editor = createEditor(rect, c, Token, keyboard, pointer)
-    editor.text.offset.y = 42
+    // editor.text.offset.y = 42
     editor.dims.lineHeight = info.lineHeight
-
-    const prev = $(new Rect)
-    prev.set(editor.view)
-
-    const targetRect = $(new Rect)
 
     // $.fx(() => {
     //   const { source } = state
@@ -290,6 +275,7 @@ export function Code() {
     editor.text.padding.setParameters(info.textLeft, info.textTop)
 
     // Pointer Target
+    const targetRect = $(new Rect)
 
     const target = {
       rect: targetRect,
@@ -309,31 +295,28 @@ export function Code() {
         }
       }
     }
+
     pointer.targets.add(target)
 
     $.fx(() => {
-      const { y } = rect
-      const { d, f } = state.viewMatrix
-      {
-        const { d, f } = state.matrix
-      }
+      const { x, y, w, h } = editor.view
       $()
-      editor.view.setParameters(0, y * d + f, CODE_WIDTH, 2 * d)
-      // editor.clear()
-      // console.log(editor.view.text)
-      // editor.view.set(view)
       targetRect.set(editor.view)
-      targetRect.pr = editor.view.pr
-      // targetRect.y -= 44
-      targetRect.h = d
-      // targetRect.w = CODE_WIDTH * state.pr
-      // targetRect.stroke(c, '#fff')
-      // targetRect.y
-      // info.redraw++
-      // target.rect.set(view)
-
+      targetRect.size.div(state.pr)
+      targetRect.y = targetRect.h
+      // pointer.offset.y = targetRect.h
+      editor.text.offset.y = targetRect.h + HEADER_HEIGHT - 3
     })
 
+    // KEEP: resize to height
+    // TODO: make it an option in Editor
+    // $.fx(() => {
+    //   const { lines } = $.of(editor.buffer)
+    //   const { lineHeight } = $.of(editor.dims)
+    //   $()
+    //   editor.view.w = CODE_WIDTH * state.pr
+    //   editor.view.h = (lineHeight * lines.length + editor.text.padding.y * 2) * state.pr
+    // })
     // $.fx(() => dom.on(window, 'resize', $.fn(() => {
     //   $.untrack(() => {
     //   })
@@ -341,7 +324,7 @@ export function Code() {
 
     $.fx(() => {
       const { source } = $.of(editor.buffer)
-      const { tokens } = $.of(source)
+      const { code, tokens } = $.of(source)
       // const { tokensAstNode, error } = state
       // const { redraw } = info
       const { TokenColors, Builtin } = editorInfo
@@ -378,22 +361,14 @@ export function Code() {
     }
 
     function drawText() {
-      // if (!state.active) return
       if (!editor.buffer.source?.lines) return
-
-      // info.lineHeight = Math.floor(9 * ((editor.view.h / window.innerHeight * 3) ** 0.45))
-      // info.fontSize = (info.lineHeight * 0.9) + 'px'
 
       const c = editor.c
       c.textBaseline = 'top'
       c.textAlign = 'left'
       c.font = `${info.fontSize} "${info.font}"`
 
-      metrics = c.measureText('M')
-
-      // prev.clear(c)
-      prev.set(editor.view)
-      // editor.clear()
+      metrics ??= c.measureText('M')
 
       c.save()
 
@@ -401,11 +376,7 @@ export function Code() {
       c.scale(state.pr, state.pr)
       c.beginPath()
       c.rect(0, editor.view.y, editor.view.w_pr, editor.view.h / state.pr - 1)
-      // c.fillStyle = '#f00'
       c.clip()
-      //state.colors['base-100'] + 'e0') // '#000b')
-
-      // editor.view.fill(c, '#000b')
 
       c.translate(-.5, -.5)
       c.translate(editor.view.x, editor.view.y)
@@ -490,5 +461,24 @@ export function Code() {
     c.fillRect(0, 0, view.w_pr, view.h_pr)
   }
 
-  return { info, canvas, createEditorView, clearCanvas, drawBigScrollbar, drawSeparators, textarea: keyboard.textarea }
+  // const code = Code(codeView)
+  const editor = createEditorView(editorView)
+  $.fx(() => {
+    const { project } = $.of(lib)
+    const { activeTrack } = $.of(project.info)
+    const { hexColorBrightest } = activeTrack.info.colors
+    $()
+    editor.editor.buffer.source = activeTrack.info.boxes[0]?.info.source
+    editor.editorInfo.brand = hexColorBrightest
+  })
+  $.fx(() => {
+    const { redraw } = info
+    $()
+    clearCanvas()
+    editor.drawText()
+    // if (!surface!.anim.info.isRunning) redrawEditors()
+    // surface!.anim.info.epoch++
+  })
+
+  return { info, canvas, editor, textarea: keyboard.textarea }
 }

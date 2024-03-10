@@ -73,5 +73,3 @@ export function Audio() {
 
   return { info, ctx, dsp, player, tick, resetClock }
 }
-
-export let audio = Audio()

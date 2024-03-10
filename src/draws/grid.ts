@@ -2,14 +2,14 @@ import { Signal } from 'signal-jsx'
 import { Matrix, Rect } from 'std'
 import { MouseButtons, clamp, debounce, dom } from 'utils'
 import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
-import { Audio } from '../audio.ts'
-import { CODE_WIDTH } from '../constants.ts'
 import { Track, TrackBox } from '../dsp/track.ts'
 import { Shapes } from '../gl/sketch.ts'
+import { services } from '../services.ts'
 import { log, state } from '../state.ts'
 import { Surface } from '../surface.ts'
-import { lerpMatrix, transformMatrixRect } from '../util/geometry.ts'
+import { transformMatrixRect } from '../util/geometry.ts'
 import { BLACK_KEYS, BoxNote, MAX_NOTE, getNotesScale } from '../util/notes.ts'
+import { lib } from '../lib.ts'
 
 const DEBUG = true
 const SCALE_X = 1 / 16
@@ -25,12 +25,13 @@ export enum ZoomState {
 
 export type Grid = ReturnType<typeof Grid>
 
-export function Grid(surface: Surface, audio: Audio) {
+export function Grid(surface: Surface) {
   using $ = Signal()
 
   const { anim, mouse, keyboard, view, intentMatrix, viewMatrix, sketch } = surface
-  const { dsp, player } = audio
-  const { lastFarMatrix, targetMatrix, tracks } = state
+  const { lastFarMatrix, targetMatrix } = state
+  // const { audio } = services
+  // const { dsp, player } = audio
 
   sketch.scene.clear()
 
@@ -40,10 +41,10 @@ export function Grid(surface: Surface, audio: Audio) {
     const { w, h } = view
     $()
     targetView.set(view)
-    if (mode === 'edit' || mode === 'dev') {
-      targetView.x += CODE_WIDTH + 55
-      targetView.w -= CODE_WIDTH + 55
-    }
+    // if (mode === 'edit' || mode === 'dev') {
+    targetView.x += 57
+    targetView.w -= 57
+    // }
   })
 
   const brushes = new Map<Track, GridBox>()
@@ -63,23 +64,26 @@ export function Grid(surface: Surface, audio: Audio) {
   let pianoroll: ReturnType<typeof Pianoroll> | undefined
 
   $.fx(() => {
-    const { tracks } = state
+    const { project } = $.of(lib)
+    const { tracks } = project.info
     $()
     info.boxes = Boxes(tracks)
   })
 
   function getInitialMatrixValues() {
     const boxes = info.boxes
+    const left = boxes?.info.left || 0
     const width = boxes?.info.width || 1
-    const height = tracks.length || 1
+    const height = lib.project!.info.tracks.length || 1
     const a = Math.max(7.27, targetView.w / width, 1)
     const d = targetView.h / height
-    const e = (state.mode === 'wide' ? 0 : CODE_WIDTH + 57) - (boxes?.info.left ?? 0) * a
+    const e = 57 - left * a // a //(state.mode === 'wide' ? 0 : CODE_WIDTH + 57) - (boxes?.info.left ?? 0) * a
     const f = 0
     return { a, d, e, f }
   }
 
   const offInitialScale = $.fx(function initial_scale() {
+    const { project } = $.of(lib)
     const { boxes } = $.of(info)
     const { width } = boxes.info
     $()
@@ -96,7 +100,8 @@ export function Grid(surface: Surface, audio: Audio) {
 
   $.fx(function scale_rows_to_fit_height() {
     const { h } = targetView
-    const { tracks } = state
+    const { project } = $.of(lib)
+    const { tracks } = project.info
     $()
     const height = tracks.length || 1
     intentMatrix.d = h / height
@@ -237,10 +242,12 @@ export function Grid(surface: Surface, audio: Audio) {
     else {
       unhoverBox()
 
+      if (!lib.project) return
+
       let { x, y } = mouse.screenPos
       x = Math.floor(x)
       y = Math.floor(y)
-      const track = state.tracks[y]
+      const track = lib.project.info.tracks[y]
       const lastBrush = brush
       brush = brushes.get(track)
       if (brush) {
@@ -264,7 +271,7 @@ export function Grid(surface: Surface, audio: Audio) {
     y = Math.floor(y)
 
     if (!isZooming || force) {
-      const box = info.boxes!.hitmap.get(`${x}:${y}`)
+      const box = info.boxes?.hitmap.get(`${x}:${y}`)
       updateHoveringBox(box)
     }
   }
@@ -673,8 +680,8 @@ export function Grid(surface: Surface, audio: Audio) {
     if (!dimmed) $.fx(() => {
       const { track, info: { isFocused, isHovering } } = trackBox
       const color = isFocused || isHovering
-        ? track.info.colors.bgHover
-        : track.info.colors.bg
+        ? track.info.colors.colorBright //track.info.colors.bgHover
+        : track.info.colors.color //track.info.colors.bg
       $()
       box.view.color = color
       redraw(boxes)
@@ -687,13 +694,13 @@ export function Grid(surface: Surface, audio: Audio) {
       sketch.scene.add(notes.shapes)
       redraw(notes.shapes)
 
-      waveformBg = waveformShapes.Wave($({
-        get x() { return rect.x },
-        get y() { return 0.01 + rect.y + rect.h * NOTES_HEIGHT_NORMAL + rect.h * WAVES_MARGIN_NORMAL * 0.5 },
-        get w() { return rect.w },
-        get h() { return rect.h * WAVES_HEIGHT_NORMAL - rect.h * WAVES_MARGIN_NORMAL },
-      }))
-      waveformBg.view.alpha = 0.6 * alpha
+      // waveformBg = waveformShapes.Wave($({
+      //   get x() { return rect.x },
+      //   get y() { return 0.01 + rect.y + rect.h * NOTES_HEIGHT_NORMAL + rect.h * WAVES_MARGIN_NORMAL * 0.5 },
+      //   get w() { return rect.w },
+      //   get h() { return rect.h * WAVES_HEIGHT_NORMAL - rect.h * WAVES_MARGIN_NORMAL },
+      // }))
+      // waveformBg.view.alpha = 0.6 * alpha
 
       waveform = waveformShapes.Wave($({
         get x() { return rect.x },
@@ -723,15 +730,15 @@ export function Grid(surface: Surface, audio: Audio) {
       }, $.fx(() => {
         const { track, info: { isFocused } } = trackBox
         const { floats, colors } = $.of(track.info)
-        const { clock } = $.of(dsp.info)
+        const { clock } = $.of(services.audio.dsp.info)
         $()
 
-        waveformBg.visible = Boolean(isFocused && !dimmed)
-        waveformBg.view.floats$ = floats.ptr
-        waveformBg.view.len = floats.len
-        waveformBg.view.coeff = clock.coeff
+        // waveformBg.visible = Boolean(isFocused && !dimmed)
+        // waveformBg.view.floats$ = floats.ptr
+        // waveformBg.view.len = floats.len
+        // waveformBg.view.coeff = clock.coeff
 
-        waveform.view.color = isFocused && !dimmed ? colors.colorBright : colors.fg
+        waveform.view.color = 0x0 //isFocused && !dimmed ? colors.colorBright : colors.fg
         waveform.view.floats$ = floats.ptr
         waveform.view.len = floats.len
         waveform.view.coeff = clock.coeff
@@ -1052,7 +1059,7 @@ export function Grid(surface: Surface, audio: Audio) {
       const { colors } = track.info
       const { primaryColorInt } = state
       $()
-      notesShape.view.color = isFocused && !dimmed ? colors.colorBright : colors.fg
+      notesShape.view.color = 0x0 //isFocused && !dimmed ? colors.colorBright : colors.fg
       notesShape.view.hoverColor = primaryColorInt
     })
 
@@ -1085,8 +1092,8 @@ export function Grid(surface: Surface, audio: Audio) {
   const overlay = Shapes(view, viewMatrix)
 
   const rulerNow = overlay.Line(
-    $({ x: audio.info.$.timeNowLerp, y: -10 }),
-    $({ x: audio.info.$.timeNowLerp, get y() { return state.tracks.length + 10 } })
+    $({ x: services.audio.info.$.timeNowLerp, y: -10 }),
+    $({ x: services.audio.info.$.timeNowLerp, get y() { return lib.project?.info.tracks.length ?? 0 + 10 } })
   )
   $.fx(() => {
     rulerNow.view.color = state.primaryColorInt
@@ -1095,16 +1102,16 @@ export function Grid(surface: Surface, audio: Audio) {
   overlay.update()
 
   $.fx(() => {
-    const { timeNow } = audio.info
+    const { timeNow } = services.audio.info
     $()
     redraw(overlay)
   })
 
   $.fx(() => {
-    const { isPlaying } = player.info
+    const { isPlaying } = services.audio.player.info
     $()
-    surface?.anim.ticks.add(audio.tick)
-    audio.tick()
+    surface?.anim.ticks.add(services.audio.tick)
+    services.audio.tick()
     info.redraw++
   })
 
@@ -1122,13 +1129,14 @@ export function Grid(surface: Surface, audio: Audio) {
     const { hoveringBox } = $.of(info)
     $()
     applyBoxMatrix(targetMatrix, hoveringBox)
-    hoveringBox.box.view.color = hoveringBox.trackBox.track.info.colors.bgHover
+    hoveringBox.box.view.color = hoveringBox.trackBox.track.info.colors.colorBright // bgHover
     return () => {
-      hoveringBox.box.view.color = hoveringBox.trackBox.track.info.colors.bg
+      hoveringBox.box.view.color = hoveringBox.trackBox.track.info.colors.color // bg
     }
   })
 
   $.fx(function update_box_isFocused() {
+    const { project } = $.of(lib)
     const { focusedBox } = info
     if (!focusedBox) {
       $()
@@ -1139,6 +1147,7 @@ export function Grid(surface: Surface, audio: Audio) {
     const { trackBox } = focusedBox
     $()
     trackBox.info.isFocused = true
+    project.info.activeTrack = trackBox.track
     return () => {
       trackBox.info.isFocused = false
     }

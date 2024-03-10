@@ -1,23 +1,21 @@
-import wasmDsp from 'assembly-dsp'
 import wasmGfx from 'assembly-gfx'
 import wasmSeq from 'assembly-seq'
 import { $, Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { Lru, hueshift, luminate, saturate } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
-import { audio } from '../audio.ts'
-import { Dsp } from '../dsp/dsp.ts'
 import { AstNode } from '../lang/interpreter.ts'
 import { Token } from '../lang/tokenize.ts'
+import { services } from '../services.ts'
 import { Source } from '../source.ts'
 import { state } from '../state.ts'
 import { Floats } from '../util/floats.ts'
+import { Note } from '../util/notes-shared.ts'
 import { createDemoNotes } from '../util/notes.ts'
 import { hexToInt, intToHex, toHex } from '../util/rgb.ts'
-import { PlayerTrack } from './player-shared.ts'
-import type { BoxData, Project, TrackData } from './project.ts'
 import { DspService } from './dsp-service.ts'
-import { Note } from '../util/notes-shared.ts'
+import { PlayerTrack } from './player-shared.ts'
+import type { BoxData, TrackData } from './project.ts'
 
 const DEBUG = true
 
@@ -27,11 +25,6 @@ const palette = [
   0xbb55b0,
   0x44aa99,
 ]
-
-// export const enum TrackBoxKind {
-//   Audio,
-//   Notes,
-// }
 
 export interface TrackBox {
   track: Track
@@ -66,7 +59,7 @@ export function TrackBox(track: Track, source: $<Source<Token>>, box: $<BoxData>
 
 export type Track = ReturnType<typeof Track>
 
-export function Track(dsp: DspService, project: Project, trackData: TrackData, y: number) {
+export function Track(dsp: DspService, trackData: TrackData, y: number) {
   DEBUG && console.log('[track] create')
 
   using $ = Signal()
@@ -117,7 +110,7 @@ export function Track(dsp: DspService, project: Project, trackData: TrackData, y
     },
     waveLength: 1, // computed during effect update_audio_buffer
     get audioBuffer() {
-      return audio.ctx.createBuffer(1, this.waveLength, audio.ctx.sampleRate)
+      return services.audio.ctx.createBuffer(1, this.waveLength, services.audio.ctx.sampleRate)
     },
     tokensAstNode: new Map<Token, AstNode>(),
     boxes: [] as TrackBox[],
@@ -308,12 +301,12 @@ export function Track(dsp: DspService, project: Project, trackData: TrackData, y
 
   function play() {
     const { audioBuffer } = info
-    const bufferSource = audio.ctx.createBufferSource()
+    const bufferSource = services.audio.ctx.createBufferSource()
     bufferSource.buffer = audioBuffer
-    bufferSource.connect(audio.ctx.destination)
+    bufferSource.connect(services.audio.ctx.destination)
     bufferSource.start()
   }
 
-  const track = { info, project, data: trackData, pt, addBox, removeBox, play }
+  const track = { info, data: trackData, pt, addBox, removeBox, play }
   return track
 }

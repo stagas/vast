@@ -1,23 +1,17 @@
-import { $, Signal } from 'signal-jsx'
-import { Rect } from 'std'
-import { audio } from '../audio.ts'
-import { CodeDraw } from '../draws/code.ts'
+import { Signal } from 'signal-jsx'
+import { HEADER_HEIGHT } from '../constants.ts'
 import { Grid } from '../draws/grid.ts'
-import { Heads } from '../draws/heads.ts'
-import { Minimap } from '../draws/minimap.ts'
-import { TextDraw } from '../draws/text.ts'
-import { Project, type ProjectData } from '../dsp/project.ts'
-import { Track } from '../dsp/track.ts'
-import { tokenize, type Token } from '../lang/tokenize.ts'
-import { Source } from '../source.ts'
+import { Project } from '../dsp/project.ts'
 import { state } from '../state.ts'
-import { Surface } from '../surface.ts'
 import { Bench, BenchResults } from './Bench.tsx'
 import { Code } from './Code.tsx'
 import { Console } from './Console.tsx'
 import { Btn, MainBtn } from './MainBtn.tsx'
 import { MainMenu } from './MainMenu.tsx'
+import { Sequencer } from './Sequencer.tsx'
 import { ThemePicker } from './ThemePicker.tsx'
+import { services } from '../services.ts'
+import { lib } from '../lib.ts'
 
 const DEBUG = true
 
@@ -38,34 +32,28 @@ export function Main() {
   //   }
   // }, { times: 100_000, raf: true })
 
-  let surface: Surface | undefined
-  // let grid: Grid | undefined
-  let textDraw: TextDraw | undefined
-  let headsDraw: Heads | undefined
-
-  const info = $({
-    grid: null as null | Grid,
-  })
-
-  // const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 0.000001 })
-  // const dsp = Dsp(ctx)
-  // const player = Player(ctx)
-  // const bar = wasm.alloc(Uint32Array, 16)
-  // player.bars[0] = bar.ptr
-  // player.clock.bpm = 144
-  // wasm.updateClock(player.clock.ptr)
-  // const audio = Audio()
+  // const info = $({
+  //   grid: null as null | Grid,
+  // })
 
   $.fx(() => () => {
     // TODO: player.dispose()
-    audio.player.stop()
+    services.audio.player.stop()
   })
 
-  const sources: Source[] = [
-
+  // services.audio.player.info.project = lib.project
+  // const code = Code()
+  // queueMicrotask(() => {
+  const sources = [
+    lib.case_source,
+    lib.t1_source,
+    lib.t2_source,
+    lib.t3_source,
+    lib.t4_source,
   ]
-
-  const project = Project({
+  let count = 16
+  const length = 1
+  lib.project = Project({
     id: 0,
     timestamp: 0,
     title: '',
@@ -74,180 +62,19 @@ export function Main() {
     bpm: 0,
     pitch: 0,
     sources,
-    tracks: [],
-    comments: []
-  })
-
-  // function addBox(t: Track, source: Source, box: BoxData) {
-  //   const proto = { track: t }
-  //   const y = t.info.y
-  //   const trackBox = $({
-  //     __proto__: proto,
-  //     data: box,
-  //     kind: y % 3 === 2 ? TrackBoxKind.Audio : TrackBoxKind.Notes,
-  //     rect: $(new Rect, { x: box.time, y, w: box.length, h: 1 }),
-  //     source,
-  //     isFocused: false,
-  //     isHovering: false,
-  //   }) as $<TrackBox & { __proto__: typeof proto }>
-
-  //   for (let x = box.time; x < box.time + box.length; x++) {
-  //     const bar = audio.player.bars[x]
-  //     bar[bar.indexOf(0)] = t.pt.ptr
-  //   }
-
-  //   t.info.boxes = [...t.info.boxes, trackBox]
-  // }
-
-  $.fx(() => {
-    const { sources, tracks } = project.info.data
-    const { dsp } = $.of(audio.dsp.info)
-    $()
-    const sourcesMap = new Map<number, $<Source<Token>>>()
-    const newTracks = []
-
-    for (let y = 0; y < tracks.length; y++) {
-      const track = tracks[y]
-      const t = Track(audio.dsp, project, track, y)
-
-      newTracks.push(t)
-
-      for (const box of track.boxes) {
-        let source = sourcesMap.get(box.source_id)
-        if (!source) sourcesMap.set(box.source_id,
-          source = $(new Source<Token>(tokenize), sources[box.source_id])
-        )
-        t.addBox(source, $(box))
-      }
-    }
-
-    state.tracks = newTracks
-  })
-
-  $.fx(() => {
-    let endTime = -Infinity
-    for (const t of state.tracks) {
-      if (!t.info.width) continue
-      endTime = Math.max(endTime, t.info.right)
-    }
-    if (!isFinite(endTime)) endTime = 0
-    let startTime = endTime
-    for (const t of state.tracks) {
-      if (!t.info.width) continue
-      startTime = Math.min(startTime, t.info.left)
-    }
-    $()
-    const { clock: c } = audio.player
-    const loopStart = Math.max(c.loopStart, startTime)
-    const loopEnd = Math.min(c.loopEnd, endTime)
-    c.loopStart = loopStart === startTime ? -Infinity : loopStart
-    c.loopEnd = loopEnd === endTime ? +Infinity : loopEnd
-    c.startTime = startTime
-    c.endTime = endTime
-    if (!audio.player.info.isPlaying) {
-      audio.resetClock()
-    }
-  })
-
-  function addTrack(source: $<Source<any>>, length = 4, count = 1) {
-    let source_id = sources.indexOf(source)
-    if (source_id === -1) source_id = sources.push(source) - 1
-    // console.log(source_id)
-
-    const trackData: ProjectData['tracks'][0] = $({
-      boxes: Array.from({ length: count }, (_, x) => $({
-        source_id,
+    tracks: Array.from(sources, (_, y) => ({
+      boxes: Array.from({ length: count }, (_, x) => ({
+        source_id: y,
         time: 1024 + (x * length),
         length,
         pitch: 0,
         params: []
       })),
-    })
-
-    project.info.data.tracks = [
-      ...project.info.data.tracks,
-      trackData
-    ]
-  }
-
-  $.batch(() => {
-    if (state.tracks.length) {
-      state.tracks = []
-    }
-    addTrack(state.case_source)
-    // addTrack(state.source_midi, 4, 1)
-    addTrack(state.t1_source)
-    addTrack(state.t2_source)
-    // addTrack(state.t3_source)
-    // addTrack(state.t4_source)
-
-    // addTrack(state.t1_source)
-    // addTrack(state.t1_source)
-    // addTrack(state.t1_source)
-    // addTrack(state.t1_source)
-    // addTrack(state.t1_source)
-    // addTrack(state.t1_source)
-    // addTrack(state.t1_source)
-    // addTrack(state.t1_source)
-    // addTrack(state.t1_source)
+    })),
+    comments: []
   })
-
-  // const t0 = Track(dsp, state.source, 0) //$(new Source(tokenize), { code: '[saw 330]' }))
-  // const t1 = Track(dsp, state.t1_source, 1)
-  // state.tracks = [t0, t1]
-  // t0.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 0, w: 1, h: 1 }), shape: null })]
-  // t1.info.boxes = [$({ rect: $(new Rect, { x: 0, y: 1, w: 1, h: 1 }), shape: null })]
-
-  const view = $(new Rect, { pr: state.$.pr })
-
-  let minimap: Minimap | undefined
-  const minimapDiv = <div class="relative m-1.5 h-8" />
-
-  let codeSurface: Surface | undefined
-  const codeView = $(new Rect, { w: 300, h: 300, pr: state.$.pr })
-  let codeDraw: CodeDraw
-
-  const code = Code()
-  const editors: ReturnType<typeof code['createEditorView']>[] = []
-
-  $.fx(() => {
-    const { tracks } = state
-    $()
-    const offs = []
-    for (const track of tracks) {
-      const editor = (editors[track.info.y] ??= code.createEditorView(
-        $(new Rect, { x: 0, y: track.info.y, w: 1, h: 1 })
-      ))
-
-      offs.push($.fx(() => {
-        const { hexColorBrightest } = track.info.colors
-        $()
-        editor.editorInfo.brand = hexColorBrightest
-      }))
-
-      editor.editor.buffer.source = track.info.boxes[0].info.source
-    }
-    return offs
-  })
-
-  // $.fx(() => {
-  //   const { grid } = $.of(info)
-  //   const { hoveringBox } = $.of(grid.info)
-  //   $()
-  //   state.source = hoveringBox.track.source
-  //   code.info.brand = hoveringBox.hexColorBrighter
   // })
-
-  // $.fx(() => {
-  //   const { isHoveringToolbar } = state
-  //   $()
-  //   if (isHoveringToolbar) {
-  //     document.body.style.cursor = 'pointer'
-  //   }
-  //   else {
-  //     document.body.style.cursor = ''
-  //   }
-  // })
+  const sequencer = Sequencer()
 
   const loadDiv = <div />
   $.fx(() => {
@@ -373,8 +200,8 @@ export function Main() {
         default:
           return <div>
             {loadDiv}
-            {code.canvas}
-            {code.textarea}
+            {sequencer.code.canvas}
+            {sequencer.code.textarea}
 
             {false &&
               <div class={`absolute flex bottom-0 left-0 bg-base-300 border-t-black border-t-2 text-primary z-50 h-14 items-center justify-items-center w-[349px]`}>
@@ -420,73 +247,12 @@ export function Main() {
     article.replaceChildren((() => {
       switch (path) {
         case '/bench':
-          code.canvas.remove()
-          minimap?.canvas.remove()
-          minimap?.handle.remove()
+          // code.canvas.remove()
+          sequencer.minimap?.el.remove()
           return <BenchResults />
 
         default:
-          surface ??= Surface(view, state.matrix, state.viewMatrix, () => {
-            view.w = window.innerWidth
-            view.h = window.innerHeight - 44
-            view.pr = state.pr
-          })
-
-          const redrawEditors = () => {
-            code.clearCanvas()
-            code.drawBigScrollbar()
-            editors.forEach(editor => {
-              editor.drawText()
-            })
-            code.drawSeparators()
-          }
-
-          $.fx(() => {
-            surface!.anim.ticks.add(redrawEditors)
-            return () => {
-              surface!.anim.ticks.delete(redrawEditors)
-            }
-          })
-
-          $.fx(() => {
-            const { redraw } = code.info
-            $()
-            if (!surface!.anim.info.isRunning) redrawEditors()
-            surface!.anim.info.epoch++
-          })
-
-          // codeSurface ??= Surface(codeView, state.codeMatrix, state.codeViewMatrix, () => {
-          //   codeView.w = 350
-          //   codeView.h = window.innerHeight - 44
-          // }, true)
-          // codeSurface.canvas.style.position = 'absolute'
-          // codeSurface.canvas.style.left = '0'
-          // codeSurface.canvas.style.top = '44px'
-          // codeSurface.canvas.style.zIndex = '40'
-          // codeDraw ??= CodeDraw(codeSurface)
-          // codeDraw.write()
-
-          info.grid ??= Grid(surface, audio)
-          // info.grid.write()
-
-          textDraw ??= TextDraw(surface, info.grid, view)
-          headsDraw ??= Heads(textDraw.c, surface, info.grid, view)
-
-          minimap ??= Minimap(info.grid)
-          minimapDiv.append(minimap.canvas)
-          minimapDiv.append(minimap.handle)
-
-          bench.add('draw()', () => {
-            return () => {
-              surface?.webgl.draw()
-            }
-          }, { times: 10 })
-
-          return <div>
-            {surface.canvas}
-            {textDraw.canvas}
-            {/* {codeSurface.canvas} */}
-          </div>
+          return sequencer.el
       }
     })())
   })
@@ -496,41 +262,45 @@ export function Main() {
   })
 
   const navbar = <nav class="navbar
+    absolute
     items-stretch
     justify-stretch
     flex
     bg-base-300
-    border-b-black border-b-2 p-0 min-h-0" />
+    z-50
+    border-b-black border-b-2 p-0 min-h-0" /> as HTMLElement
 
+  navbar.style.top = window.innerHeight / 2 - HEADER_HEIGHT / 2 + 'px'
+  navbar.style.left = '0px'
   $.fx(() => {
     const { mode } = state
     $()
     navbar.replaceChildren(...[
-      <div class={`lg:min-w-[348px] mt-[1px]`}>
-        <a class="btn hover:bg-base-100 border-none bg-transparent text-[1.135rem] text-primary font-bold italic h-10 min-h-10 px-3">
-          {state.name}
-        </a>
-      </div>,
-
+      // <div class={`lg:min-w-[348px] mt-[1px]`}>
+      //   <a class="btn hover:bg-base-100 border-none bg-transparent text-[1.135rem] text-primary font-bold italic h-10 min-h-10 px-3">
+      //     {state.name}
+      //   </a>
+      // </div>
+      // ,
       <div>
         <Btn onpointerdown={() => {
-          audio.player.start()
+          services.audio.player.start()
         }}>{/* play button */}
           <svg xmlns="http://www.w3.org/2000/svg" class="h-[27px] w-6" preserveAspectRatio="xMidYMid slice" viewBox="0 0 24 24">
             <path fill="none" stroke={() => state.colors.primary} stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M7 17.259V6.741a1 1 0 0 1 1.504-.864l9.015 5.26a1 1 0 0 1 0 1.727l-9.015 5.259A1 1 0 0 1 7 17.259" />
           </svg>
         </Btn>
         <Btn onpointerdown={() => {
-          audio.player.stop()
+          services.audio.player.stop()
         }}>{/* stop button */}
           <svg xmlns="http://www.w3.org/2000/svg" class="h-[22.5px] w-5" preserveAspectRatio="xMidYMid slice" viewBox="0 0 24 24">
             <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M5 8.2v7.6c0 1.12 0 1.68.218 2.107c.192.377.497.683.874.875c.427.218.987.218 2.105.218h7.607c1.118 0 1.676 0 2.104-.218c.376-.192.682-.498.874-.875c.218-.427.218-.986.218-2.104V8.197c0-1.118 0-1.678-.218-2.105a2 2 0 0 0-.874-.874C17.48 5 16.92 5 15.8 5H8.2c-1.12 0-1.68 0-2.108.218a1.999 1.999 0 0 0-.874.874C5 6.52 5 7.08 5 8.2" />
           </svg>
         </Btn>
-      </div>,
-
-      minimapDiv,
-
+      </div>
+      ,
+      sequencer.minimap.el
+      ,
       <MainBtn label="take" icon={
         <svg xmlns="http://www.w3.org/2000/svg" class="h-[23px] w-[23px] -ml-[.5px] mt-[1.33px]" preserveAspectRatio="xMidYMid slice" viewBox="0 0 16 16">
           <path fill="currentColor" d="m 10.878 0.282 l 0.348 1.071 a 2.205 2.205 0 0 0 1.398 1.397 l 1.072 0.348 l 0.021 0.006 a 0.423 0.423 0 0 1 0 0.798 l -1.071 0.348 a 2.208 2.208 0 0 0 -1.399 1.397 l -0.348 1.07 a 0.423 0.423 0 0 1 -0.798 0 l -0.348 -1.07 a 2.204 2.204 0 0 0 -1.399 -1.403 l -1.072 -0.348 a 0.423 0.423 0 0 1 0 -0.798 l 1.072 -0.348 a 2.208 2.208 0 0 0 1.377 -1.397 l 0.348 -1.07 a 0.423 0.423 0 0 1 0.799 0 m 4.905 7.931 l -0.765 -0.248 a 1.577 1.577 0 0 1 -1 -0.999 l -0.248 -0.764 a 0.302 0.302 0 0 0 -0.57 0 l -0.25 0.764 a 1.576 1.576 0 0 1 -0.983 0.999 l -0.765 0.248 a 0.303 0.303 0 0 0 0 0.57 l 0.765 0.249 a 1.578 1.578 0 0 1 1 1.002 l 0.248 0.764 a 0.302 0.302 0 0 0 0.57 0 l 0.249 -0.764 a 1.576 1.576 0 0 1 0.999 -0.999 l 0.765 -0.248 a 0.303 0.303 0 0 0 0 -0.57 z M 10.402 11.544 H 3.973 A 1.5 1.5 0 0 1 2.455 10.629 v -5.089 A 1.5 1.5 0 0 1 3.527 4.713 h 3.728 c 1.165 0.022 -1.161 -0 -1.116 -1.317 H 3.339 A 2.5 2.5 0 0 0 1 5.5 v 5 A 2.5 2.5 0 0 0 3.5 13 h 9 a 2.5 2.5 0 0 0 2.5 -2.5 v -0.178 a 0.54 0.54 0 0 0 -0.022 0.055 l -0.371 1.201 c -0.962 0.995 -1.937 0.635 -2.61 -0.198" />
@@ -540,7 +310,6 @@ export function Main() {
         photo
       </MainBtn>
       ,
-
       <div class="flex-1 flex items-end justify-end">
         {state.mode === 'dev' && <>
           <MainBtn label="debug" onclick={() => {
@@ -560,8 +329,6 @@ export function Main() {
         </>}
       </div>
       ,
-
-
       <MainBtn label={mode} onclick={() => {
         if (state.mode === 'edit') {
           state.mode = 'wide'
@@ -574,8 +341,8 @@ export function Main() {
         }
       }}>
         mode
-      </MainBtn>,
-
+      </MainBtn>
+      ,
       <Btn onclick={() => { }}>
         <a href="https://github.com/stagas/ravescript" target="_blank">
           <div>{/* class="h-[28px] -mt-[2.5px] -mr-[5px]" */}
@@ -587,11 +354,11 @@ export function Main() {
             </svg>
           </div>
         </a>
-      </Btn>,
-
-      <ThemePicker />,
-
-      <MainMenu />,
+      </Btn>
+      ,
+      <ThemePicker />
+      ,
+      <MainMenu />
     ].filter(Boolean).flat())
   })
 
