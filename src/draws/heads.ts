@@ -7,6 +7,7 @@ import { state } from '../state.ts'
 import { Surface } from '../surface.ts'
 import { fromSvg } from '../util/svg-to-image.ts'
 import { Grid } from './grid.ts'
+import { HEADER_HEIGHT, HEADS_WIDTH } from '../constants.ts'
 
 const DEBUG = true
 
@@ -31,12 +32,12 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
     const { project: { info: { tracks } } } = lib
     mousePos.x = e.pageX * pr
     mousePos.y = e.pageY * pr
-    mousePos.y -= 44 * pr
+    mousePos.y -= HEADER_HEIGHT * pr
 
     r.set(hitArea)
     r.x += c.canvas.offsetLeft * pr
     r.y = 0
-    r.h = (window.innerHeight - 44) * pr
+    r.h = (window.innerHeight - HEADER_HEIGHT) * pr
     // r.zoomLinear(5)
     const last = tracks.at(-1)
     if (!last) return
@@ -154,7 +155,7 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
 
     c.translate(0, surface.canvas.offsetTop * pr)
 
-    hitArea.setParameters(0, 0, 110, window.innerHeight * pr)
+    hitArea.setParameters(0, 0, HEADS_WIDTH * pr, window.innerHeight * pr)
 
     const { w, h } = dims
 

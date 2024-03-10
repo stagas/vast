@@ -35,11 +35,11 @@ export function Code() {
     focusedEditor: null as Editor | null,
 
     font: 'Mono',
-    textLeft: 19,
-    textTop: 6,
+    textLeft: 20,
+    textTop: 12,
 
-    fontSize: '17px',
-    lineHeight: 18,
+    fontSize: '14px',
+    lineHeight: 16,
   })
 
 
@@ -265,7 +265,7 @@ export function Code() {
     const editor = createEditor(rect, c, Token, keyboard, pointer)
     // editor.text.offset.y = 42
     editor.dims.lineHeight = info.lineHeight
-
+editor.selection.colors.color = toHex(state.colors['base-content']) + '66'
     // $.fx(() => {
     //   const { source } = state
     //   $()

@@ -15,8 +15,8 @@ export type DspWorker = typeof worker
 
 const sounds = new Map<number, Sound>()
 
-const getFloats = Lru(10, length => wasmDsp.alloc(Float32Array, length), item => item.fill(0), item => item.free())
-const getNotes = Lru(10, length => wasmDsp.alloc(Float32Array, length), item => item.fill(0), item => item.free())
+const getFloats = Lru(10, (key: string, length: number) => wasmDsp.alloc(Float32Array, length), item => item.fill(0), item => item.free())
+const getNotes = Lru(10, (length: number) => wasmDsp.alloc(Float32Array, length), item => item.fill(0), item => item.free())
 
 const worker = {
   dsp: null as null | Dsp,
@@ -74,7 +74,8 @@ const worker = {
 
       const length = Math.floor(audioLength * clock.sampleRate / clock.coeff)
 
-      const floats = getFloats(length)
+      const key = `${sound$}:${length}`
+      const floats = getFloats(key, length)
       const notesData = getNotes(notes.length * 4) // * 4 elements: n, time, length, vel
 
       let i = 0
@@ -112,4 +113,4 @@ const worker = {
 
 const host = rpc<{ isReady(): void }>(self as any, worker)
 host.isReady()
-console.log('started')
+console.log('[dsp-worker] started')

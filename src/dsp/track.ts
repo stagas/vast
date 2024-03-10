@@ -194,7 +194,7 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
 
   const renderedEpoch = new Map<Source<Token>, number>()
 
-  const getFloats = Lru(10, length => wasmSeq.alloc(Float32Array, length), item => item.fill(0), item => item.free())
+  const getFloats = Lru(10, (length: number) => wasmSeq.alloc(Float32Array, length), item => item.fill(0), item => item.free())
 
   let isRendering = false
   let toRender = new Set<Source<Token>>()
@@ -278,7 +278,7 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
           source.epoch++
         })
         $.fx(() => {
-          const { sound$ } = info
+          const { sound$, audioLength } = $.of(info)
           const { epoch } = source
           $()
           const { voicesCount, notesJson } = info
