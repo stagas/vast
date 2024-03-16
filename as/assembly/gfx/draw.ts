@@ -1,6 +1,6 @@
 import { logf, logf2, logf3, logf4, logf6, logi } from '../env'
 import { Sketch } from './sketch'
-import { Box, Line, Matrix, Notes, Shape, ShapeOpts, WAVE_MIPMAPS, Wave, Note } from './sketch-shared'
+import { Box, Line, Matrix, Notes, Shape, ShapeOpts, WAVE_MIPMAPS, Wave, Note, Cols } from './sketch-shared'
 import { lineIntersectsRect } from './util'
 
 const MAX_ZOOM: f32 = 0.5
@@ -30,6 +30,7 @@ export function draw(
 
   // shapes
   let box: Box
+  let cols: Cols
   let line: Line
   let wave: Wave
   let notes: Notes
@@ -77,6 +78,44 @@ export function draw(
           x, y, w, h,
           box.color, box.alpha
         )
+
+        continue
+      }
+
+      //
+      // Cols
+      //
+      case ShapeOpts.Cols: {
+        cols = changetype<Cols>(ptr)
+
+        const x = f32(cols.x * ma + me)
+        const y = f32(cols.y * md + mf)
+        const w = f32(cols.w * ma - x_gap)
+        let h = f32(cols.h * md)
+        if (
+          !(opts & ShapeOpts.NoMargin)
+          && (
+            (!(opts & ShapeOpts.Collapse) || h > 1.5)
+            && h > 1.5
+          )
+        ) {
+          h -= h > 3 ? 1.0 : h > 1.5 ? .5 : 0
+        }
+
+        // check if visible
+        if (x > width
+          || y > height
+          || x + w < 0
+          || y + h < 0
+        ) continue
+
+        const SNAPS: f32 = 16
+        const cols_n = i32(SNAPS - 1)
+        for (let col = 0; col < cols_n; col++) {
+          const col_x = f32(((1.0 + f32(col) ) / SNAPS) * ma + me + x)
+          const lw = f32(col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0.5)
+          sketch.drawLine(col_x, y, col_x, y + h, 0x0, 1.0, lw)
+        }
 
         continue
       }

@@ -2,26 +2,32 @@ import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
 import { HEADER_HEIGHT, HEADS_WIDTH } from '../constants.ts'
 import { Grid } from '../draws/grid.ts'
-import { Heads } from '../draws/heads.ts'
+import { Heads } from '../draws/heads.tsx'
+import { layout } from '../layout.ts'
 import { screen } from '../screen.tsx'
 import { state } from '../state.ts'
 import { Surface } from '../surface.ts'
-import { Canvas } from './Canvas.tsx'
 import { Code } from './Code.tsx'
 import { Minimap } from './Minimap.tsx'
-import { layout } from '../layout.ts'
+import { Preview } from './Preview.tsx'
 
 const DEBUG = true
 
 export type Sequencer = ReturnType<typeof Sequencer>
 
 export function Sequencer() {
-  DEBUG && console.log('[main] create')
+  DEBUG && console.log('[sequencer] create')
   using $ = Signal()
 
   const view = $(new Rect, { pr: screen.info.$.pr })
-
   const surface = Surface(view, state.matrix, state.viewMatrix, true)
+  const grid = Grid(surface)
+  const minimap = Minimap(grid)
+  // const textDraw = TextDraw(surface, grid, view)
+  const heads = Heads(surface, grid)
+  const code = Code()
+  const preview = Preview()
+  const vertSep = <div class="fixed left-0 top-0 w-[2px] bg-black z-30" /> as HTMLDivElement
 
   $.fx(() => {
     const { w } = screen.info.rect
@@ -32,34 +38,6 @@ export function Sequencer() {
     view.h = mainY - HEADER_HEIGHT / 2
   })
 
-  const grid = Grid(surface)
-
-  const minimap = Minimap(grid)
-
-  const headsView = $(new Rect, { pr: screen.info.$.pr })
-  $.fx(() => {
-    const { w, h } = view
-    $()
-    headsView.w = w
-    headsView.h = h
-  })
-
-  const canvas = <Canvas onresize={(y) => {
-    surface.sketch.view.y = y
-  }} view={headsView} class="
-    absolute left-0 top-0
-    pointer-events-none
-    pixelated
-  " /> as Canvas
-
-  const c = canvas.getContext('2d', { alpha: true })!
-  c.imageSmoothingEnabled = false
-
-  // const textDraw = TextDraw(surface, grid, view)
-  const headsDraw = Heads(c, surface, grid, headsView)
-
-  const code = Code()
-  const vertSep = <div class="fixed left-0 top-0 w-[2px] bg-white z-30" /> as HTMLDivElement
   $.fx(() => {
     const { mainY, codeWidth } = layout.info
     const { h } = screen.info.rect
@@ -68,9 +46,11 @@ export function Sequencer() {
     vertSep.style.height = (h - y) + 'px'
     vertSep.style.transform = `translateX(${codeWidth - 1}px) translateY(${y}px)`
   })
+
   const el = <div>
     {surface.canvas}
-    {canvas}
+    {heads.canvas}
+    {preview.el}
     {vertSep}
   </div>
 

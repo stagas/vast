@@ -3,7 +3,7 @@ import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Matrix, Rect, RectLike } from 'std'
 import { PointLike, Struct } from 'utils'
-import { Box, Line, MAX_GL_INSTANCES, ShapeOpts, VertOpts, Wave, type Notes } from '../../as/assembly/gfx/sketch-shared.ts'
+import { Box, Line, MAX_GL_INSTANCES, ShapeOpts, VertOpts, Wave, type Notes, Cols } from '../../as/assembly/gfx/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
 import { log } from '../state.ts'
 import { WasmMatrix } from '../util/wasm-matrix.ts'
@@ -118,6 +118,33 @@ export namespace Shape {
 
   export type Box = [
     opts: ShapeOpts.Box,
+
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+
+    color: number,
+    alpha: number,
+  ]
+
+  //
+  // Cols
+  //
+  export const Cols = Struct({
+    opts: 'f32',
+
+    x: 'f32',
+    y: 'f32',
+    w: 'f32',
+    h: 'f32',
+
+    color: 'f32',
+    alpha: 'f32',
+  })
+
+  export type Cols = [
+    opts: ShapeOpts.Cols,
 
     x: number,
     y: number,
@@ -293,7 +320,6 @@ export function Shapes(view: Rect, matrix: Matrix) {
   function Box(rect: RectLike) {
     using $ = Signal()
 
-    // const data = wasm.alloc(Uint8Array, Shape.Box.byteLength)
     const view = Shape.Box(wasm.memory.buffer, wasm.createBox()) satisfies Box
 
     view.opts = ShapeOpts.Box
@@ -311,11 +337,42 @@ export function Shapes(view: Rect, matrix: Matrix) {
     const shape = {
       visible: true,
       rect,
-      // data,
       view,
       remove() {
         $.dispose()
-        // data.free()
+        shapes.delete(shape)
+        info.needUpdate = true
+      }
+    }
+
+    shapes.add(shape)
+
+    return shape
+  }
+
+  function Cols(rect: RectLike) {
+    using $ = Signal()
+
+    const view = Shape.Cols(wasm.memory.buffer, wasm.createCols()) satisfies Cols
+
+    view.opts = ShapeOpts.Cols
+    view.alpha = 1.0
+
+    $.fx(() => {
+      const { x, y, w, h } = rect
+      $()
+      view.x = x
+      view.y = y
+      view.w = w
+      view.h = h
+    })
+
+    const shape = {
+      visible: true,
+      rect,
+      view,
+      remove() {
+        $.dispose()
         shapes.delete(shape)
         info.needUpdate = true
       }
@@ -364,7 +421,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
   function Line(p0: PointLike, p1: PointLike) {
     using $ = Signal()
 
-    const view = Shape.Line(wasm.memory.buffer, wasm.createLine() ) satisfies Line
+    const view = Shape.Line(wasm.memory.buffer, wasm.createLine()) satisfies Line
 
     view.opts = ShapeOpts.Line
     view.alpha = 1.0
@@ -438,7 +495,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
 
   return {
     info, mat2d, view, shapes, clear, update,
-    Box, Line, Wave, Notes,
+    Box, Cols, Line, Wave, Notes,
   }
 }
 
@@ -531,22 +588,22 @@ export function Sketch(GL: GL, view: Rect) {
   using $ = Signal()
 
   const sketch = SketchInfo(GL, view)
-  // sketch ??= SketchInfo(GL, view)
 
   const { gl } = GL
   const { info, finish, writeGL, draw: sketchDraw } = sketch
   const { use } = info
 
-  wasm.setFlushSketchFn(count => {
+  function flush(count: number) {
     DEBUG && log('[sketch] draw', count)
     writeGL(count)
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count)
-  })
+  }
 
   const scene = new Set<Shapes>()
 
   function draw() {
     use()
+    wasm.setFlushSketchFn(flush)
     // DEBUG && console.log('[sketch] draw', scene)
     for (const shapes of scene) {
       sketchDraw(shapes)

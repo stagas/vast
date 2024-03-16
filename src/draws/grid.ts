@@ -44,11 +44,6 @@ export function Grid(surface: Surface) {
     targetView.set(view)
     targetView.x += OFFSET_X
     targetView.w -= OFFSET_X
-    // if (mode === 'edit' || mode === 'dev') {
-    // const LEFT = HEADS_WIDTH + 2
-    // targetView.x += LEFT
-    // targetView.w -= LEFT
-    // }
   })
 
   const brushes = new Map<Track, GridBox>()
@@ -144,8 +139,8 @@ export function Grid(surface: Surface) {
     m.set(intentMatrix)
     // log('m.e', -info.boxes.right * m.a + mouse.pos.x, mouse.pos.x, m.e)
     // m.e = clamp(-(info.boxes!.info.right * m.a - view.w), mode === 'wide' ? 0 : CODE_WIDTH + 55, m.e)
-    intentMatrix.a = m.a
-    intentMatrix.e = m.e
+    // intentMatrix.a = m.a
+    // intentMatrix.e = m.e
     // log('m.e', m.e)
 
     if (hoveringBox) {
@@ -538,9 +533,9 @@ export function Grid(surface: Surface) {
   let clicks = 0
   const CLICK_MS = 300
   const debounceClearClicks = debounce(CLICK_MS, () => {
-    if (clicks === 1) {
-      info.focusedBox = info.hoveringBox
-    }
+    // if (clicks === 1) {
+    //   info.focusedBox = info.hoveringBox
+    // }
     clicks = 0
   })
 
@@ -588,7 +583,7 @@ export function Grid(surface: Surface) {
             zoomBox(info.hoveringBox)
             return
           }
-          else if (info.hoveringNote) {
+          else if (info.focusedBox === info.hoveringBox && info.hoveringNote) {
             info.draggingNote = info.hoveringNote
             dom.on(window, 'mouseup', $.fn((e: MouseEvent): void => {
               info.hoveringNote = null
@@ -596,6 +591,9 @@ export function Grid(surface: Surface) {
               handleHoveringNote()
             }), { once: true })
             return
+          }
+          else if (clicks === 1) {
+            info.focusedBox = info.hoveringBox
           }
         }
       }

@@ -10,13 +10,33 @@ import { Surface } from '../surface.ts'
 import { fromSvg } from '../util/svg-to-image.ts'
 import { Grid } from './grid.ts'
 import { layout } from '../layout.ts'
+import { Canvas } from '../comp/Canvas.tsx'
 
 const DEBUG = true
 
 export type Heads = ReturnType<typeof Heads>
 
-export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid, view: Rect) {
+export function Heads(surface: Surface, grid: Grid) {
   using $ = Signal()
+
+  const view = $(new Rect, { pr: screen.info.$.pr })
+  $.fx(() => {
+    const { w, h } = surface.view
+    $()
+    view.w = HEADS_WIDTH
+    view.h = h
+  })
+
+  const canvas = <Canvas onresize={(y) => {
+    surface.sketch.view.y = y
+  }} view={view} class="
+    absolute left-0 top-0
+    pointer-events-none
+    pixelated
+  " /> as Canvas
+
+  const c = canvas.getContext('2d', { alpha: true })!
+  c.imageSmoothingEnabled = false
 
   const selfView = $(new Rect, { pr: screen.info.$.pr }).set(view)
   const hitArea = $(new Rect)
@@ -208,5 +228,5 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
     }
   })
 
-  return { hitArea }
+  return { canvas, hitArea }
 }

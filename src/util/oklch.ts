@@ -1,3 +1,5 @@
+// chatgpt
+
 export function oklchToHex(oklchString: string): string | null {
     // Extracting values from the oklch string
     const match = oklchString.match(/oklch\((\d+)%\s+(\d+)\s+(\d+)\)/);
@@ -52,14 +54,4 @@ function oklchToRGB(lightness: number, chroma: number, hue: number): number[] {
 
 function rgbToHex(rgb: number[]): string {
     return '#' + rgb.map(value => value.toString(16).padStart(2, '0')).join('');
-}
-
-// Example usage
-const oklchString = 'oklch(100% 0 0)';
-const hexColor = oklchToHex(oklchString);
-
-if (hexColor !== null) {
-    console.log(`Hex color: ${hexColor}`);
-} else {
-    console.log('Invalid input format');
 }

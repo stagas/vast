@@ -17,8 +17,6 @@ export function Code() {
   using $ = Signal()
 
   const info = $({
-    get codeHeight() { return screen.info.rect.h - (layout.info.mainY + HEADER_HEIGHT / 2) },
-
     redraw: 0,
 
     focusedEditor: null as Editor | null,
@@ -33,20 +31,15 @@ export function Code() {
 
   const view = $(new Rect, {
     x: 0,
+    y: layout.info.$.mainYBottom,
     w: layout.info.$.codeWidth,
-    h: info.$.codeHeight,
+    h: layout.info.$.codeHeight,
     pr: screen.info.$.pr,
-  })
-  $.fx(() => {
-    const { mainY } = layout.info
-    $()
-    view.y = mainY + HEADER_HEIGHT / 2
   })
 
   const editorView = $(new Rect)
   $.fx(() => {
-    const { codeWidth } = layout.info
-    const { codeHeight } = info
+    const { codeWidth, codeHeight } = layout.info
     const { pr } = screen.info
     $()
     editorView.w = codeWidth * pr
@@ -63,6 +56,10 @@ export function Code() {
   const sparePoint = $(new Point)
 
   // const view = $(new Rect, { pr: screen.info.$.pr, y: 44, w: CODE_WIDTH, h: window.innerHeight - 44 })
+
+  function onresize() {
+    info.redraw++
+  }
 
   const canvas = <Canvas view={view} onresize={onresize} class="absolute left-0 z-10" /> as Canvas
   $.fx(() => {
@@ -149,10 +146,6 @@ export function Code() {
     }
 
     c.restore()
-  }
-
-  function onresize() {
-    info.redraw++
   }
 
   $.fx(() => {
@@ -489,10 +482,10 @@ export function Code() {
 
   function clearCanvas() {
     c.clearRect(0, 0, view.w_pr, view.h_pr)
-    c.fillStyle = '#222b'
-    c.fillRect(0, 0, view.w_pr, view.h_pr)
-    c.fillStyle = screen.info.colors['base-100'] + 'cc'
-    c.fillRect(0, 0, view.w_pr, view.h_pr)
+    // c.fillStyle = '#222b'
+    // c.fillRect(0, 0, view.w_pr, view.h_pr)
+    // c.fillStyle = screen.info.colors['base-100'] + 'cc'
+    // c.fillRect(0, 0, view.w_pr, view.h_pr)
   }
 
   // const code = Code(codeView)
@@ -505,6 +498,7 @@ export function Code() {
     editor.editor.buffer.source = activeTrack.info.boxes[0]?.info.source
     editor.editorInfo.brand = hexColorBrightest
   })
+
   $.fx(() => {
     const { redraw } = info
     $()
