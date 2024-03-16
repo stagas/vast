@@ -1,6 +1,6 @@
 import { Theme } from 'daisyui'
 import themes from 'daisyui/src/theming/themes'
-import { state } from '../state.ts'
+import { screen } from '../screen.tsx'
 
 export function ThemePicker() {
   return <div class="dropdown bg-none h-full">
@@ -10,7 +10,7 @@ export function ThemePicker() {
         preserveAspectRatio="xMidYMid slice"
         viewBox="-1 -.25 19 15.5"
         class="h-5 w-5"
-        >
+      >
         <circle stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.85" cx="8" cy="8" r="6" />
       </svg>
     </button>
@@ -19,9 +19,9 @@ export function ThemePicker() {
         <li><a
           class={() => [
             "hover:bg-base-100 hover:text-primary",
-            state.theme === theme && "bg-base-100 text-primary"
+            screen.info.theme === theme && "bg-base-100 text-primary"
           ]}
-          onclick={() => state.theme = theme as Theme}
+          onclick={() => screen.info.theme = theme as Theme}
         >{theme}</a></li>
       )}
     </ul>

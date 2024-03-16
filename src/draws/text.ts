@@ -15,15 +15,15 @@ export type TextDraw = ReturnType<typeof TextDraw>
 export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
   using $ = Signal()
 
-  const textView = $(new Rect, { pr: state.$.pr }).set(view)
+  const textView = $(new Rect, { pr: screen.info.$.pr }).set(view)
   const hitArea = $(new Rect)
   const r = $(new Rect)
 
   const mousePos = $(new Point)
 
   function handleHover(e: MouseEvent | WheelEvent) {
-    mousePos.x = e.pageX * state.pr
-    mousePos.y = e.pageY * state.pr
+    mousePos.x = e.pageX * screen.info.pr
+    mousePos.y = e.pageY * screen.info.pr
 
     r.set(hitArea)
     r.zoomLinear(5)
@@ -132,7 +132,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
 
     if (!grid || !surface) return
     const m = surface.viewMatrix
-    c.translate(-textView.x * state.pr, 0)
+    c.translate(-textView.x * screen.info.pr, 0)
 
     r.set(hitArea)
     r.y -= r.h
@@ -149,7 +149,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     c.beginPath()
 
     const data = grid.info.focusedBox!
-    const pr = state.pr
+    const pr = screen.info.pr
     const w = (data.w * m.a * pr)
     let x = data.x * m.a * pr + m.e * pr //+ 40
     if (x < (CODE_WIDTH + 55) * pr) x = (CODE_WIDTH + 55) * pr
@@ -168,14 +168,14 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     hitArea.w = data.w * m.a * pr //ix - hitArea.x - 10
     hitArea.h = bh
     hitArea.path(c)
-    c.lineWidth = state.pr * 2
-    const dark = data.hexColor // luminate(state.colors['base-100'], -0.04)
+    c.lineWidth = screen.info.pr * 2
+    const dark = data.hexColor // luminate(screen.info.colors['base-100'], -0.04)
     c.fillStyle = dark
 
     c.fill()
     c.clip()
 
-    c.fillStyle = '#000' //state.colors['base-content']
+    c.fillStyle = '#000' //screen.info.colors['base-content']
     c.textBaseline = 'middle'
     c.textAlign = 'left'
 
@@ -192,10 +192,10 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
       const isHovering = state.isHoveringToolbar && mousePos.x >= ix - 15 && mousePos.x < ix - 15 + w
       if (isHovering) {
         hoveringItem = item
-        c.fillStyle = state.colors['base-100']
+        c.fillStyle = screen.info.colors['base-100']
         c.fillRect(ix - 10, hitArea.y, w, hitArea.h)
       }
-      c.fillStyle = isHovering ? state.colors['base-content'] : '#000' ///* isHovering ? state.colors.primary :  */state.colors['base-content']
+      c.fillStyle = isHovering ? screen.info.colors['base-content'] : '#000' ///* isHovering ? screen.info.colors.primary :  */screen.info.colors['base-content']
       c.drawImage(isHovering ? item.img_hover : item.img, ix + xOffset, y)
       ix += w
     }
@@ -230,7 +230,7 @@ export function TextDraw(surface: Surface, grid: Grid, view: Rect) {
     //   c.font = '24px Mono'
     //   c.fillStyle = dark + '75'
     //   c.fillRect(hitArea.x, hitArea.y - (hitArea.h - 5), hitArea.w, hitArea.h)
-    //   c.fillStyle = state.colors['base-content']
+    //   c.fillStyle = screen.info.colors['base-content']
     //   c.fillText(explainText, hitArea.x + hitArea.w / 2, hitArea.y - 5)
     // }
     c.restore()

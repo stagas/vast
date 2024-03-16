@@ -28,7 +28,7 @@ export function WebGL(view: Rect, canvas: HTMLCanvasElement, alpha = false) {
   const { gl } = GL
 
   function clear() {
-    gl.viewport(0, 0, view.w_pr, view.h_pr)
+    gl.viewport(0, view.y_pr, Math.max(0, view.w_pr), Math.max(0, view.h_pr))
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
   }
 

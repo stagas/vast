@@ -7,29 +7,18 @@ import { Keyboard } from '../editor/keyboard.ts'
 import { Pointer, PointerEventType } from '../editor/pointer.ts'
 import { Token } from '../lang/tokenize.ts'
 import { lib } from '../lib.ts'
+import { screen } from '../screen.tsx'
 import { state } from '../state.ts'
 import { toHex } from '../util/rgb.ts'
 import { Canvas } from './Canvas.tsx'
+import { layout } from '../layout.ts'
 
 export function Code() {
   using $ = Signal()
 
-  const codeHeight = (window.innerHeight - HEADER_HEIGHT) / 2
-  const view = $(new Rect, {
-    x: 0,
-    y: codeHeight + HEADER_HEIGHT,
-    w: CODE_WIDTH,
-    h: codeHeight,
-    pr: state.$.pr,
-  })
-  const editorView = $(new Rect, {
-    x: 0,
-    y: 0,
-    w: CODE_WIDTH * state.pr,
-    h: codeHeight * state.pr
-  })
-
   const info = $({
+    get codeHeight() { return screen.info.rect.h - (layout.info.mainY + HEADER_HEIGHT / 2) },
+
     redraw: 0,
 
     focusedEditor: null as Editor | null,
@@ -42,6 +31,28 @@ export function Code() {
     lineHeight: 16,
   })
 
+  const view = $(new Rect, {
+    x: 0,
+    w: layout.info.$.codeWidth,
+    h: info.$.codeHeight,
+    pr: screen.info.$.pr,
+  })
+  $.fx(() => {
+    const { mainY } = layout.info
+    $()
+    view.y = mainY + HEADER_HEIGHT / 2
+  })
+
+  const editorView = $(new Rect)
+  $.fx(() => {
+    const { codeWidth } = layout.info
+    const { codeHeight } = info
+    const { pr } = screen.info
+    $()
+    editorView.w = codeWidth * pr
+    editorView.h = codeHeight * pr
+  })
+
 
   // const AstNodeColors = {
   //   [AstNode.Type.Id]: '#888',
@@ -51,20 +62,24 @@ export function Code() {
 
   const sparePoint = $(new Point)
 
-  // const view = $(new Rect, { pr: state.$.pr, y: 44, w: CODE_WIDTH, h: window.innerHeight - 44 })
+  // const view = $(new Rect, { pr: screen.info.$.pr, y: 44, w: CODE_WIDTH, h: window.innerHeight - 44 })
 
   const canvas = <Canvas view={view} onresize={onresize} class="absolute left-0 z-10" /> as Canvas
-  canvas.style.top = view.y + 'px'
+  $.fx(() => {
+    const { y } = view
+    $()
+    canvas.style.transform = `translateY(${view.y}px)`
+  })
   const c = canvas.getContext('2d', { alpha: true })!
 
   function drawSeparators() {
     c.save()
     for (const t of lib.project!.info.tracks) {
-      c.lineWidth = state.pr * 2
+      c.lineWidth = screen.info.pr * 2
       c.beginPath()
       let y = t.info.sy
       c.moveTo(0, y)
-      c.lineTo(CODE_WIDTH * state.pr - 25, y)
+      c.lineTo(CODE_WIDTH * screen.info.pr - 25, y)
       c.strokeStyle = t.info.colors.hexColor ?? '#fff'
       c.stroke()
 
@@ -72,7 +87,7 @@ export function Code() {
       c.beginPath()
       y = t.info.sy - 2
       c.moveTo(0, y)
-      c.lineTo(CODE_WIDTH * state.pr - 25, y)
+      c.lineTo(CODE_WIDTH * screen.info.pr - 25, y)
       c.strokeStyle = '#000'
       c.stroke()
     }
@@ -87,7 +102,7 @@ export function Code() {
   function drawBigScrollbar() {
     const m = state.viewMatrix
     c.save()
-    c.scale(state.pr, state.pr)
+    c.scale(screen.info.pr, screen.info.pr)
     const vh = view.h
 
     const co = (vh / (m.d * 2 * (lib.project!.info.tracks.length)))
@@ -97,7 +112,7 @@ export function Code() {
     let y = -.5 - m.f * co * 2
     const bottom = window.innerHeight - 47
 
-    let h = vh * co * state.pr
+    let h = vh * co * screen.info.pr
 
     if (y < 0) {
       h += y
@@ -114,12 +129,12 @@ export function Code() {
     bigScrollbarRect.h = vh
 
     if (isHoveringBigScrollbar) {
-      bigScrollbarRect.fill(c, state.colors['base-content'] + '33')
+      bigScrollbarRect.fill(c, screen.info.colors['base-content'] + '33')
     }
 
     c.beginPath()
     c.rect(x, y - 1, w, h + 1)
-    c.fillStyle = state.colors['base-content'] + '44'
+    c.fillStyle = screen.info.colors['base-content'] + '44'
     c.fill()
     for (const t of lib.project!.info.tracks) {
       c.beginPath()
@@ -151,7 +166,7 @@ export function Code() {
   const keyboard = $(new Keyboard)
   const pointer = $(new Pointer)
   pointer.element = canvas
-  pointer.offset.y = 44
+  // pointer.offset.y = 44
 
   let isHoveringBigScrollbar = false
 
@@ -245,11 +260,11 @@ export function Code() {
 
       get TokenColors() {
         return {
-          [Token.Type.Op]: toHex(state.colors['primary']),
+          [Token.Type.Op]: toHex(screen.info.colors['primary']),
           [Token.Type.Id]: this.brand,
           [Token.Type.Keyword]: this.brand2,
-          [Token.Type.Number]: toHex(state.colors['base-content']),
-          [Token.Type.Comment]: toHex(state.colors['base-content']) + '66',
+          [Token.Type.Number]: toHex(screen.info.colors['base-content']),
+          [Token.Type.Comment]: toHex(screen.info.colors['base-content']) + '66',
         } as any
       },
       get Builtin() {
@@ -263,23 +278,26 @@ export function Code() {
     })
 
     const editor = createEditor(rect, c, Token, keyboard, pointer)
-    // editor.text.offset.y = 42
     editor.dims.lineHeight = info.lineHeight
-editor.selection.colors.color = toHex(state.colors['base-content']) + '66'
-    // $.fx(() => {
-    //   const { source } = state
-    //   $()
-    //   editor.buffer.source = source
-    // })
+    editor.selection.colors.color = toHex(screen.info.colors['base-content']) + '66'
 
     editor.text.padding.setParameters(info.textLeft, info.textTop)
 
     // Pointer Target
     const targetRect = $(new Rect)
 
+    const focusEvents = new Set([
+      PointerEventType.Wheel,
+      PointerEventType.Down,
+      PointerEventType.Menu,
+    ])
     const target = {
       rect: targetRect,
       handler: () => {
+        // allow items to overlay the editor and not clickthrough events
+        const targetTag = (pointer.real?.target as HTMLElement)?.tagName
+        if (targetTag !== 'CANVAS') return
+
         if (pointer.type === PointerEventType.Down) {
           info.focusedEditor = editor
         }
@@ -290,22 +308,38 @@ editor.selection.colors.color = toHex(state.colors['base-content']) + '66'
         editor.dims.charWidth = charWidth
         editor.dims.lineHeight = info.lineHeight
         if (editor.text.onMouseEvent(pointer.type)) {
-          editor.keyboard.textarea.focus({ preventScroll: true })
+          if (focusEvents.has(pointer.type)) {
+            editor.keyboard.textarea.focus({ preventScroll: true })
+          }
           // dom.stop.prevent(pointer.real!)
         }
       }
     }
 
     pointer.targets.add(target)
+    $.fx(() => () => {
+      pointer.targets.delete(target)
+    })
 
     $.fx(() => {
-      const { x, y, w, h } = editor.view
+      {
+        const { x, y, w, h } = view
+      }
+      // {
+      //   const { x, y, w, h } = editor.view
+      // }
+      const { pr } = screen.info
       $()
-      targetRect.set(editor.view)
-      targetRect.size.div(state.pr)
-      targetRect.y = targetRect.h
+      // console.log(view.text)
+      // console.log(editor.rect.text, editor.view.text, view.text)
+      editor.rect.w = editor.view.w = view.w * pr
+      editor.rect.h = editor.view.h = view.h * pr
+      // editor.view.size.set(view.size).mul(screen.info.pr)
+      targetRect.set(view) //editor.view)
+      // targetRect.pos.div(screen.info.pr)
+      // targetRect.y = 0 //targetRect.h
       // pointer.offset.y = targetRect.h
-      editor.text.offset.y = targetRect.h + HEADER_HEIGHT - 3
+      editor.text.offset.y = view.y - 3 //targetRect.h + HEADER_HEIGHT - 3
     })
 
     // KEEP: resize to height
@@ -314,8 +348,8 @@ editor.selection.colors.color = toHex(state.colors['base-content']) + '66'
     //   const { lines } = $.of(editor.buffer)
     //   const { lineHeight } = $.of(editor.dims)
     //   $()
-    //   editor.view.w = CODE_WIDTH * state.pr
-    //   editor.view.h = (lineHeight * lines.length + editor.text.padding.y * 2) * state.pr
+    //   editor.view.w = CODE_WIDTH * screen.info.pr
+    //   editor.view.h = (lineHeight * lines.length + editor.text.padding.y * 2) * screen.info.pr
     // })
     // $.fx(() => dom.on(window, 'resize', $.fn(() => {
     //   $.untrack(() => {
@@ -328,7 +362,7 @@ editor.selection.colors.color = toHex(state.colors['base-content']) + '66'
       // const { tokensAstNode, error } = state
       // const { redraw } = info
       const { TokenColors, Builtin } = editorInfo
-      const { colors } = state
+      const { colors } = screen.info
       const { w, h } = rect
       const { line, col } = editor.buffer
       const { x, y } = editor.scroll
@@ -373,11 +407,11 @@ editor.selection.colors.color = toHex(state.colors['base-content']) + '66'
       c.save()
 
       // editor.view.clipExact(c)
-      c.scale(state.pr, state.pr)
-      c.beginPath()
-      c.rect(0, editor.view.y, editor.view.w_pr, editor.view.h / state.pr - 1)
-      c.clip()
+      // c.beginPath()
+      // c.rect(0, editor.view.y, editor.view.w, editor.view.h)
+      // // c.clip()
 
+      c.scale(screen.info.pr, screen.info.pr)
       c.translate(-.5, -.5)
       c.translate(editor.view.x, editor.view.y)
       c.translate(editor.scroll.x, editor.scroll.y)
@@ -393,7 +427,7 @@ editor.selection.colors.color = toHex(state.colors['base-content']) + '66'
 
       // draw tokens
       c.lineWidth = 0.35 // stroke width
-      const baseContent = toHex(state.colors['base-content'] ?? '#fff')
+      const baseContent = toHex(screen.info.colors['base-content'] ?? '#fff')
       editor.buffer.source.tokens.forEach(t => {
         c.strokeStyle =
           c.fillStyle =
@@ -457,7 +491,7 @@ editor.selection.colors.color = toHex(state.colors['base-content']) + '66'
     c.clearRect(0, 0, view.w_pr, view.h_pr)
     c.fillStyle = '#222b'
     c.fillRect(0, 0, view.w_pr, view.h_pr)
-    c.fillStyle = state.colors['base-100'] + 'cc'
+    c.fillStyle = screen.info.colors['base-100'] + 'cc'
     c.fillRect(0, 0, view.w_pr, view.h_pr)
   }
 

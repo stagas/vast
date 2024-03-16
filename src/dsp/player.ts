@@ -64,6 +64,7 @@ export type Player = ReturnType<typeof Player>
 export function Player(ctx: AudioContext) {
   using $ = Signal()
   const pin = <T>(x: T): T => { wasm.__pin(+x); return x }
+
   const view = getMemoryView(wasm.memory)
   const player$ = wasm.createPlayer(ctx.sampleRate)
   const clock$ = wasm.getPlayerClock(+player$)

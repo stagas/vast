@@ -53,7 +53,7 @@ export class Scroll extends Comp {
       if (!(line in lineBottoms)) {
         throw new Error('Invalid line state.')
       }
-      y = lineBottoms[line]// + lineHeight + 3//+ scrollbarSize.h + 2
+      y = lineBottoms[line] // + lineHeight + 3//+ scrollbarSize.h + 2
       dy = y - viewBottom
       if (dy > 0) {
         this.animSettings = Scroll.AnimSettings.Slow
@@ -148,7 +148,7 @@ export class Scroll extends Comp {
   @fx update_scrollSize() {
     const { ctx, scrollSize } = of(this)
     const { dims } = of(ctx)
-    const { innerSize, overscrollX } = of(dims)
+    const { innerSize, overscrollX, lineHeight } = of(dims)
     const w = innerSize.w + overscrollX
     const h = innerSize.h
     $()

@@ -4,12 +4,14 @@ import { MouseButtons, clamp, debounce, dom } from 'utils'
 import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
 import { Track, TrackBox } from '../dsp/track.ts'
 import { Shapes } from '../gl/sketch.ts'
+import { lib } from '../lib.ts'
+import { screen } from '../screen.tsx'
 import { services } from '../services.ts'
 import { log, state } from '../state.ts'
 import { Surface } from '../surface.ts'
 import { transformMatrixRect } from '../util/geometry.ts'
 import { BLACK_KEYS, BoxNote, MAX_NOTE, getNotesScale } from '../util/notes.ts'
-import { lib } from '../lib.ts'
+import { HEADS_WIDTH } from '../constants.ts'
 
 const DEBUG = true
 const SCALE_X = 1 / 16
@@ -30,20 +32,22 @@ export function Grid(surface: Surface) {
 
   const { anim, mouse, keyboard, view, intentMatrix, viewMatrix, sketch } = surface
   const { lastFarMatrix, targetMatrix } = state
-  // const { audio } = services
-  // const { dsp, player } = audio
 
   sketch.scene.clear()
 
   const targetView = $(new Rect)
+  const OFFSET_X = 1
   $.fx(() => {
     const { mode } = state
     const { w, h } = view
     $()
     targetView.set(view)
+    targetView.x += OFFSET_X
+    targetView.w -= OFFSET_X
     // if (mode === 'edit' || mode === 'dev') {
-    targetView.x += 57
-    targetView.w -= 57
+    // const LEFT = HEADS_WIDTH + 2
+    // targetView.x += LEFT
+    // targetView.w -= LEFT
     // }
   })
 
@@ -77,7 +81,7 @@ export function Grid(surface: Surface) {
     const height = lib.project!.info.tracks.length || 1
     const a = Math.max(7.27, targetView.w / width, 1)
     const d = targetView.h / height
-    const e = 57 - left * a // a //(state.mode === 'wide' ? 0 : CODE_WIDTH + 57) - (boxes?.info.left ?? 0) * a
+    const e = OFFSET_X - left * a // a //(state.mode === 'wide' ? 0 : CODE_WIDTH + 57) - (boxes?.info.left ?? 0) * a
     const f = 0
     return { a, d, e, f }
   }
@@ -98,14 +102,19 @@ export function Grid(surface: Surface) {
     queueMicrotask(() => offInitialScale())
   })
 
-  $.fx(function scale_rows_to_fit_height() {
-    const { h } = targetView
-    const { project } = $.of(lib)
-    const { tracks } = project.info
-    $()
-    const height = tracks.length || 1
-    intentMatrix.d = h / height
-  })
+  // $.fx(function scale_rows_to_fit_height() {
+  //   const { h } = targetView
+  //   const { project } = $.of(lib)
+  //   const { tracks } = project.info
+  //   $()
+  //   // info.redraw++
+  //   // const aspect = intentMatrix.d / intentMatrix.a
+
+  //   // const height = tracks.length || 1
+  //   // intentMatrix.d = (h / height)
+  //   // intentMatrix.a = intentMatrix.d * aspect
+  //   // intentMatrix.d = h / height
+  // })
 
   //
   // interaction
@@ -286,7 +295,10 @@ export function Grid(surface: Surface) {
 
   function updateHoveringNoteN() {
     const { hoveringBox } = info
-    if (!hoveringBox?.info.notes) return
+    if (!hoveringBox?.info.notes) {
+      info.hoveringNoteN = -1
+      return
+    }
 
     let { x, y } = mouse.screenPos
     x -= hoveringBox.rect.x
@@ -295,21 +307,33 @@ export function Grid(surface: Surface) {
     notePos.y = y
 
     const { notes } = hoveringBox.info
-    if (!notes.info.scale) return
+    if (!notes.info.scale) {
+      info.hoveringNoteN = -1
+      return
+    }
 
     info.hoveringNoteN = clamp(
       0,
       MAX_NOTE - 1,
       Math.ceil(
-        notes.info.scale.max - 1
-        - (y * notes.info.scale.N)
+        notes.info.scale.max
+        - (y * (notes.info.scale.N + 1))
       )
     )
   }
 
   function handleHoveringNote() {
     if (!info.focusedBox) return
-    if (info.hoveringBox !== info.focusedBox) return
+    if (info.hoveringBox !== info.focusedBox) {
+      if (!info.hoveringBox) {
+        info.hoveringNoteN = -1
+        info.hoveringNote = null
+        return
+      }
+      if (info.hoveringBox?.trackBox.track === info.focusedBox.trackBox.track) {
+        return
+      }
+    }
     // if (info.hoveringBox?.trackBox.kind !== TrackBoxKind.Notes) return
     if (info.draggingNote) return
 
@@ -913,7 +937,7 @@ export function Grid(surface: Surface) {
     $.fx(() => {
       const { draggingNote } = gridInfo
       if (draggingNote) return
-      info.scale = getNotesScale(trackBox.track.info.notesJson)
+      info.scale = getNotesScale(info.trackBox.track.info.notesJson)
     })
 
     const rect = $(new Rect)
@@ -921,11 +945,11 @@ export function Grid(surface: Surface) {
 
     const pianoroll = Shapes(view, viewMatrix)
 
-    const pianorollBg = pianoroll.Box(rect)
-    $.fx(() => {
-      const { trackBox } = info
-      pianorollBg.view.color = trackBox.track.info.colors.bgHover
-    })
+    // const pianorollBg = pianoroll.Box(rect)
+    // $.fx(() => {
+    //   const { trackBox } = info
+    //   pianorollBg.view.color = trackBox.track.info.colors.bgHover
+    // })
 
     pianoroll.Box($({
       get x() { return rect.x - PIANO_WIDTH },
@@ -957,10 +981,10 @@ export function Grid(surface: Surface) {
       const { colors } = trackBox.track.info
       $()
       rows.clear()
-      const h = rect.h / scale.N
+      const h = rect.h / (scale.N + 1)
       for (let ny = 0; ny < scale.N; ny++) {
         const y = rect.y + h * ny
-        const n = scale.N - ny - 1 + scale.min
+        const n = scale.N - (ny - 1) + scale.min
         const n_key = n % 12
 
         const isBlack = BLACK_KEYS.has(n_key)
@@ -1057,7 +1081,7 @@ export function Grid(surface: Surface) {
     $.fx(() => {
       const { track, info: { isFocused } } = trackBox
       const { colors } = track.info
-      const { primaryColorInt } = state
+      const { primaryColorInt } = screen.info
       $()
       notesShape.view.color = 0x0 //isFocused && !dimmed ? colors.colorBright : colors.fg
       notesShape.view.hoverColor = primaryColorInt
@@ -1096,7 +1120,7 @@ export function Grid(surface: Surface) {
     $({ x: services.audio.info.$.timeNowLerp, get y() { return lib.project?.info.tracks.length ?? 0 + 10 } })
   )
   $.fx(() => {
-    rulerNow.view.color = state.primaryColorInt
+    rulerNow.view.color = screen.info.primaryColorInt
   })
   sketch.scene.add(overlay)
   overlay.update()

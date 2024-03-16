@@ -1,7 +1,8 @@
-import { $, Signal } from 'signal-jsx'
+import { Signal } from 'signal-jsx'
+import { Rect } from 'std'
+import { screen } from '../screen.tsx'
 import { state } from '../state.ts'
 import { Canvas } from './Canvas.tsx'
-import { Rect } from 'std'
 
 export function Console({ signal, history, size }: { signal: () => void, history: string[], size: number }) {
   using $ = Signal()
@@ -12,7 +13,7 @@ export function Console({ signal, history, size }: { signal: () => void, history
   c.imageSmoothingEnabled = false
   c.scale(view.pr, view.pr)
 
-  const el  = <div class="
+  const el = <div class="
     fixed bottom-2 right-2 z-30
     bg-base-300 bg-opacity-50
     pointer-events-none
@@ -24,7 +25,7 @@ export function Console({ signal, history, size }: { signal: () => void, history
     if (!state.debugConsoleActive) return
     signal()
     c.clearRect(0, 0, view.width, view.height)
-    c.fillStyle = state.colors['primary']
+    c.fillStyle = screen.info.colors['primary']
     c.textBaseline = 'top'
     c.font = '12px sans-serif'
     while (history.length > size) history.shift()

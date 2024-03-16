@@ -554,5 +554,5 @@ export function Sketch(GL: GL, view: Rect) {
     finish()
   }
 
-  return { draw, scene, info }
+  return { draw, scene, info, view }
 }

@@ -13,21 +13,24 @@ import { Track } from './dsp/track.ts'
 import { ZoomState } from './draws/grid.ts'
 import { Project } from './dsp/project.ts'
 import { Audio } from './audio.ts'
+import { dom } from 'utils'
 
 const DEBUG = true
 
 class State {
   name = 'ravescript'
 
-  pr = window.devicePixelRatio
-  theme = storage<Theme>('dark')
-  get colors() {
-    // console.log(themes[state.theme] )
-    return themes[state.theme]
-  }
-  get primaryColorInt() {
-    return hexToInt(toHex(state.colors.primary))
-  }
+  // cursor = 'default'
+  // overlay = false
+  // pr = window.devicePixelRatio
+  // theme = storage<Theme>('dark')
+  // get colors() {
+  //   // console.log(themes[state.theme] )
+  //   return themes[state.theme]
+  // }
+  // get primaryColorInt() {
+  //   return hexToInt(toHex(screen.info.colors.primary))
+  // }
 
   mode = storage('edit')
 

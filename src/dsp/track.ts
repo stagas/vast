@@ -6,6 +6,7 @@ import { Lru, hueshift, luminate, saturate } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
 import { AstNode } from '../lang/interpreter.ts'
 import { Token } from '../lang/tokenize.ts'
+import { screen } from '../screen.tsx'
 import { services } from '../services.ts'
 import { Source } from '../source.ts'
 import { state } from '../state.ts'
@@ -77,7 +78,7 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
     sound$: $.unwrap(() => dsp.ready.then(() => dsp.service.createSound())),
     get sy() {
       const { y } = this
-      const { pr } = state
+      const { pr } = screen.info
       const { d, f } = state.viewMatrix
       $()
       return y * d * pr + f * pr
@@ -168,11 +169,11 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
       const colorBrightest = hexToInt(hexColorBrightest)
       const colorDark = hexToInt(hexColorDark)
 
-      const bg = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), .05))
-      const bg2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), -.01))
-      const bgHover = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), -.01))
-      const bgHover2 = hexToInt(luminate(toHex(state.colors['base-100'] ?? '#333'), -.04))
-      const fg = hexToInt(toHex(state.colors['base-content'] ?? '#fff'))
+      const bg = hexToInt(luminate(toHex(screen.info.colors['base-100'] ?? '#333'), .05))
+      const bg2 = hexToInt(luminate(toHex(screen.info.colors['base-100'] ?? '#333'), -.01))
+      const bgHover = hexToInt(luminate(toHex(screen.info.colors['base-100'] ?? '#333'), -.01))
+      const bgHover2 = hexToInt(luminate(toHex(screen.info.colors['base-100'] ?? '#333'), -.04))
+      const fg = hexToInt(toHex(screen.info.colors['base-content'] ?? '#fff'))
 
       return {
         bg, //: y % 2 === 0 ? bg : bg2,
@@ -299,14 +300,24 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
     track.info.boxes = [...track.info.boxes].filter(tb => tb !== trackBox)
   }
 
+  const bufferSourcesPlaying = new Set<AudioBufferSourceNode>()
+
   function play() {
     const { audioBuffer } = info
     const bufferSource = services.audio.ctx.createBufferSource()
     bufferSource.buffer = audioBuffer
     bufferSource.connect(services.audio.ctx.destination)
     bufferSource.start()
+    bufferSourcesPlaying.add(bufferSource)
+    bufferSource.onended = () => {
+      bufferSourcesPlaying.delete(bufferSource)
+    }
   }
 
-  const track = { info, data: trackData, pt, addBox, removeBox, play }
+  function stop() {
+    bufferSourcesPlaying.forEach(buf => buf.stop())
+  }
+
+  const track = { info, data: trackData, pt, addBox, removeBox, play, stop }
   return track
 }

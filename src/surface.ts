@@ -12,7 +12,7 @@ const DEBUG = false
 
 export type Surface = ReturnType<typeof Surface>
 
-export function Surface(view: $<Rect>, intentMatrix: Matrix, viewMatrix: LerpMatrix, onresize?: () => void, alpha = false) {
+export function Surface(view: $<Rect>, intentMatrix: Matrix, viewMatrix: LerpMatrix, alpha = false) {
   using $ = Signal()
 
   const info = $({
@@ -56,11 +56,6 @@ export function Surface(view: $<Rect>, intentMatrix: Matrix, viewMatrix: LerpMat
       e.preventDefault()
     }],
 
-    [window, 'resize', () => {
-      state.pr = window.devicePixelRatio
-      onresize?.()
-    }, { unsafeInitial: true }],
-
     [canvas, 'mouseenter', (e: MouseEvent) => {
       info.isHovering = true
     }],
@@ -70,7 +65,7 @@ export function Surface(view: $<Rect>, intentMatrix: Matrix, viewMatrix: LerpMat
     }],
 
     [window, 'mousemove', (e: MouseEvent) => {
-      mouse.pos.setFromEvent(e, canvas)
+      mouse.pos.setFromEvent(e, view)
       if (info.isHovering || mouse.isDown) mouse.handle(e)
     }],
 
@@ -89,7 +84,7 @@ export function Surface(view: $<Rect>, intentMatrix: Matrix, viewMatrix: LerpMat
     }],
 
     [window, 'mousedown', (e: MouseEvent) => {
-      mouse.pos.setFromEvent(e, canvas)
+      mouse.pos.setFromEvent(e, view)
       mouse.button = e.button
       if (info.isHovering) {
         mouse.isDown = true
@@ -98,14 +93,14 @@ export function Surface(view: $<Rect>, intentMatrix: Matrix, viewMatrix: LerpMat
     }],
 
     [window, 'mouseup', (e: MouseEvent) => {
-      mouse.pos.setFromEvent(e, canvas)
+      mouse.pos.setFromEvent(e, view)
       mouse.isDown = false
       mouse.button = 0
       if (info.isHovering) mouse.handle(e)
     }],
 
     [window, 'wheel', (e: WheelEvent) => {
-      mouse.pos.setFromEvent(e, canvas)
+      mouse.pos.setFromEvent(e, view)
       if (info.isHovering) mouse.handle(e)
     }, { passive: true }],
 

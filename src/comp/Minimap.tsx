@@ -1,8 +1,9 @@
 import { Signal } from 'signal-jsx'
 import { Matrix, Rect } from 'std'
 import { dom } from 'utils'
-import { CODE_WIDTH, HEADS_WIDTH } from '../constants.ts'
+import { HEADS_WIDTH } from '../constants.ts'
 import { Grid } from '../draws/grid.ts'
+import { screen } from '../screen.tsx'
 import { log, state } from '../state.ts'
 import { toHex } from '../util/rgb.ts'
 import { Canvas } from './Canvas.tsx'
@@ -14,8 +15,8 @@ export type Minimap = ReturnType<typeof Minimap>
 export function Minimap(grid: Grid) {
   using $ = Signal()
 
-  const view = $(new Rect, { w: 250, h: 34, pr: state.$.pr })
-  const handleView = $(new Rect, { w: 260, h: 42, pr: state.$.pr })
+  const view = $(new Rect, { w: 250, h: 34, pr: screen.info.$.pr })
+  const handleView = $(new Rect, { w: 260, h: 42, pr: screen.info.$.pr })
 
   const canvas = <Canvas view={view} class="-mb-[1px]" /> as Canvas
   const handle = <Canvas view={handleView} class="absolute -left-[5px] -top-[4px]" /> as Canvas
@@ -26,7 +27,7 @@ export function Minimap(grid: Grid) {
 
   $.fx(() => dom.on(handle, 'wheel', e => {
     const m = grid.intentMatrix
-    grid.mousePos.x = (HEADS_WIDTH - m.e) / m.a
+    grid.mousePos.x = (-m.e / m.a) + 1 / m.a
     grid.mousePos.y = 0
     grid.handleWheelScaleX(e)
     DEBUG && log('wheel', grid.mousePos.x, grid.mousePos.y)
@@ -46,7 +47,7 @@ export function Minimap(grid: Grid) {
 
       const { left, width } = boxes.info
 
-      m.e = -x * width * m.a + (grid.view.w + HEADS_WIDTH) / 2 - left * m.a
+      m.e = -x * width * m.a + grid.view.w / 2 - left * m.a
       l.e = -x * width * l.a + grid.view.w / 2 - left * l.a
     }
 
@@ -70,7 +71,7 @@ export function Minimap(grid: Grid) {
     const { info } = grid
     const { boxes } = $.of(info)
     const { left, width, rows } = boxes.info
-    const { colors } = state
+    const { colors } = screen.info
     const { pr } = view
     $()
     Matrix.viewBox(matrix, view, {
@@ -105,7 +106,7 @@ export function Minimap(grid: Grid) {
     const { info } = grid
     const { boxes } = $.of(info)
     const { left } = boxes.info
-    const { colors } = state
+    const { colors } = screen.info
 
     $()
     const c = hc
@@ -115,7 +116,7 @@ export function Minimap(grid: Grid) {
     handleView.clear(c)
     c.translate(.5, 2.5)
 
-    const padX = HEADS_WIDTH
+    const padX = 0
     const x = -((e - padX + left * a) / a / pr) * matrix.a
     const y = -((f) / d / pr) * matrix.d
     const w = ((vw - padX - 5) / a / pr) * matrix.a + 9

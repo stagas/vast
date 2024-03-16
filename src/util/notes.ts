@@ -70,8 +70,8 @@ export function getNotesScale(notes: Note[]) {
     min = 0
     max = 12
   }
-  min = Math.max(0, min - 4)
-  max = Math.min(MAX_NOTE, max + 5)
+  min = Math.max(0, min)
+  max = Math.min(MAX_NOTE, max)
   const N = max - min
   return { min, max, N }
 }

@@ -1,13 +1,15 @@
 import { Signal } from 'signal-jsx'
 import { Point, Rect } from 'std'
 import { dom } from 'utils'
+import { HEADER_HEIGHT, HEADS_WIDTH } from '../constants.ts'
 import { Track } from '../dsp/track.ts'
 import { lib } from '../lib.ts'
+import { screen } from '../screen.tsx'
 import { state } from '../state.ts'
 import { Surface } from '../surface.ts'
 import { fromSvg } from '../util/svg-to-image.ts'
 import { Grid } from './grid.ts'
-import { HEADER_HEIGHT, HEADS_WIDTH } from '../constants.ts'
+import { layout } from '../layout.ts'
 
 const DEBUG = true
 
@@ -16,7 +18,7 @@ export type Heads = ReturnType<typeof Heads>
 export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid, view: Rect) {
   using $ = Signal()
 
-  const selfView = $(new Rect, { pr: state.$.pr }).set(view)
+  const selfView = $(new Rect, { pr: screen.info.$.pr }).set(view)
   const hitArea = $(new Rect)
   const r = $(new Rect)
 
@@ -27,62 +29,64 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
   })
 
   function handleHover(e: MouseEvent | WheelEvent) {
-    const { pr } = state
+    const { pr } = screen.info
     if (!lib.project) return
+
     const { project: { info: { tracks } } } = lib
     mousePos.x = e.pageX * pr
     mousePos.y = e.pageY * pr
-    mousePos.y -= HEADER_HEIGHT * pr
 
     r.set(hitArea)
     r.x += c.canvas.offsetLeft * pr
-    r.y = 0
-    r.h = (window.innerHeight - HEADER_HEIGHT) * pr
-    // r.zoomLinear(5)
+
     const last = tracks.at(-1)
     if (!last) return
-    if (mousePos.withinRect(r) && mousePos.y < last.info.sy + dims.h) {
-      state.isHoveringHeads = true
-      // e.stopImmediatePropagation()
-      // e.preventDefault()
 
+    let hoveringTrack = null as null | Track
+
+    if (mousePos.withinRect(r) && mousePos.y < last.info.sy + dims.h) {
       for (const track of tracks) {
         if (mousePos.y > track.info.sy && mousePos.y < track.info.sy + dims.h) {
-          info.hoveringTrack = track
+          hoveringTrack = track
           break
         }
       }
+    }
 
-      if (info.hoveringTrack) {
-        // grid.updateHoveringBox(info.hoveringTrack.info.boxes[0]?. ?? null)
-      }
-
-      dom.body.style.cursor = 'pointer'
+    if (hoveringTrack) {
+      // grid.updateHoveringBox(info.hoveringTrack.info.boxes[0]?. ?? null)
+      screen.info.cursor = 'pointer'
+      state.isHoveringHeads = true
     }
     else {
-      dom.body.style.cursor = ''
-      info.hoveringTrack = null
+      screen.info.cursor = 'default'
       state.isHoveringHeads = false
     }
+
+    info.hoveringTrack = hoveringTrack
+
     surface.anim.info.epoch++
   }
 
   $.fx(() => dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
     handleHover(e)
-  }), { capture: true }))
+  })))
 
   $.fx(() => dom.on(window, 'mousedown', $.fn((e: MouseEvent) => {
     const { hoveringTrack } = info
+
     if (hoveringTrack) {
       e.stopImmediatePropagation()
       e.preventDefault()
+
       hoveringTrack.play()
+
       dom.on(window, 'mouseup', e => {
         e.stopImmediatePropagation()
         e.preventDefault()
       }, { once: true })
     }
-  }), { capture: true }))
+  })))
 
   selfView.set(view)
 
@@ -136,10 +140,10 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
 
   const dims = $({
     get w() {
-      return 55 * state.pr
+      return 55 * screen.info.pr
     },
     get h() {
-      return surface.viewMatrix.d * state.pr
+      return surface.viewMatrix.d * screen.info.pr
     },
   })
 
@@ -151,11 +155,12 @@ export function Heads(c: CanvasRenderingContext2D, surface: Surface, grid: Grid,
 
     if (!grid || !surface) return
 
-    const { pr } = state
+    const { pr } = screen.info
 
     c.translate(0, surface.canvas.offsetTop * pr)
 
-    hitArea.setParameters(0, 0, HEADS_WIDTH * pr, window.innerHeight * pr)
+    hitArea.setParameters(0, 0, HEADS_WIDTH * pr, layout.info.mainY * pr)
+    hitArea.clip(c)
 
     const { w, h } = dims
 
