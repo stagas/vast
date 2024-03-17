@@ -460,12 +460,22 @@ export function Dsp({ sampleRate, core$ }: {
       const scope = {} as any
       const literals: AstNode[] = []
 
-      const tokensCopy = [
+      let tokensCopy = [
         ...preludeTokens,
         ...tokens,
       ]
         .filter(t => t.type !== Token.Type.Comment)
         .map(copyToken)
+
+
+      if (voicesCount && hasMidiIn) {
+        const voices = tokenize({
+          code: Array.from({ length: voicesCount }, (_, i) =>
+            `[midi_in n${i}v n${i}t n${i}f n${i}n]`
+          ).join('\n') + ` @`
+        })
+        tokensCopy = [...tokensCopy, ...voices]
+      }
 
       // create hash id from tokens. We compare this afterwards to determine
       // if we should make a new sound or update the old one.
@@ -474,6 +484,7 @@ export function Dsp({ sampleRate, core$ }: {
         + tokens.filter(t =>
           [Token.Type.Id, Token.Type.Op].includes(t.type)
         ).map(t => t.text).join('')
+        + voicesCount
 
       const isNew = hashId !== prevHashId
       prevHashId = hashId
@@ -517,19 +528,7 @@ export function Dsp({ sampleRate, core$ }: {
         }
       }
 
-      let program: ReturnType<typeof interpret>
-
-      if (voicesCount && hasMidiIn) {
-        const voices = tokenize({
-          code: Array.from({ length: voicesCount }, (_, i) =>
-            `[midi_in n${i}v n${i}t n${i}f n${i}n]`
-          ).join('\n') + ` @ ${voicesCount} / .15 *`
-        })
-        program = interpret(sound, scope, [...tokensCopy, ...voices])
-      }
-      else {
-        program = interpret(sound, scope, tokensCopy)
-      }
+      const program = interpret(sound, scope, tokensCopy)
 
       let L = program.scope.vars['L']
       let R = program.scope.vars['R']

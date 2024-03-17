@@ -142,6 +142,9 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
     },
     get voicesCount() {
       const { notes } = this
+      for (const note of notes) {
+        const { n, time, length } = note.info
+      }
       $()
       const times = new Map<number, Note[]>()
       let count = 0
