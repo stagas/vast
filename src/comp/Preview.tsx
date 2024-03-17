@@ -138,6 +138,7 @@ export function Preview(grid: Grid) {
     notesShape.view.min = scale.min
     notesShape.view.max = scale.max
     shapes.info.needUpdate = true
+    info.redraw++
   })
 
   $.fx(() => {
@@ -219,10 +220,47 @@ export function Preview(grid: Grid) {
     }
   }
 
-  function onMouseMove(e: MouseEvent) {
+  function updateMousePos(e: MouseEvent) {
     mouse.pos.setFromEvent(e, canvas)
     mouse.pos.y -= info.mouseOffsetY
+  }
+
+  function onMouseMove(e: MouseEvent) {
+    if (info.draggingNote) return
+    updateMousePos(e)
     updateHoveringNote()
+  }
+
+  function onMouseDown(e: MouseEvent) {
+    updateMousePos(e)
+    updateHoveringNote()
+
+    if (info.hoveringNote) {
+      const note = info.draggingNote = info.hoveringNote
+
+      const offsetX = Math.floor(notePos.x - note.info.time)
+      screen.info.overlay = true
+      screen.info.cursor = 'move'
+
+      const off = dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
+        updateMousePos(e)
+        updateHoveringNoteN()
+        note.info.n = info.hoveringNoteN
+        note.info.time = Math.floor(notePos.x - offsetX)
+        shapes.info.needUpdate = true
+      }), { capture: true })
+
+      dom.on(window, 'mouseup', $.fn((e: MouseEvent) => {
+        off()
+        screen.info.overlay = false
+        screen.info.cursor = 'default'
+        info.hoveringNote = info.draggingNote = null
+        $.flush()
+        updateMousePos(e)
+        updateHoveringNote()
+        shapes.info.needUpdate = true
+      }), { capture: true, once: true })
+    }
   }
 
   $.fx(() => {
@@ -230,21 +268,21 @@ export function Preview(grid: Grid) {
     $()
     notesShape.view.hoveringNote$ = hoveringNote?.data.ptr ?? 0
     shapes.info.needUpdate = true
-    info.redraw++
     return () => {
       notesShape.view.hoveringNote$ = 0
       shapes.info.needUpdate = true
-      info.redraw++
     }
   })
 
   $.fx(() => ([
-    [canvas, 'mousemove', onMouseMove]
+    [canvas, 'mousemove', onMouseMove],
+    [canvas, 'mousedown', onMouseDown],
   ] as const).map(([el, name, handler]) =>
     dom.on(el, name, $.fn(handler))
   ))
 
   $.fx(() => {
+    const { needUpdate } = shapes.info
     const { redraw } = info
     $()
     webgl.draw()

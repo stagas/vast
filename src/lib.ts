@@ -10,11 +10,11 @@ class Lib {
     // const code = Code()
     // queueMicrotask(() => {
     const sources = [
-      lib.case_source,
+      lib.cool_bass_source,
       lib.kick_source,
       lib.t2_source,
-      // lib.t3_source,
-      // lib.t4_source,
+      lib.t3_source,
+      lib.radio_signals_source,
     ]
 
     let count = 16
@@ -68,8 +68,8 @@ env *
   t1_source = {
     code: `;;;kick
 { x=
-[sin 82.01 1000 [decay .45 38 x] + t x*]
-[decay .035 60 x]
+[sin 80.01 500 [decay .168 128 x] + t x*]
+[decay .097 17 x]
 } kick=
 
 [kick 4]
@@ -78,10 +78,10 @@ env *
 
   t2_source = {
     code: `;;;hihat
-{ hz= [saw hz t] [ramp hz t .389] + } p=
-[p 1130][p 450][p 300][p 620][p 800][p 600]
+{ hz= [saw hz t] [ramp hz t .7389] + } p=
+[p 1130][p 1450][p 300][p 620][p 800][p 600]
 @ 4* [dclipexp 4.1] clip 8*
-[bhp 7800 1.42] [bbp 9400 1.42]
+[bhp 9100 1.42] [bbp 5400 1.42]
 [exp 16 co* t] .81^ [lp 70] *
 (.6 .48 1 .54) t 16 * ? *
 .2* clip 1*
@@ -90,9 +90,9 @@ env *
 
   t3_source = {
     code: `;;;eyo
-[sin (313 1313) t .125 * ? 111
-[sin .25 co* t] * + ]
-[sin 313 20
+[sin (513 213) t .5 * ? 111
+[sin 500.25 co* t] * + ]
+[sin 123 .2
  [sin 8 co* t] * +
  t] *
 [sin 1721
@@ -148,58 +148,85 @@ env *
 `
   }
 
-  //     `;;;kick
-  // { x=
-  // [sin 52.01
-  //  500 [decay .45 8 x] +
-  //  t x*
-  // ] [decay .095 20 x]
-  // } kick=
+  cool_bass_source = {
+    code: `{ n= f= nt= v=
+[adsr 2.5 50 .3 50 nt t 16 * .8 +] env=
+[saw f [sqr .1] .10 * +] env * v *
+[slp 500 700 env * + .61]
+A= A [delay 502 250 [tri 1.25 co*] * + ] A @ clip
+} midi_in=
+`
+  }
 
-  // [kick 4]
-  // `
+  radio_signals_source = {
+    code: `;;;radio signals
+[saw 8]
+[sin 4] *
+[sin 86
+ [sin .15 co* t .125*] 9710 * +]
+[exp 1 co* t] * +
+[delay 221.25 .91]
+[clip 2] 1.49 *
+[exp 16 co* t] .55^ [lp] *
+[shp 2150]
+@ [slp 1833]
+1.5 *
+`
+  }
 
-  //     `[saw 232.01]
-  // [decay .05 5 16]`
-  //     `[saw 232.01]
-  // 1 [inc .083 co* t 4*] clip - *`
-  //     `[saw 22.01]
-  // 1 [inc .1 co* t 4*] clip - *`
-  //`[saw 22.01] 1 [inc .1 co* t] clip - *`
-  //`[saw 22.01] [exp 2 co*] *` //`[inc .01]`
-
-  // `; techno kick
-  // 1 [inc .185 t 4*]
-  //  clip - 4.2^
-  //  env=
-  // [inc 5.5 t 4*]
-  //  clip 55^
-  // [inc .17 t 4*]
-  //  clip 8.85^ 1- *
-  //  env2=
-  // [sin 86 112 env* + t 4*]
-  //  env2*
-  // .50*
-  // `
-  //  `; square after bass
-  // [sqr (90 104 90 127) t ?
-  //  [sqr 8 co* t .5*] norm 13 *
-  //  [tri 12 co* t .5*] norm 7 *
-  //  + + t]
-
-  //  [exp 16 co* t] 2.0^ [lp 8] *
-  //  [exp .5 co* t] .01^ [lp 4] *
-
-  // [slp 3000 4000 [tri 1] *
-  //  [exp 16 co* t] .57^ [lp 42] *
-  //  + 0.75]
-
-  // [inc .11 t 4*] clip 50.15^
-  //  .3 + clip *
-
-  //  .6*
-  // `
-  // }
 }
+
+//     `;;;kick
+// { x=
+// [sin 52.01
+//  500 [decay .45 8 x] +
+//  t x*
+// ] [decay .095 20 x]
+// } kick=
+
+// [kick 4]
+// `
+
+//     `[saw 232.01]
+// [decay .05 5 16]`
+//     `[saw 232.01]
+// 1 [inc .083 co* t 4*] clip - *`
+//     `[saw 22.01]
+// 1 [inc .1 co* t 4*] clip - *`
+//`[saw 22.01] 1 [inc .1 co* t] clip - *`
+//`[saw 22.01] [exp 2 co*] *` //`[inc .01]`
+
+// `; techno kick
+// 1 [inc .185 t 4*]
+//  clip - 4.2^
+//  env=
+// [inc 5.5 t 4*]
+//  clip 55^
+// [inc .17 t 4*]
+//  clip 8.85^ 1- *
+//  env2=
+// [sin 86 112 env* + t 4*]
+//  env2*
+// .50*
+// `
+//  `; square after bass
+// [sqr (90 104 90 127) t ?
+//  [sqr 8 co* t .5*] norm 13 *
+//  [tri 12 co* t .5*] norm 7 *
+//  + + t]
+
+//  [exp 16 co* t] 2.0^ [lp 8] *
+//  [exp .5 co* t] .01^ [lp 4] *
+
+// [slp 3000 4000 [tri 1] *
+//  [exp 16 co* t] .57^ [lp 42] *
+//  + 0.75]
+
+// [inc .11 t 4*] clip 50.15^
+//  .3 + clip *
+
+//  .6*
+// `
+// }
 
 export const lib = $(new Lib)
