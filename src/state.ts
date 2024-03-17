@@ -64,8 +64,6 @@ class State {
   lastFarMatrix = $(new Matrix())
   targetMatrix = $(new Matrix())
   zoomState: ZoomState = ZoomState.Out
-
-  meshes = new Set<Mesh>()
 }
 
 export function log(...x: any[]) {

@@ -46,20 +46,26 @@ export function Preview() {
   webgl.add($, sketch)
 
   const viewMatrix = $(new LerpMatrix)
-  viewMatrix.a = view.w + 1
+  $.fx(() => {
+    const { w, h } = view
+    $()
+    viewMatrix.a = w + 1
+    viewMatrix.d = h
+  })
 
   const shapes = Shapes(view, viewMatrix)
   sketch.scene.add(shapes)
   const rect = $({
     x: 0,
     y: 0,
-    w: view.$.w,
-    h: view.$.h,
+    w: 1,
+    h: 1,
   })
   const wave = shapes.Wave(rect)
   wave.view.color = 0xffffff
 
   const cols = shapes.Cols(rect)
+  cols.view.alpha = 0.2
 
   $.fx(() => {
     const { project } = $.of(lib)
@@ -74,6 +80,7 @@ export function Preview() {
     wave.view.len = floats.len
     wave.view.coeff = clock.coeff
     wave.view.color = fg
+    cols.view.color = fg
     shapes.update()
     info.redraw++
   })

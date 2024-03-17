@@ -41,9 +41,10 @@ export function Grid(surface: Surface) {
     const { mode } = state
     const { w, h } = view
     $()
-    targetView.set(view)
-    targetView.x += OFFSET_X
-    targetView.w -= OFFSET_X
+    targetView.w = w
+    targetView.h = h
+    // targetView.x += OFFSET_X
+    // targetView.w -= OFFSET_X
   })
 
   const brushes = new Map<Track, GridBox>()
@@ -125,15 +126,16 @@ export function Grid(surface: Surface) {
   mouse.pos.x = mousePos.x
   // let hoveringBox: BoxData | null
 
-  const snap = { x: false, y: false }
+  const snap = { x: true, y: true }
   const lockedZoom = { x: false, y: false }
+  let lastHoveringBox: GridBox | null = null
   $.fx(function apply_wasm_matrix() {
     const { a, b, c, d, e, f } = intentMatrix
-    const { hoveringBox } = info
-    const { mode } = state
+    // const { hoveringBox } = info
+    // const { mode } = state
     $()
-    lockedZoom.x = false
-    lockedZoom.y = false
+    // lockedZoom.x = false
+    // lockedZoom.y = false
 
     const m = viewMatrix.dest
     m.set(intentMatrix)
@@ -142,9 +144,11 @@ export function Grid(surface: Surface) {
     // intentMatrix.a = m.a
     // intentMatrix.e = m.e
     // log('m.e', m.e)
-
-    if (hoveringBox) {
-      const { rect } = hoveringBox
+    if (info.hoveringBox) {
+      lastHoveringBox = info.hoveringBox
+    }
+    if (lastHoveringBox) {
+      const { rect } = lastHoveringBox
       if (snap.y && snap.x) {
         transformMatrixRect(m, rect, r)
         if (r.x < 0) {
@@ -157,7 +161,7 @@ export function Grid(surface: Surface) {
           if (r.x < 0) {
             m.a = (view.w / rect.w)
             m.e = -rect.x * m.a
-            lockedZoom.x = true
+            // lockedZoom.x = true
           }
         }
       }
@@ -174,19 +178,36 @@ export function Grid(surface: Surface) {
           if (r.y < 0) {
             m.d = (view.h / rect.h)
             m.f = -rect.y * m.d
-            lockedZoom.y = true
+            // lockedZoom.y = true
           }
         }
       }
     }
+    const rowsCount = info.boxes!.info.rows.length
+    const minD = view.h / rowsCount
+    if (Math.ceil(m.f + m.d * rowsCount) < view.h) {
+      m.f = 0
+      m.d = minD
+      intentMatrix.d = m.d
+      intentMatrix.f = m.f
+    }
+    if (m.d < minD) {
+      m.d = minD
+      intentMatrix.d = m.d
+    }
+    if (m.f > 0) {
+      m.f = 0
+      intentMatrix.f = m.f
+    }
   })
 
+  const scaleSpeed = 0.003
   function handleWheelScaleY(e: WheelEvent) {
     const { x, y } = mousePos
 
     const m = intentMatrix
     const d = m.d
-    const delta = -e.deltaY * 0.0035
+    const delta = -e.deltaY * scaleSpeed
     if (lockedZoom.y && delta > 0) return
     const delta_d = (d + (delta * d ** 0.9)) / d
 
@@ -202,7 +223,7 @@ export function Grid(surface: Surface) {
 
     const m = intentMatrix
     const { a, e, f } = m
-    const delta = -ev.deltaY * 0.0035
+    const delta = -ev.deltaY * scaleSpeed
     if (lockedZoom.x && delta > 0) return
 
     let delta_a = (a + (delta * a ** 0.9)) / a
@@ -320,7 +341,7 @@ export function Grid(surface: Surface) {
   function handleHoveringNote() {
     if (!info.focusedBox) return
     if (info.hoveringBox !== info.focusedBox) {
-      if (!info.hoveringBox) {
+      if (!info.hoveringBox || !info.draggingNote) {
         info.hoveringNoteN = -1
         info.hoveringNote = null
         return
@@ -371,8 +392,12 @@ export function Grid(surface: Surface) {
   }
   function handleZoom(e: WheelEvent) {
     updateMousePos()
+    // console.log(intentMatrix.a, intentMatrix.d)
     handleWheelScaleX(e)
-    handleWheelScaleY(e)
+    const minD = view.h / info.boxes!.info.rows.length
+    if (intentMatrix.a > 400 || intentMatrix.d > minD) {
+      handleWheelScaleY(e)
+    }
 
     // const delta = e.deltaY / 100
     // console.log(delta)
@@ -468,21 +493,24 @@ export function Grid(surface: Surface) {
     }
   })
 
-  const pianoWidth = 65 / view.w
+  // const pianoWidth = 65 / view.w
 
   function applyBoxMatrix(m: Matrix, box: GridBox) {
+    const pianoWidth = 65 / view.w
     const { rect } = box
     const isNotes = true //kind === TrackBoxKind.Notes
-    const w = isNotes ? rect.w + pianoWidth * 2 : rect.w
-    const ox = isNotes ? pianoWidth : 0
+    const w = isNotes ? rect.w + pianoWidth : rect.w
+    const ox = 0 //isNotes ? pianoWidth : 0
     const padY = .082
     const padX = 0 //10
-    Matrix.viewBox(m, targetView, {
-      x: rect.x - ox, // - w / (padX * 2) - ox,
-      y: rect.y - padY,
-      w: w - ox, // + w / padX,
-      h: rect.h + padY * 2,
-    })
+
+    Matrix.viewBox(m, targetView, rect)
+    // {
+    //   x: rect.x - ox, // - w / (padX * 2) - ox,
+    //   y: rect.y - padY,
+    //   w: w - ox, // + w / padX,
+    //   h: rect.h + padY * 2,
+    // })
   }
 
   const zoomBox = $.fn(function zoomBox(box: GridBox) {
@@ -521,6 +549,8 @@ export function Grid(surface: Surface) {
       log(ev.key)
       if (ev.key === 'Escape') {
         zoomFull()
+        info.hoveringNote = null
+        info.focusedBox = null
       }
     }
   })
@@ -586,9 +616,13 @@ export function Grid(surface: Surface) {
           else if (info.focusedBox === info.hoveringBox && info.hoveringNote) {
             info.draggingNote = info.hoveringNote
             dom.on(window, 'mouseup', $.fn((e: MouseEvent): void => {
+              info.hoveringNoteN = -1
               info.hoveringNote = null
               info.draggingNote = null
-              handleHoveringNote()
+              requestAnimationFrame(() => {
+                updateMousePos()
+                handleHoveringNote()
+              })
             }), { once: true })
             return
           }
@@ -598,12 +632,17 @@ export function Grid(surface: Surface) {
         }
       }
       else {
-        if (++clicks >= 2) {
+        ++clicks
+        if (clicks >= 2) {
           zoomFull()
+        }
+        else if (clicks === 1) {
+          info.focusedBox = null //info.hoveringBox
         }
       }
     }
     else if (ev.type === 'mousemove' || ev.type === 'mouseenter') {
+      mouse.matrix = viewMatrix
       updateMousePos()
       if (info.draggingNote) {
         handleDraggingNoteMove()
@@ -635,6 +674,7 @@ export function Grid(surface: Surface) {
 
       if (isHoriz || e.altKey) {
         mouse.matrix = viewMatrix
+        snap.x = false
         if (e.shiftKey) {
           const df = -(e.deltaX - (e.altKey ? e.deltaY : 0)) * 2.5 * 0.08 * (intentMatrix.d ** 0.18)
           intentMatrix.f -= df
@@ -646,18 +686,26 @@ export function Grid(surface: Surface) {
       }
       else {
         if (e.ctrlKey) {
+          snap.x = false
+          // intentMatrix.a = viewMatrix.dest.a
           updateMousePos()
           handleWheelScaleX(e)
         }
         if (e.shiftKey) {
+          snap.y = false
+          // intentMatrix.d = viewMatrix.dest.d
           updateMousePos()
           handleWheelScaleY(e)
         }
         if (!e.ctrlKey && !e.shiftKey) {
+          snap.x = true
+          snap.y = true
           isZooming = true
           handleZoom(e)
         }
       }
+
+      // mouse.matrix = viewMatrix
     }
 
     if (info.draggingNote) return
@@ -943,18 +991,22 @@ export function Grid(surface: Surface) {
 
     const pianoroll = Shapes(view, viewMatrix)
 
+    const cols = pianoroll.Cols(rectCols)
+    cols.view.alpha = 0.3
+
+    // pianoroll.update()
     // const pianorollBg = pianoroll.Box(rect)
     // $.fx(() => {
     //   const { trackBox } = info
     //   pianorollBg.view.color = trackBox.track.info.colors.bgHover
     // })
 
-    pianoroll.Box($({
-      get x() { return rect.x - PIANO_WIDTH },
-      get y() { return rect.y },
-      get w() { return PIANO_WIDTH },
-      get h() { return rect.h },
-    }))
+    // pianoroll.Box($({
+    //   get x() { return rect.x - PIANO_WIDTH },
+    //   get y() { return rect.y },
+    //   get w() { return PIANO_WIDTH },
+    //   get h() { return rect.h },
+    // }))
 
     $.fx(() => {
       const { x, y, w, h } = info.trackBox.rect
@@ -998,51 +1050,25 @@ export function Grid(surface: Surface) {
           row.view.alpha = .25
         }
 
-        const key = rows.Box({
-          get x() { return rect.x - this.w },
-          y,
-          w: PIANO_WIDTH,
-          h,
-        })
-        key.view.color = isBlack ? 0x0 : 0xffffff
+        // const key = rows.Box({
+        //   get x() { return rect.x - this.w },
+        //   y,
+        //   w: PIANO_WIDTH,
+        //   h,
+        // })
+        // key.view.color = isBlack ? 0x0 : 0xffffff
       }
       rows.update()
-    })
-
-    const cols = Shapes(view, viewMatrix)
-
-    $.fx(() => {
-      const { x: cx, y: cy, w: cw, h: ch } = info.trackBox.rect
-      $()
-      cols.clear()
-      const cols_n = (cw * SNAPS) - 1
-      for (let col = 0; col < cols_n; col++) {
-        const x = ((1 + col) / SNAPS) + cx
-        const p0 = $({ x, y: info.trackBox.rect.$.y })
-        const p1 = $({ x, y: info.trackBox.rect.$.bottom })
-        const line = cols.Line(p0, p1)
-        line.view.lw = col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0.5
-      }
-      cols.Line({
-        x: cx,
-        y: cy + ch * NOTES_HEIGHT_NORMAL
-      }, {
-        x: cx + cw,
-        y: cy + ch * NOTES_HEIGHT_NORMAL
-      })
-      cols.update()
     })
 
     function show() {
       sketch.scene.add(pianoroll)
       sketch.scene.add(rows)
-      sketch.scene.add(cols)
     }
 
     function hide() {
       sketch.scene.delete(pianoroll)
       sketch.scene.delete(rows)
-      sketch.scene.delete(cols)
     }
 
     return { info, show, hide }

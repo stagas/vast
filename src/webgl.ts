@@ -26,6 +26,7 @@ export function WebGL(view: Rect, canvas: HTMLCanvasElement, alpha = false) {
   })
 
   const { gl } = GL
+  const meshes = new Set<Mesh>()
 
   function clear() {
     gl.viewport(0, view.y_pr, Math.max(0, view.w_pr), Math.max(0, view.h_pr))
@@ -34,23 +35,23 @@ export function WebGL(view: Rect, canvas: HTMLCanvasElement, alpha = false) {
 
   function draw() {
     clear()
-    for (const mesh of state.meshes) {
+    for (const mesh of meshes) {
       mesh.draw()
     }
   }
 
   function add($: Signal, mesh: Mesh) {
     $.fx(() => {
-      state.meshes.add(mesh)
+      meshes.add(mesh)
       return () => {
-        state.meshes.delete(mesh)
+        meshes.delete(mesh)
       }
     })
   }
 
   $.fx(() => () => {
     DEBUG && console.log('[webgl] dispose')
-    state.meshes.clear()
+    meshes.clear()
     GL.reset()
   })
 

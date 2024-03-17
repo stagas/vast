@@ -112,9 +112,14 @@ export function draw(
         const SNAPS: f32 = 16
         const cols_n = i32(SNAPS - 1)
         for (let col = 0; col < cols_n; col++) {
-          const col_x = f32(((1.0 + f32(col) ) / SNAPS) * ma + me + x)
+          // const col_x = f32(((1.0 + f32(col)) / SNAPS) * ma + me + x)
+          const col_x = f32(f32((cols.w / SNAPS) * f32(col + 1) + cols.x) * ma + me)
           const lw = f32(col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0.5)
-          sketch.drawLine(col_x, y, col_x, y + h, 0x0, 1.0, lw)
+          sketch.drawLine(
+            col_x, y,
+            col_x, y + h,
+            cols.color, cols.alpha, lw
+          )
         }
 
         continue
