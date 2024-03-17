@@ -2,7 +2,7 @@ import { $, Signal } from 'signal-jsx'
 import { Token, tokenize } from '../lang/tokenize.ts'
 import { services } from '../services.ts'
 import { Source } from '../source.ts'
-import { Track } from './track.ts'
+import { Track, TrackBox } from './track.ts'
 
 interface SourceData {
   code?: string
@@ -75,6 +75,7 @@ export function Project(data: ProjectData, isSaved: boolean = true) {
     }),
     tracks: [] as Track[],
     activeTrack: null as Track | null,
+    activeTrackBox: null as TrackBox | null,
   })
 
   $.fx(() => {
@@ -104,6 +105,7 @@ export function Project(data: ProjectData, isSaved: boolean = true) {
 
     if (!info.activeTrack && info.tracks.length) {
       info.activeTrack = info.tracks[0]
+      info.activeTrackBox = info.activeTrack.info.boxes[0]
     }
   })
 

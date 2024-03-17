@@ -26,7 +26,7 @@ export function Sequencer() {
   // const textDraw = TextDraw(surface, grid, view)
   const heads = Heads(surface, grid)
   const code = Code()
-  const preview = Preview()
+  const preview = Preview(grid)
   const vertSep = <div class="fixed left-0 top-0 w-[2px] bg-black z-30" /> as HTMLDivElement
 
   $.fx(() => {
@@ -47,8 +47,16 @@ export function Sequencer() {
     vertSep.style.transform = `translateX(${codeWidth - 1}px) translateY(${y}px)`
   })
 
-  const el = <div>
+  const top = <div class="relative overflow-hidden w-full">
     {surface.canvas}
+  </div> as HTMLDivElement
+
+  $.fx(() => {
+    top.style.height = view.h + 'px'
+  })
+
+  const el = <div>
+    {top}
     {heads.canvas}
     {preview.el}
     {vertSep}

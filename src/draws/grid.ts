@@ -997,6 +997,7 @@ export function Grid(surface: Surface) {
     $()
     trackBox.info.isFocused = true
     project.info.activeTrack = trackBox.track
+    project.info.activeTrackBox = trackBox
     return () => {
       trackBox.info.isFocused = false
     }
