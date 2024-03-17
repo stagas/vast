@@ -32,7 +32,7 @@ class State {
   //   return hexToInt(toHex(screen.info.colors.primary))
   // }
 
-  mode = storage('edit')
+  mode = storage('audio')
 
   pages = ['share', 'download', 'my tracks', 'my sounds', 'about']
   page = '' //this.pages[0]

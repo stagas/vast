@@ -1,5 +1,5 @@
 import { Sketch } from './sketch'
-import { Box, Cols, Line, Matrix, Note, Notes, Wave } from './sketch-shared'
+import { Box, Line, Matrix, Note, Notes, Wave } from './sketch-shared'
 
 export * from '../alloc'
 export * from './draw'
@@ -16,10 +16,6 @@ export function createSketch(
 
 export function createBox(): usize {
   return changetype<usize>(new Box())
-}
-
-export function createCols(): usize {
-  return changetype<usize>(new Cols())
 }
 
 export function createLine(): usize {

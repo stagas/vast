@@ -3,7 +3,7 @@ import { GL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Matrix, Rect, RectLike } from 'std'
 import { PointLike, Struct } from 'utils'
-import { Box, Line, MAX_GL_INSTANCES, ShapeOpts, VertOpts, Wave, type Notes, Cols } from '../../as/assembly/gfx/sketch-shared.ts'
+import { Box, Line, MAX_GL_INSTANCES, ShapeOpts, VertOpts, Wave, type Notes } from '../../as/assembly/gfx/sketch-shared.ts'
 import { MeshInfo } from '../mesh-info.ts'
 import { log } from '../state.ts'
 import { WasmMatrix } from '../util/wasm-matrix.ts'
@@ -332,39 +332,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
       view.y = y
       view.w = w
       view.h = h
-    })
-
-    const shape = {
-      visible: true,
-      rect,
-      view,
-      remove() {
-        $.dispose()
-        shapes.delete(shape)
-        info.needUpdate = true
-      }
-    }
-
-    shapes.add(shape)
-
-    return shape
-  }
-
-  function Cols(rect: RectLike) {
-    using $ = Signal()
-
-    const view = Shape.Cols(wasm.memory.buffer, wasm.createCols()) satisfies Cols
-
-    view.opts = ShapeOpts.Cols
-    view.alpha = 1.0
-
-    $.fx(() => {
-      const { x, y, w, h } = rect
-      $()
-      view.x = x
-      view.y = y
-      view.w = w
-      view.h = h
+      info.needUpdate = true
     })
 
     const shape = {
@@ -400,6 +368,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
       view.y = y
       view.w = w
       view.h = h
+      info.needUpdate = true
     })
 
     const shape = {
@@ -432,6 +401,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
       $()
       view.x0 = x
       view.y0 = y
+      info.needUpdate = true
     })
 
     $.fx(() => {
@@ -439,6 +409,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
       $()
       view.x1 = x
       view.y1 = y
+      info.needUpdate = true
     })
 
     const shape = {
@@ -475,6 +446,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
       view.y = y
       view.w = w
       view.h = h
+      info.needUpdate = true
     })
 
     const shape = {
@@ -495,7 +467,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
 
   return {
     info, mat2d, view, shapes, clear, update,
-    Box, Cols, Line, Wave, Notes,
+    Box, Line, Wave, Notes,
   }
 }
 

@@ -1,8 +1,6 @@
 import { GL, initGL } from 'gl-util'
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
-import { state } from './state.ts'
-import { World } from './world/world.ts'
 
 const DEBUG = false
 

@@ -61,7 +61,7 @@ export function Code() {
     info.redraw++
   }
 
-  const canvas = <Canvas view={view} onresize={onresize} class="absolute left-0 z-10" /> as Canvas
+  const canvas = <Canvas view={view} onresize={onresize} class="absolute left-0 z-40" /> as Canvas
   $.fx(() => {
     const { y } = view
     $()

@@ -7,6 +7,7 @@ import { screen } from '../screen.tsx'
 import { log, state } from '../state.ts'
 import { toHex } from '../util/rgb.ts'
 import { Canvas } from './Canvas.tsx'
+import { layout } from '../layout.ts'
 
 const DEBUG = true
 
@@ -15,8 +16,8 @@ export type Minimap = ReturnType<typeof Minimap>
 export function Minimap(grid: Grid) {
   using $ = Signal()
 
-  const view = $(new Rect, { w: 250, h: 34, pr: screen.info.$.pr })
-  const handleView = $(new Rect, { w: 260, h: 42, pr: screen.info.$.pr })
+  const view = $(new Rect, { w: layout.info.$.minimapWidth, h: 34, pr: screen.info.$.pr })
+  const handleView = $(new Rect, { w: layout.info.$.minimapHandleWidth, h: 42, pr: screen.info.$.pr })
 
   const canvas = <Canvas view={view} class="-mb-[1px]" /> as Canvas
   const handle = <Canvas view={handleView} class="absolute -left-[5px] -top-[4px]" /> as Canvas
@@ -38,7 +39,6 @@ export function Minimap(grid: Grid) {
 
     function moveToTarget(e: MouseEvent) {
       const m = grid.intentMatrix
-      const l = grid.lastFarMatrix
       const boxes = grid.info.boxes
       if (!boxes) return
 
@@ -48,7 +48,6 @@ export function Minimap(grid: Grid) {
       const { left, width } = boxes.info
 
       m.e = -x * width * m.a + grid.view.w / 2 - left * m.a
-      l.e = -x * width * l.a + grid.view.w / 2 - left * l.a
     }
 
     const off = dom.on(window, 'mousemove', e => {

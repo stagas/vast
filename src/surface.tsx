@@ -3,7 +3,6 @@ import { Matrix, Rect } from 'std'
 import { dom } from 'utils'
 import { Canvas } from './comp/Canvas.tsx'
 import { Sketch } from './gl/sketch.ts'
-import { state } from './state.ts'
 import { LerpMatrix } from './util/geometry.ts'
 import { WebGL } from './webgl.ts'
 import { World } from './world/world.ts'
@@ -22,7 +21,7 @@ export function Surface(view: $<Rect>, intentMatrix: Matrix, viewMatrix: LerpMat
   const world = World(view, intentMatrix)
   const { anim, mouse, keyboard } = world
 
-  const canvas = Canvas(world)
+  const canvas = <Canvas view={world.view} class="absolute left-0 top-0 z-20" /> as HTMLCanvasElement
   canvas.style.imageRendering = 'pixelated'
 
   $.fx(() => {

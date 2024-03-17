@@ -5,6 +5,12 @@ import { HEADER_HEIGHT } from './constants.ts'
 export function Layout() {
   using $ = Signal()
   const info = $({
+    get minimapWidth() {
+      return this.codeWidth - 50 * 2 - 20
+    },
+    get minimapHandleWidth() {
+      return this.minimapWidth + 10
+    },
     mainY: storage(window.innerHeight / 100 * 60),
     get mainYBottom() { return this.mainY + HEADER_HEIGHT / 2 + 2 },
     codeWidth: window.innerWidth / 2, //storage(window.innerWidth / 2),

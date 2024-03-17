@@ -1,12 +1,13 @@
 import { logf, logf2, logf3, logf4, logf6, logi } from '../env'
 import { Sketch } from './sketch'
-import { Box, Line, Matrix, Notes, Shape, ShapeOpts, WAVE_MIPMAPS, Wave, Note, Cols } from './sketch-shared'
+import { Box, Line, Matrix, Notes, Shape, ShapeOpts, WAVE_MIPMAPS, Wave, Note } from './sketch-shared'
 import { lineIntersectsRect } from './util'
 
 const MAX_ZOOM: f32 = 0.5
 const BASE_SAMPLES: f32 = 48000
 const NUM_SAMPLES: f32 = BASE_SAMPLES / MAX_ZOOM
 const WAVE_MIPMAPS_THRESHOLD = 3000
+const BLACK_KEYS = [1, 3, 6, 8, 10]
 
 const enum WaveMode {
   Scaled,
@@ -30,7 +31,6 @@ export function draw(
 
   // shapes
   let box: Box
-  let cols: Cols
   let line: Line
   let wave: Wave
   let notes: Notes
@@ -74,51 +74,24 @@ export function draw(
           || y + h < 0
         ) continue
 
-        sketch.drawBox(
-          x, y, w, h,
-          box.color, box.alpha
-        )
+        if (opts & ShapeOpts.Cols) {
+          const SNAPS: f32 = 16
+          const cols_n = i32(SNAPS - 1)
+          for (let col = 0; col < cols_n; col++) {
+            const col_x = f32(f32((box.w / SNAPS) * f32(col + 1) + box.x) * ma + me)
+            const lw = f32(col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0.5)
+            sketch.drawLine(
+              col_x, y,
+              col_x, y + h,
+              box.color, box.alpha, lw
+            )
+          }
 
-        continue
-      }
-
-      //
-      // Cols
-      //
-      case ShapeOpts.Cols: {
-        cols = changetype<Cols>(ptr)
-
-        const x = f32(cols.x * ma + me)
-        const y = f32(cols.y * md + mf)
-        const w = f32(cols.w * ma - x_gap)
-        let h = f32(cols.h * md)
-        if (
-          !(opts & ShapeOpts.NoMargin)
-          && (
-            (!(opts & ShapeOpts.Collapse) || h > 1.5)
-            && h > 1.5
-          )
-        ) {
-          h -= h > 3 ? 1.0 : h > 1.5 ? .5 : 0
         }
-
-        // check if visible
-        if (x > width
-          || y > height
-          || x + w < 0
-          || y + h < 0
-        ) continue
-
-        const SNAPS: f32 = 16
-        const cols_n = i32(SNAPS - 1)
-        for (let col = 0; col < cols_n; col++) {
-          // const col_x = f32(((1.0 + f32(col)) / SNAPS) * ma + me + x)
-          const col_x = f32(f32((cols.w / SNAPS) * f32(col + 1) + cols.x) * ma + me)
-          const lw = f32(col % 16 === 15 ? 1.5 : col % 4 === 3 ? 1 : 0.5)
-          sketch.drawLine(
-            col_x, y,
-            col_x, y + h,
-            cols.color, cols.alpha, lw
+        else {
+          sketch.drawBox(
+            x, y, w, h,
+            box.color, box.alpha
           )
         }
 
@@ -160,6 +133,27 @@ export function draw(
         const min = notes.min
         const SCALE_X: f32 = 1.0 / 16.0
         const scale_N = notes.max - min
+
+        if (isFocused) {
+          for (let n = 0; f32(n) <= scale_N; n++) {
+            const note = scale_N - (f32(n)) + min
+            const note_key = note % 12
+            const isBlack = BLACK_KEYS.includes(i32(note_key))
+            if (!isBlack) continue
+
+            let nh = h / (scale_N + 1)
+            const ny = h - nh * ((f32(note) + 1) - min) // y
+            nh -= nh > 3 ? 1.0 : nh > 1.5 ? .5 : 0
+
+            sketch.drawBox(
+              x,
+              y + f32(ny) + 1.0,
+              f32(w - x_gap),
+              f32(nh),
+              0x0, notes.alpha * 0.2
+            )
+          }
+        }
 
         // if (isFocused) {
         //   // draw shadows
@@ -251,9 +245,14 @@ export function draw(
 
         const hw = line.lw / 2.0
         const x0 = f32(line.x0 * ma + me - hw)
-        const y0 = f32(line.y0 * md + mf - hw)
+        let y0 = f32(line.y0 * md + mf - hw)
         const x1 = f32(line.x1 * ma + me - hw)
-        const y1 = f32(line.y1 * md + mf - hw)
+        let y1 = f32(line.y1 * md + mf - hw)
+
+        if (opts & ShapeOpts.InfY) {
+          y0 = 0
+          y1 = height
+        }
 
         // check if visible
         if (!lineIntersectsRect(x0, y0, x1, y1, 0, 0, width, height)) continue

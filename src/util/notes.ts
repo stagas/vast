@@ -59,7 +59,7 @@ export function byNoteN({ info: a }: { info: Note }, { info: b }: { info: Note }
   return b.n === a.n ? a.time - b.time : b.n - a.n
 }
 
-export function getNotesScale(notes: Note[]) {
+export function getNotesScale(notes: Note[], padMin = 0, padMax = padMin) {
   let max = -Infinity
   let min = Infinity
   for (const note of notes) {
@@ -70,8 +70,8 @@ export function getNotesScale(notes: Note[]) {
     min = 0
     max = 12
   }
-  min = Math.max(0, min)
-  max = Math.min(MAX_NOTE, max)
+  min = Math.max(0, min - padMin)
+  max = Math.min(MAX_NOTE, max + padMax)
   const N = max - min
   return { min, max, N }
 }
