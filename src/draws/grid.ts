@@ -40,6 +40,8 @@ export function Grid(surface: Surface) {
 
   const brushes = new Map<Track, GridBox>()
 
+  let lastFocusedBox: GridBox | null
+
   const info = $({
     redraw: 0,
 
@@ -543,7 +545,8 @@ export function Grid(surface: Surface) {
               info.hoveringBox.trackBox.info.source,
               $({
                 ...info.hoveringBox.trackBox.data,
-                time: info.hoveringBox.rect.x
+                time: info.hoveringBox.rect.x,
+                length: info.hoveringBox.rect.w,
               }),
             )
             clicks = 0
@@ -600,6 +603,8 @@ export function Grid(surface: Surface) {
         const x = Math.round(mouse.screenPos.x)
         const w = Math.max(1, x - info.resizingBox.rect.x)
         info.resizingBox.info.trackBox.data.length = w
+        const brush = brushes.get(info.resizingBox.info.trackBox.track)
+        if (brush) brush.rect.w = w
         return
       }
     }
@@ -836,7 +841,7 @@ export function Grid(surface: Surface) {
             $(new Rect, {
               x: OFFSCREEN_X,
               y: track.info.$.y,
-              w: templateBox.rect.$.w,
+              w: templateBox.rect.w,
               h: 1
             })
           )
@@ -1001,9 +1006,10 @@ export function Grid(surface: Surface) {
     const { boxes } = $.of(info)
     const {
       info: { timeNow: x },
-      player: { info: { isPlaying } }
+      player: { info: { isPlaying, didPlay } }
     } = services.audio
     $()
+    if (!didPlay) return
     const m = intentMatrix
     const HALF = view.w / 2 - HEADS_WIDTH / 2
     intentMatrix.e = -boxes.info.left * m.a + HALF
@@ -1080,6 +1086,10 @@ export function Grid(surface: Surface) {
     }
     const { trackBox } = focusedBox
     $()
+    const brush = brushes.get(trackBox.track)
+    if (brush) {
+      brush.rect.w = trackBox.rect.w
+    }
     trackBox.info.isFocused = true
     project.info.activeTrack = trackBox.track
     project.info.activeTrackBox = trackBox

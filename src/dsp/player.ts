@@ -99,6 +99,7 @@ export function Player(ctx: AudioContext) {
 
   const info = $({
     isPlaying: false,
+    didPlay: false,
     node: $.unwrap(() =>
       ctx.audioWorklet.addModule(playerWorkletUrl)
         .then(() => {
@@ -109,6 +110,14 @@ export function Player(ctx: AudioContext) {
         })
         .catch(console.error)
     ),
+  })
+
+  const off = $.fx(() => {
+    if (info.isPlaying) {
+      $()
+      info.didPlay = true
+      queueMicrotask(() => off())
+    }
   })
 
   $.fx(() => {

@@ -1,6 +1,6 @@
 import { Signal } from 'signal-jsx'
 import { Rect } from 'std'
-import { clamp, dom } from 'utils'
+import { MouseButtons, clamp, dom } from 'utils'
 import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
 import { Grid } from '../draws/grid.ts'
 import { Shapes, Sketch } from '../gl/sketch.ts'
@@ -9,11 +9,12 @@ import { screen } from '../screen.tsx'
 import { services } from '../services.ts'
 import { state } from '../state.ts'
 import { LerpMatrix } from '../util/geometry.ts'
-import { BoxNote, MAX_NOTE, getNotesScale } from '../util/notes.ts'
+import { BoxNote, MAX_NOTE, createNote, getNotesScale } from '../util/notes.ts'
 import { WebGL } from '../webgl.ts'
 import { Mouse } from '../world/mouse.ts'
 import { Canvas } from './Canvas.tsx'
 import { lib } from '../lib.ts'
+import { Note } from '../util/notes-shared.ts'
 
 const DEBUG = true
 
@@ -95,7 +96,7 @@ export function Preview(grid: Grid) {
 
   const cols = shapes.Box(rect)
   cols.view.opts |= ShapeOpts.Cols
-  cols.view.alpha = 0.2
+  cols.view.alpha = 0.5
 
   const notesShape = shapes.Notes(rect)
   notesShape.view.isFocused = 1
@@ -108,17 +109,17 @@ export function Preview(grid: Grid) {
   $.fx(() => {
     const { mode } = state
     $()
-    toFront(cols)
     toFront(wave)
+    toFront(notesShape)
+    toFront(cols)
     if (mode === 'notes') {
       toFront(notesShape)
       notesShape.view.alpha = 1.0
-      cols.view.alpha = 0.2 * 0.25
       wave.view.alpha = 0.25
     }
     else {
+      toFront(wave)
       notesShape.view.alpha = 0.25
-      cols.view.alpha = 0.2
       wave.view.alpha = 1.0
     }
     shapes.info.needUpdate = true
@@ -130,7 +131,7 @@ export function Preview(grid: Grid) {
     const { colors } = track.info
     const { primaryColorInt } = screen.info
     $()
-    notesShape.view.color = colors.colorBright //isFocused && !dimmed ? colors.colorBright : colors.fg
+    notesShape.view.color = colors.colorBrighter //isFocused && !dimmed ? colors.colorBright : colors.fg
     notesShape.view.hoverColor = primaryColorInt
   })
 
@@ -240,11 +241,28 @@ export function Preview(grid: Grid) {
     updateHoveringNote()
   }
 
+  let lastClickedNote: BoxNote | null
+
   function onMouseDown(e: MouseEvent) {
     updateMousePos(e)
     updateHoveringNote()
 
     if (info.hoveringNote) {
+      if (e.buttons & MouseButtons.Right) {
+        const { trackBox: box } = info
+        if (box) {
+          box.track.info.notes = box.track.info.notes.filter(note =>
+            note !== info.hoveringNote
+          )
+          info.hoveringNote = null
+        }
+        return
+      }
+
+      lastClickedNote = info.hoveringNote
+      // TODO: right click start deleting
+      // TODO: ctrl(alt?) click play notes vertical realtime
+
       if (info.hoverMode === 'resize') {
         const note = info.draggingNote = info.hoveringNote
 
@@ -296,6 +314,18 @@ export function Preview(grid: Grid) {
         }), { capture: true, once: true })
       }
     }
+    else {
+      const note = createNote(
+        info.hoveringNoteN,
+        Math.floor(notePos.x),
+        lastClickedNote?.data.length ?? 1,
+        lastClickedNote?.data.vel ?? 1,
+      )
+      const { trackBox: box } = info
+      if (box) {
+        box.track.info.notes = [...box.track.info.notes, note]
+      }
+    }
   }
 
   $.fx(() => {
@@ -328,6 +358,7 @@ export function Preview(grid: Grid) {
   $.fx(() => ([
     [canvas, 'mousemove', onMouseMove],
     [canvas, 'mousedown', onMouseDown],
+    [canvas, 'contextmenu', (e: Event) => dom.stop.prevent(e)]
   ] as const).map(([el, name, handler]) =>
     dom.on(el, name, $.fn(handler))
   ))

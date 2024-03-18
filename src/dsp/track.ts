@@ -132,11 +132,7 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
     sources: null as Set<Source<Token>> | null,
     error: null as Error | null,
     floats: null as Floats | null,
-    get notes() {
-      $()
-      const notes = createDemoNotes()
-      return notes
-    },
+    notes: createDemoNotes(),
     get notesJson() {
       const { notes } = this
       return notes.map(({ info: note }) => ({

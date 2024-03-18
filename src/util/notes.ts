@@ -16,6 +16,27 @@ export interface BoxNote {
   data: NoteView
 }
 
+export function createNote(n: number, time: number, length: number, vel: number) {
+  const note = {
+    info: $({
+      n,
+      time,
+      length,
+      vel: Math.random(),
+    }),
+    data: NoteView(wasm.memory.buffer, wasm.createNote())
+  }
+  $.fx(() => {
+    const { n, time, length, vel } = note.info
+    $()
+    note.data.n = n
+    note.data.time = time
+    note.data.length = length
+    note.data.vel = vel
+  })
+  return note
+}
+
 export function createDemoNotes(
   base = 32,
   count = 1,
@@ -31,23 +52,12 @@ export function createDemoNotes(
     const y = base + Math.round(Math.random() * 8)
 
     for (let n = 0; n < count; n++) {
-      const note = {
-        info: $({
-          n: y + n * (4 + Math.round(Math.random() * 3)),
-          time,
-          length,
-          vel: Math.random(),
-        }),
-        data: NoteView(wasm.memory.buffer, wasm.createNote())
-      }
-      $.fx(() => {
-        const { n, time, length, vel } = note.info
-        $()
-        note.data.n = n
-        note.data.time = time
-        note.data.length = length
-        note.data.vel = vel
-      })
+      const note = createNote(
+        y + n * (4 + Math.round(Math.random() * 3)),
+        time,
+        length,
+        Math.random(),
+      )
       notes.push(note)
     }
 
