@@ -35,6 +35,7 @@ export function Preview(grid: Grid) {
     get trackBox() {
       return lib?.project?.info?.activeTrackBox
     },
+    hoverMode: 'grab' as 'grab' | 'resize',
     hoveringNoteN: -1,
     hoveringNote: null as null | BoxNote,
     draggingNote: null as null | BoxNote,
@@ -203,13 +204,20 @@ export function Preview(grid: Grid) {
     //   info.hoveringNote = null
     //   return
     // }
+    const resizeWidth = 10 / (view.w / 16)
 
     let found = false
     for (let i = notes.length - 1; i >= 0; i--) {
       const note = notes[i]
       const { n, time, length } = note.info
       if (n !== hn) continue
-      if (x >= time && x <= time + length) {
+      if (x >= time && x < time + length) {
+        if (x >= time + length - resizeWidth) {
+          info.hoverMode = 'resize'
+        }
+        else {
+          info.hoverMode = 'grab'
+        }
         info.hoveringNote = note
         found = true
         break
@@ -236,32 +244,74 @@ export function Preview(grid: Grid) {
     updateHoveringNote()
 
     if (info.hoveringNote) {
-      const note = info.draggingNote = info.hoveringNote
+      if (info.hoverMode === 'resize') {
+        const note = info.draggingNote = info.hoveringNote
 
-      const offsetX = Math.floor(notePos.x - note.info.time)
-      screen.info.overlay = true
-      screen.info.cursor = 'move'
+        screen.info.overlay = true
+        screen.info.cursor = 'ew-resize'
 
-      const off = dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
-        updateMousePos(e)
-        updateHoveringNoteN()
-        note.info.n = info.hoveringNoteN
-        note.info.time = Math.floor(notePos.x - offsetX)
-        shapes.info.needUpdate = true
-      }), { capture: true })
+        const off = dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
+          updateMousePos(e)
+          updateHoveringNoteN()
+          note.info.length = Math.max(1, Math.round(notePos.x - note.info.time))
+          shapes.info.needUpdate = true
+        }), { capture: true })
 
-      dom.on(window, 'mouseup', $.fn((e: MouseEvent) => {
-        off()
-        screen.info.overlay = false
-        screen.info.cursor = 'default'
-        info.hoveringNote = info.draggingNote = null
-        $.flush()
-        updateMousePos(e)
-        updateHoveringNote()
-        shapes.info.needUpdate = true
-      }), { capture: true, once: true })
+        dom.on(window, 'mouseup', $.fn((e: MouseEvent) => {
+          off()
+          screen.info.overlay = false
+          screen.info.cursor = 'default'
+          info.hoveringNote = info.draggingNote = null
+          $.flush()
+          updateMousePos(e)
+          updateHoveringNote()
+          shapes.info.needUpdate = true
+        }), { capture: true, once: true })
+      }
+      else if (info.hoverMode === 'grab') {
+        const note = info.draggingNote = info.hoveringNote
+
+        const offsetX = Math.floor(notePos.x - note.info.time)
+        screen.info.overlay = true
+        screen.info.cursor = 'move'
+
+        const off = dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
+          updateMousePos(e)
+          updateHoveringNoteN()
+          note.info.n = info.hoveringNoteN
+          note.info.time = Math.floor(notePos.x - offsetX)
+          shapes.info.needUpdate = true
+        }), { capture: true })
+
+        dom.on(window, 'mouseup', $.fn((e: MouseEvent) => {
+          off()
+          screen.info.overlay = false
+          screen.info.cursor = 'default'
+          info.hoveringNote = info.draggingNote = null
+          $.flush()
+          updateMousePos(e)
+          updateHoveringNote()
+          shapes.info.needUpdate = true
+        }), { capture: true, once: true })
+      }
     }
   }
+
+  $.fx(() => {
+    const { hoveringNote, hoverMode } = info
+    $()
+    if (hoveringNote) {
+      if (hoverMode === 'resize') {
+        screen.info.cursor = 'ew-resize'
+      }
+      else {
+        screen.info.cursor = 'default'
+      }
+    }
+    else {
+      screen.info.cursor = 'default'
+    }
+  })
 
   $.fx(() => {
     const { hoveringNote } = info

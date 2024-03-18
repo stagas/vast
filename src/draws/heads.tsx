@@ -74,13 +74,17 @@ export function Heads(surface: Surface, grid: Grid) {
     }
 
     if (hoveringTrack) {
-      // grid.updateHoveringBox(info.hoveringTrack.info.boxes[0]?. ?? null)
-      screen.info.cursor = 'pointer'
-      state.isHoveringHeads = true
+      if (!state.isHoveringHeads) {
+        // grid.updateHoveringBox(info.hoveringTrack.info.boxes[0]?. ?? null)
+        screen.info.cursor = 'pointer'
+        state.isHoveringHeads = true
+      }
     }
     else {
-      screen.info.cursor = 'default'
-      state.isHoveringHeads = false
+      if (state.isHoveringHeads) {
+        screen.info.cursor = 'default'
+        state.isHoveringHeads = false
+      }
     }
 
     info.hoveringTrack = hoveringTrack
