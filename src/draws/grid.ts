@@ -19,6 +19,7 @@ const NOTES_HEIGHT_NORMAL = 0.65
 const WAVES_HEIGHT_NORMAL = 1 - NOTES_HEIGHT_NORMAL
 const WAVES_MARGIN_NORMAL = 0.0775
 const OFFSCREEN_X = -100_000
+const RESIZE_HANDLE_WIDTH = 7
 
 export enum ZoomState {
   In,
@@ -42,8 +43,11 @@ export function Grid(surface: Surface) {
   const info = $({
     redraw: 0,
 
-    focusedBox: null as null | GridBox,
+    hoverBoxMode: 'select' as 'select' | 'resize',
     hoveringBox: null as null | GridBox,
+    resizingBox: null as null | GridBox,
+    focusedBox: null as null | GridBox,
+
     hoveringNoteN: -1,
     hoveringNote: null as null | BoxNote,
     draggingNote: null as null | BoxNote,
@@ -291,9 +295,34 @@ export function Grid(surface: Surface) {
 
     if (!isZooming || force) {
       const box = info.boxes?.hitmap.get(`${x}:${y}`)
+      if (box && mouse.screenPos.x >=
+        box.rect.right
+        - (RESIZE_HANDLE_WIDTH / viewMatrix.a)
+      ) {
+        info.hoverBoxMode = 'resize'
+      }
+      else {
+        info.hoverBoxMode = 'select'
+      }
       updateHoveringBox(box)
     }
   }
+
+  $.fx(() => {
+    const { hoveringBox, hoverBoxMode } = info
+    $()
+    if (hoveringBox) {
+      if (hoverBoxMode === 'resize') {
+        screen.info.cursor = 'ew-resize'
+      }
+      else {
+        screen.info.cursor = 'default'
+      }
+    }
+    else {
+      screen.info.cursor = 'default'
+    }
+  })
 
   $.fx(() => {
     const { a, b, c, d, e, f } = viewMatrix
@@ -491,6 +520,12 @@ export function Grid(surface: Surface) {
       }
       return
     }
+    else if (ev.type === 'mouseup') {
+      if (info.resizingBox) {
+        info.resizingBox = null
+        return
+      }
+    }
     else if (ev.type === 'mousedown') {
       updateMousePos()
       debounceClearClicks()
@@ -533,7 +568,14 @@ export function Grid(surface: Surface) {
             return
           }
           else if (clicks === 1) {
-            info.focusedBox = info.hoveringBox
+            if (info.hoverBoxMode === 'resize') {
+              info.focusedBox =
+                info.resizingBox = info.hoveringBox
+              return
+            }
+            else {
+              info.focusedBox = info.hoveringBox
+            }
           }
         }
       }
@@ -543,7 +585,7 @@ export function Grid(surface: Surface) {
           zoomFull()
         }
         else if (clicks === 1) {
-          info.focusedBox = null //info.hoveringBox
+          info.focusedBox = null
         }
       }
     }
@@ -552,6 +594,12 @@ export function Grid(surface: Surface) {
       updateMousePos()
       if (info.draggingNote) {
         handleDraggingNoteMove()
+        return
+      }
+      else if (info.resizingBox) {
+        const x = Math.round(mouse.screenPos.x)
+        const w = Math.max(1, x - info.resizingBox.rect.x)
+        info.resizingBox.info.trackBox.data.length = w
         return
       }
     }
@@ -766,6 +814,7 @@ export function Grid(surface: Surface) {
         const gridBoxes: GridBox[] = []
 
         for (const box of track.info.boxes) {
+          // const { length, time } = box.data
           let gridBox = gridBoxMap.get(box)
           if (!gridBox) gridBoxMap.set(
             box,
@@ -808,7 +857,7 @@ export function Grid(surface: Surface) {
 
     $.fx(() => {
       const { rows } = info
-      $()
+      // $()
       hitmap.clear()
       for (const row of rows) {
         for (const gridBox of row) {

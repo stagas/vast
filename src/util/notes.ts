@@ -22,7 +22,7 @@ export function createDemoNotes(
   step = 1,
   // length = 1,
 ) {
-  return Array.from({ length: 8 }, (_, i) => {
+  return Array.from({ length: 6 }, (_, i) => {
     const time = i * step * 2 + step * 2
     const length = 1 + Math.round(Math.random() * 4)
     // const count = 1 //+ Math.round(Math.random() * 2)

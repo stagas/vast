@@ -38,13 +38,13 @@ export interface TrackBox {
   data: $<BoxData>
 }
 
-export function TrackBox(track: Track, source: $<Source<Token>>, box: $<BoxData>, rect?: $<Rect>): TrackBox {
+export function TrackBox(track: Track, source: $<Source<Token>>, data: $<BoxData>, rect?: $<Rect>): TrackBox {
   using $ = Signal()
 
   rect ??= $(new Rect, {
-    x: box.$.time,
+    x: data.$.time,
     y: track.info.$.y,
-    w: box.$.length,
+    w: data.$.length,
     h: 1
   })
 
@@ -55,7 +55,7 @@ export function TrackBox(track: Track, source: $<Source<Token>>, box: $<BoxData>
   })
 
   const proto = { track }
-  return { __proto__: proto, rect, info, data: box } as TrackBox & { __proto__: typeof proto }
+  return { __proto__: proto, rect, info, data } as TrackBox & { __proto__: typeof proto }
 }
 
 export type Track = ReturnType<typeof Track>
@@ -115,6 +115,7 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
     },
     tokensAstNode: new Map<Token, AstNode>(),
     boxes: [] as TrackBox[],
+    sources: null as Set<Source<Token>> | null,
     error: null as Error | null,
     floats: null as Floats | null,
     get notes() {
@@ -247,6 +248,7 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
         pt.pan = 0.0
         pt.vol = 1.0
         pt.floats_LR$ = floats.ptr
+        console.log(pt.len)
 
         info.audioBuffer.getChannelData(0).set(floats)
 
@@ -263,15 +265,31 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
     }
   }
 
-  $.fx(function update_audio_buffer() {
-    const sources = new Set<Source<Token>>()
+  function equalSets(a: Set<any>, b?: Set<any> | null) {
+    if (a.size !== b?.size) return false
+    for (const item of a) {
+      if (!b.has(item)) return false
+    }
+    for (const item of b) {
+      if (!a.has(item)) return false
+    }
+    return true
+  }
 
+  $.fx(function update_sources() {
+    const sources = new Set<Source<Token>>()
     for (const { info: { source } } of info.boxes) {
       sources.add(source)
     }
-
     $()
+    if (!equalSets(sources, info.sources)) {
+      info.sources = sources
+    }
+  })
 
+  $.fx(function update_audio_buffer() {
+    const { sources } = $.of(info)
+    $()
     {
       using $ = Signal()
 
@@ -284,6 +302,13 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
           $()
           source.epoch++
         })
+
+        $.fx(() => {
+          const { sound$, audioLength } = $.of(info)
+          $()
+          source.epoch++
+        })
+
         $.fx(() => {
           const { sound$, audioLength } = $.of(info)
           const { epoch } = source

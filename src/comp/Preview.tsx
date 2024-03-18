@@ -71,13 +71,6 @@ export function Preview(grid: Grid) {
   webgl.add($, sketch)
 
   const viewMatrix = $(new LerpMatrix)
-  $.fx(() => {
-    const { w, h } = view
-    $()
-    viewMatrix.a = w + 1
-    viewMatrix.d = h
-  })
-
   const shapes = Shapes(view, viewMatrix)
   sketch.scene.add(shapes)
   const rect = $({
@@ -86,6 +79,17 @@ export function Preview(grid: Grid) {
     w: 1,
     h: 1,
   })
+  $.fx(() => {
+    const { w, h } = view
+    const { trackBox } = $.of(info)
+    const { length } = trackBox.data
+    $()
+    viewMatrix.a = (w / length) + 1
+    viewMatrix.d = h
+    rect.w = length
+    shapes.info.needUpdate = true
+  })
+
   const wave = shapes.Wave(rect)
   wave.view.color = 0xffffff
 
@@ -118,7 +122,6 @@ export function Preview(grid: Grid) {
       wave.view.alpha = 1.0
     }
     shapes.info.needUpdate = true
-    info.redraw++
   })
 
   $.fx(() => {
@@ -139,7 +142,6 @@ export function Preview(grid: Grid) {
     notesShape.view.min = scale.min
     notesShape.view.max = scale.max
     shapes.info.needUpdate = true
-    info.redraw++
   })
 
   $.fx(() => {
@@ -154,7 +156,6 @@ export function Preview(grid: Grid) {
     wave.view.color = fg
     cols.view.color = fg
     shapes.info.needUpdate = true
-    info.redraw++
   })
 
   const mouse = Mouse(view, viewMatrix)
