@@ -25,3 +25,10 @@ export const PlayerTrack = Struct({
   pan: 'f32',
   vol: 'f32',
 })
+
+export type BarBox = ReturnType<typeof BarBox>
+
+export const BarBox = Struct({
+  timeBegin: 'f64',
+  pt$: 'usize',
+})

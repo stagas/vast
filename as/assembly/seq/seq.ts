@@ -1,6 +1,6 @@
 import { Clock } from '../dsp/core/clock'
 import { Player } from './player'
-import { Out, PlayerTrack } from './player-shared'
+import { BarBox, Out, PlayerTrack } from './player-shared'
 
 export * from '../alloc'
 
@@ -50,6 +50,10 @@ export function clearLastBar(player$: usize): void {
 
 export function createPlayerTrack(): usize {
   return changetype<usize>(new PlayerTrack())
+}
+
+export function createBarBox(): usize {
+  return changetype<usize>(new BarBox())
 }
 
 export function createOut(): usize {

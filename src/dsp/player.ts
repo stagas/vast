@@ -126,10 +126,10 @@ export function Player(ctx: AudioContext) {
       bar.fill(0)
     }
     for (const t of tracks) {
-      for (const { data: box } of t.info.boxes) {
+      for (const { data: box,info } of t.info.boxes) {
         for (let x = box.time; x < box.time + box.length; x++) {
           const bar = next[x]
-          bar[bar.indexOf(0)] = t.pt.ptr
+          bar[bar.indexOf(0)] = info.barBox.ptr
         }
       }
     }

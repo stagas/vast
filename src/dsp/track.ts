@@ -15,7 +15,7 @@ import { Note } from '../util/notes-shared.ts'
 import { createDemoNotes } from '../util/notes.ts'
 import { hexToInt, intToHex, toHex } from '../util/rgb.ts'
 import { DspService } from './dsp-service.ts'
-import { PlayerTrack } from './player-shared.ts'
+import { BarBox, PlayerTrack } from './player-shared.ts'
 import type { BoxData, TrackData } from './project.ts'
 
 const DEBUG = true
@@ -32,6 +32,7 @@ export interface TrackBox {
   rect: $<Rect>
   info: $<{
     source: $<Source<Token>>
+    barBox: BarBox
     isFocused: boolean
     isHovering: boolean
   }>
@@ -48,8 +49,21 @@ export function TrackBox(track: Track, source: $<Source<Token>>, data: $<BoxData
     h: 1
   })
 
+  const barBox = BarBox(wasmSeq.memory.buffer, wasmSeq.createBarBox())
+  $.fx(() => {
+    const { time } = data
+    $()
+    barBox.timeBegin = time
+  })
+  $.fx(() => {
+    const { pt } = track
+    $()
+    barBox.pt$ = pt.ptr
+  })
+
   const info = $({
     source,
+    barBox,
     isFocused: false,
     isHovering: false,
   })
@@ -248,7 +262,7 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
         pt.pan = 0.0
         pt.vol = 1.0
         pt.floats_LR$ = floats.ptr
-        console.log(pt.len)
+        // console.log(pt.len)
 
         info.audioBuffer.getChannelData(0).set(floats)
 

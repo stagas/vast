@@ -11,7 +11,7 @@ const DEBUG = false
 
 export type Surface = ReturnType<typeof Surface>
 
-export function Surface(view: $<Rect>, intentMatrix: Matrix, viewMatrix: LerpMatrix, alpha = false) {
+export function Surface(view: $<Rect>, intentMatrix: $<Matrix>, viewMatrix: LerpMatrix, alpha = false) {
   using $ = Signal()
 
   const info = $({

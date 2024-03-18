@@ -655,6 +655,9 @@ export function Grid(surface: Surface) {
         if (!e.ctrlKey && !e.shiftKey) {
           snap.x = snap.y = true
           isZooming = true
+          if (e.deltaY > 0) {
+            intentMatrix.set(viewMatrix.dest)
+          }
           handleZoom(e)
         }
       }
@@ -974,11 +977,12 @@ export function Grid(surface: Surface) {
     return { info, shapes }
   }
 
-  const overlay = Shapes(view, intentMatrix)
+  const overlayMatrix = $(new Matrix, { d: intentMatrix.$.d })
+  const overlay = Shapes(view, overlayMatrix)
 
   const rulerNow = overlay.Line(
-    $({ x: services.audio.info.$.timeNowLerp, y: -10 }),
-    $({ x: services.audio.info.$.timeNowLerp, get y() { return lib.project?.info.tracks.length ?? 0 + 10 } })
+    $({ x: 0, y: 0 }),
+    $({ x: 0, get y() { return lib.project?.info.tracks.length ?? 0 } })
   )
   rulerNow.view.opts |= ShapeOpts.InfY
   $.fx(() => {
@@ -994,14 +998,46 @@ export function Grid(surface: Surface) {
   })
 
   $.fx(() => {
-    const { isPlaying } = services.audio.player.info
-    const { x } = rulerNow.p0
+    const { boxes } = $.of(info)
+    const {
+      info: { timeNow: x },
+      player: { info: { isPlaying } }
+    } = services.audio
+    $()
     const m = intentMatrix
-    const { a } = m
+    const HALF = view.w / 2 - HEADS_WIDTH / 2
+    intentMatrix.e = -boxes.info.left * m.a + HALF
+  })
+  $.fx(() => {
+    const { boxes } = $.of(info)
+    const {
+      info: { timeNow: x },
+      player: { info: { isPlaying } }
+    } = services.audio
+    // const { x } = rulerNow.p0
+    const m = isPlaying ? intentMatrix : viewMatrix
+    if (isPlaying) {
+      const { a } = m
+    }
+    else {
+      const { a, e } = m
+    }
     $()
     if (isPlaying) {
-      intentMatrix.e = -x * a + view.w / 2 - HEADS_WIDTH / 2
+      overlayMatrix.a = 1
+      overlayMatrix.e = 0
+      const HALF = view.w / 2 - HEADS_WIDTH / 2
+      rulerNow.p0.x =
+        rulerNow.p1.x = HALF
+      intentMatrix.e = -x * m.a + HALF
       snap.x = false
+    }
+    else {
+      const HALF = view.w / 2 - HEADS_WIDTH / 2
+      rulerNow.p0.x =
+        rulerNow.p1.x = boxes.info.left
+      overlayMatrix.a = m.a
+      overlayMatrix.e = m.e + 1
     }
   })
 

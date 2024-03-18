@@ -11,14 +11,14 @@ class Lib {
     // queueMicrotask(() => {
     const sources = [
       lib.cool_bass_source,
-      lib.kick_source,
-      lib.t2_source,
-      lib.t3_source,
-      lib.radio_signals_source,
+      lib.demo_source_kick,
+      lib.demo_source_hihat,
+      lib.demo_source_eyo,
+      lib.demo_source_radio_signals,
     ]
 
-    let count = 16
-    const length = 1
+    let count = 4
+    const length = 2
     lib.project = Project({
       id: 0,
       timestamp: 0,
@@ -173,6 +173,65 @@ A= A [delay 502 250 [tri 1.25 co*] * + ] A @ clip
 1.5 *
 `
   }
+
+  demo_source_kick = {
+    code: `;;;kick
+{ x=
+[sin 84.01 500 [decay .168 178 x] + t x*]
+[decay .021 37 x]
+} kick=
+
+[kick 4]
+`
+  }
+
+  demo_source_hihat = {
+    code: `;;;hihat
+{ hz= [saw hz t] [ramp hz t .7389] + } p=
+[p 1130][p 450][p 300][p 620][p 800][p 600]
+@ 4* [dclipexp 4.1] clip 8*
+[bhp 9100 1.42] [bbp 7400 0.72]
+[exp 16 co* t] .81^ [lp 70] *
+(.6 .48 1 .54) t 16 * ? *
+.2* clip 1*
+`
+  }
+
+  demo_source_eyo = {
+    code: `;;;eyo
+[sin (11 11) t .5 * ? 1444
+[sin 500.25 co* t] * + ]
+[sin 123 .2
+ [sin 8 co* t] * +
+ t] *
+[sin 1721
+1 [sin 4 co* t] - 1200 * +]
+[exp 26 t] * + a= a .7*
+[delay 148 .91] a +
+[clip 2] 1.49 *
+[exp 44144 t] [lp] *
+[lp] [shp 850]
+[inc .097 t 4*] clip 1.8^ *
+.5 *
+`
+  }
+
+  demo_source_radio_signals = {
+    code: `;;;radio signals
+[saw 80]
+[sin 4] *
+[sin 6
+ [sin .15 co* t .125*] 221 * +]
+[exp 1 co* t] * +
+[delay 100.25 .91]
+[clip 2] 1.49 *
+[exp 6 co* t] .55^ [lp] *
+[shp 1150]
+@ [slp 833]
+1.5 *
+`
+  }
+
 
 }
 

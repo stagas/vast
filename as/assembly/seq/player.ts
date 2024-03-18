@@ -1,11 +1,12 @@
 import { Clock } from '../dsp/core/clock'
 import { fadeIn16, fadeOut16 } from '../dsp/graph/fade'
 import { mul_audio_scalar_add_audio1 } from '../dsp/graph/math'
+import { logf2 } from '../env'
 import { cubicMod, modWrap } from '../util'
 import { MAX_BARS } from './constants'
-import { Out, PlayerTrack } from './player-shared'
+import { BarBox, Out, PlayerTrack } from './player-shared'
 
-type Bar = StaticArray<PlayerTrack>
+type Bar = StaticArray<BarBox>
 
 // @ts-ignore
 @inline
@@ -71,15 +72,18 @@ export class Player {
     for (; pos < end; pos++) {
       // logi(pos)
       const time = clock.time
+      const coeff = clock.coeff
       const barTime = clock.barTime
       const barIndex: i32 = i32(Math.floor(barTime))
       const bar: Bar | null = unchecked(bars[barIndex])
       if (bar) {
-        let track: PlayerTrack | null
+        let box: BarBox | null
         let i: i32 = 0
-        while (unchecked(track = bar[i++])) {
-          // TODO: should adjust for bpm + coeff
-          const index: f64 = modWrap(time * sampleRate, f64(track.len))
+        while (unchecked(box = bar[i++])) {
+          // logf2(f32(barTime), f32(box.timeBegin))
+          // TODO: should adjust for bpm + track.coeff + track.offset
+          const track = changetype<PlayerTrack>(box.pt$)
+          const index: f64 = modWrap(((barTime - box.timeBegin) / coeff) * sampleRate, f64(track.len))
           processTrack(track, index, pos)
           writeOut(track, pos, out_L, out_R)
         }

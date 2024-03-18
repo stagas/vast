@@ -17,6 +17,12 @@ export class PlayerTrack {
 }
 
 @unmanaged
+export class BarBox {
+  timeBegin: f64 = 0.0
+  pt$: usize = 0
+}
+
+@unmanaged
 export class Out {
   L$: usize = 0
   R$: usize = 0
