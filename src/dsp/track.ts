@@ -209,7 +209,8 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
       return
     }
 
-    if (source.code == null || source.epoch === renderedEpoch.get(source)) return
+    const { code, epoch } = source
+    if (code == null || epoch === renderedEpoch.get(source)) return
 
     const { sound$, audioLength } = info
     if (!sound$ || !audioLength) return
@@ -221,7 +222,7 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
       const { floats: dspFloats, error } = await dsp.service.renderSource(
         sound$,
         audioLength,
-        source.code,
+        code,
         voicesCount,
         source.tokens.some(t => t.text === 'midi_in'),
         notesJson,
@@ -231,24 +232,26 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
         throw new Error(error || 'renderSource failed.')
       }
 
-      info.waveLength = dspFloats.length
+      $.batch(() => {
+        info.waveLength = dspFloats.length
 
-      const floats = getFloats(dspFloats.length)
-      floats.set(dspFloats)
+        const floats = getFloats(dspFloats.length)
+        floats.set(dspFloats)
 
-      info.floats?.free()
-      info.floats = Floats(floats)
+        info.floats?.free()
+        info.floats = Floats(floats)
 
-      pt.len = floats.length
-      pt.offset = 0
-      pt.coeff = 1.0
-      pt.pan = 0.0
-      pt.vol = 1.0
-      pt.floats_LR$ = floats.ptr
+        pt.len = floats.length
+        pt.offset = 0
+        pt.coeff = 1.0
+        pt.pan = 0.0
+        pt.vol = 1.0
+        pt.floats_LR$ = floats.ptr
 
-      info.audioBuffer.getChannelData(0).set(floats)
+        info.audioBuffer.getChannelData(0).set(floats)
 
-      renderedEpoch.set(source, source.epoch)
+        renderedEpoch.set(source, epoch)
+      })
     }
     finally {
       isRendering = false
