@@ -12,7 +12,7 @@ import { Source } from '../source.ts'
 import { state } from '../state.ts'
 import { Floats } from '../util/floats.ts'
 import { Note } from '../util/notes-shared.ts'
-import { createDemoNotes } from '../util/notes.ts'
+import { createDemoNotes, createNote } from '../util/notes.ts'
 import { hexToInt, intToHex, toHex } from '../util/rgb.ts'
 import { DspService } from './dsp-service.ts'
 import { BarBox, PlayerTrack } from './player-shared.ts'
@@ -148,7 +148,12 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
     sources: null as Set<Source<Token>> | null,
     error: null as Error | null,
     floats: null as Floats | null,
-    notes: createDemoNotes(),
+    notes: trackData.notes.map(note => createNote(
+      note.n,
+      note.time,
+      note.length,
+      note.vel,
+    )),
     get notesJson() {
       const { notes } = this
       return notes.map(({ info: note }) => ({

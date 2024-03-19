@@ -3,6 +3,7 @@ import { Token, tokenize } from '../lang/tokenize.ts'
 import { services } from '../services.ts'
 import { Source } from '../source.ts'
 import { Track, TrackBox } from './track.ts'
+import { Note } from '../util/notes-shared.ts'
 
 interface SourceData {
   code?: string
@@ -29,6 +30,7 @@ export interface BoxData {
 }
 
 export interface TrackData {
+  notes: Note[]
   boxes: BoxData[]
 }
 
@@ -62,7 +64,9 @@ export function Project(data: ProjectData, isSaved: boolean = true) {
   // TODO(Signal): $.deep({...})
   const info = $({
     isSaved,
+    isLoaded: false,
     data: $(data, {
+      sources: data.sources.map(source => $(source)),
       tracks: data.tracks.map(track => $(track, {
         boxes: track.boxes.map(box => $(box, {
           track,
@@ -79,10 +83,15 @@ export function Project(data: ProjectData, isSaved: boolean = true) {
   })
 
   $.fx(() => {
+    const { isLoaded } = info
+    if (!isLoaded) return
+
     const { sources, tracks } = info.data
     const { audio } = $.of(services)
     const { dsp } = $.of(audio.dsp.info)
+
     $()
+
     const sourcesMap = new Map<number, $<Source<Token>>>()
     const newTracks = []
 
@@ -95,7 +104,9 @@ export function Project(data: ProjectData, isSaved: boolean = true) {
       for (const box of track.boxes) {
         let source = sourcesMap.get(box.source_id)
         if (!source) sourcesMap.set(box.source_id,
-          source = $(new Source<Token>(tokenize), sources[box.source_id])
+          source = $(new Source<Token>(tokenize), {
+            code: $(sources[box.source_id]).$.code!
+          })
         )
         t.addBox(source, $(box))
       }
@@ -136,53 +147,6 @@ export function Project(data: ProjectData, isSaved: boolean = true) {
       audio.resetClock()
     }
   })
-
-  // const sources: Source[] = []
-
-  // function addTrack(source: $<Source<any>>, length = 1, count = 16) {
-  //   let source_id = sources.indexOf(source)
-  //   if (source_id === -1) source_id = sources.push(source) - 1
-  //   // console.log(source_id)
-
-  //   const trackData: ProjectData['tracks'][0] = $({
-  //     boxes: Array.from({ length: count }, (_, x) => $({
-  //       source_id,
-  //       time: 1024 + (x * length),
-  //       length,
-  //       pitch: 0,
-  //       params: []
-  //     })),
-  //   })
-
-  //   info.data.tracks = [
-  //     ...info.data.tracks,
-  //     trackData
-  //   ]
-  // }
-
-  // $.batch(() => {
-  //   if (info.tracks.length) {
-  //     info.tracks = []
-  //   }
-  //   addTrack(lib.case_source)
-  //   console.log('WHAA', lib.case_source.code)
-  //   // addTrack(state.source_midi, 4, 1)
-  //   addTrack(lib.t1_source)
-  //   addTrack(lib.t2_source)
-  //   addTrack(lib.t3_source)
-  //   addTrack(lib.t4_source)
-  //   console.log(lib.case_source)
-
-  //   // addTrack(state.t1_source)
-  //   // addTrack(state.t1_source)
-  //   // addTrack(state.t1_source)
-  //   // addTrack(state.t1_source)
-  //   // addTrack(state.t1_source)
-  //   // addTrack(state.t1_source)
-  //   // addTrack(state.t1_source)
-  //   // addTrack(state.t1_source)
-  //   // addTrack(state.t1_source)
-  // })
 
   const project = { info }
 

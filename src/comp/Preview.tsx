@@ -1,5 +1,5 @@
 import { Signal } from 'signal-jsx'
-import { Rect } from 'std'
+import { Point, Rect } from 'std'
 import { MouseButtons, clamp, dom } from 'utils'
 import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
 import { Grid } from '../draws/grid.ts'
@@ -24,9 +24,12 @@ export function Preview(grid: Grid) {
   DEBUG && console.log('[preview] create')
   using $ = Signal()
 
-  const view = $(new Rect, {
-    w: layout.info.$.previewWidth,
-    h: layout.info.$.codeHeight,
+  const view = $(new Rect(
+    $(new Point(), {
+      x: layout.info.$.previewWidth,
+      y: layout.info.$.codeHeight,
+    })
+  ), {
     pr: screen.info.$.pr
   })
 
@@ -247,18 +250,19 @@ export function Preview(grid: Grid) {
     updateMousePos(e)
     updateHoveringNote()
 
-    if (info.hoveringNote) {
-      if (e.buttons & MouseButtons.Right) {
-        const { trackBox: box } = info
-        if (box) {
-          box.track.info.notes = box.track.info.notes.filter(note =>
-            note !== info.hoveringNote
-          )
-          info.hoveringNote = null
-        }
-        return
+    if (e.buttons & MouseButtons.Right) {
+      const { trackBox: box } = info
+      if (box) {
+        box.track.info.notes = box.track.info.notes.filter(note =>
+          note !== info.hoveringNote
+        )
+        // TODO: start deleting
+        info.hoveringNote = null
       }
+      return
+    }
 
+    if (info.hoveringNote) {
       lastClickedNote = info.hoveringNote
       // TODO: right click start deleting
       // TODO: ctrl(alt?) click play notes vertical realtime

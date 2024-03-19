@@ -1,15 +1,177 @@
 import { $ } from 'signal-jsx'
-import { pick } from 'utils'
+import { compressUrlSafe, decompressUrlSafe } from 'urlsafe-lzma'
+import { checksum, debounce, pick } from 'utils'
 import { Project, ProjectData } from './dsp/project.ts'
 
+function parse(timestamp: number, text: string) {
+  const id = checksum(text)
+  const res = decompressUrlSafe(text)
+  const json = JSON.parse(res) as ReturnType<Lib['save']>
+
+  const [
+    title,
+    creator,
+    remix_of,
+    bpm,
+    pitch,
+    sources,
+    tracks,
+  ] = json
+
+  const project = Project({
+    id,
+    timestamp,
+    title,
+    creator,
+    remix_of,
+    bpm,
+    pitch,
+    sources: sources.map(code => ({ code })),
+    tracks: tracks.map(([notes, boxes]) => ({
+      notes: notes.map(([n, time, length, vel]) => ({
+        n,
+        time,
+        length,
+        vel,
+      })),
+      boxes: boxes.map(([source_id, time, length, pitch, params]) => ({
+        source_id,
+        time: time + 1024,
+        length,
+        pitch,
+        params: (params ?? []).map(([name, values]) => ({
+          name,
+          values: (values ?? []).map(([time, length, slope, amt]) => ({
+            time,
+            length,
+            slope,
+            amt,
+          }))
+        })),
+      }))
+    })),
+    comments: []
+  })
+
+  // console.log(project)
+
+  return project
+}
+
 class Lib {
+  save = debounce(300, $.fn((json: ProjectData) => {
+    const minified = [
+      json.title,
+      json.creator,
+      json.remix_of,
+      json.bpm,
+      json.pitch,
+      json.sources.map(s => s.code ?? ''),
+      json.tracks.map(t => [
+        t.notes.filter(n => n.n != null).map(n => [
+          n.n,
+          n.time,
+          n.length,
+          n.vel,
+        ] as const),
+        t.boxes.map(b => [
+          b.source_id,
+          b.time - 1024,
+          b.length,
+          b.pitch,
+          ...(!b.params.length ? [] : [b.params.map(p => [
+            p.name,
+            ...(!p.values.length ? [] : [p.values.map(v => [
+              v.time,
+              v.length,
+              v.slope,
+              v.amt,
+            ] as const)])
+          ] as const)]),
+        ] as const)
+      ] as const)
+    ] as const
+    if (json.tracks.length === 0) return minified
+    const text = JSON.stringify(minified)
+    const res = compressUrlSafe(text, { mode: 9, enableEndMark: false })
+    const id = checksum(res)
+    if (id === json.id) {
+      console.log('[save] no changes - nothing to save')
+      return minified
+    }
+    console.log(res, res.length)
+    history.replaceState({}, '', '?t=' + (new Date()).toISOString() + '&p=' + encodeURIComponent(res))
+    console.log('[save] saved in url', location.href)
+    return minified
+  }))
+
+  @$.fx save_on_change() {
+    const { project } = $.of(this)
+    const { data, tracks } = project.info
+
+    const {
+      id,
+      timestamp,
+      title,
+      creator,
+      remix_of,
+      bpm,
+      pitch,
+    } = data
+
+    const json: ProjectData = {
+      id,
+      timestamp,
+      title,
+      creator,
+      remix_of,
+      bpm,
+      pitch,
+      sources: data.sources.map(s => ({
+        code: s.code ?? ''
+      })),
+      tracks: tracks.map(t => ({
+        notes: t.info.notesJson,
+        boxes: t.info.boxes.map(b => ({
+          ...pick({ ...b.data }, [
+            'source_id',
+            'time',
+            'length',
+            'pitch',
+          ]),
+          params: b.data.params.map(p => ({
+            ...p,
+            values: p.values.map(v => ({ ...v }))
+          }))
+        }))
+      })),
+      comments: []
+    }
+    $()
+    project.info.isLoaded = true
+    this.save(json)
+  }
+
   @$.fn boot() {
     const lib = this
     if (lib.project) return
 
-    // services.audio.player.info.project = lib.project
-    // const code = Code()
-    // queueMicrotask(() => {
+    const searchParams = new URL(location.href).searchParams
+    if (searchParams.has('p')) {
+      const text = searchParams.get('p')
+      if (text) {
+        try {
+          const time = new Date(searchParams.get('t')!).getTime()
+          const project = parse(time, text)
+          lib.project = project
+          return
+        }
+        catch (e) {
+          console.warn(e)
+        }
+      }
+    }
+
     const sources = [
       lib.cool_bass_source,
       lib.demo_source_kick,
@@ -30,6 +192,7 @@ class Lib {
       pitch: 0,
       sources,
       tracks: Array.from(sources, (_, y) => ({
+        notes: [],
         boxes: Array.from({ length: count }, (_, x) => ({
           source_id: y,
           time: 1024 + (x * length),
@@ -40,63 +203,6 @@ class Lib {
       })),
       comments: []
     })
-    // })
-  }
-
-  @$.fx save_on_change() {
-    const { project } = $.of(this)
-    const { data, tracks } = project.info
-    const json: ProjectData = {
-      id: 0,
-      timestamp: 0,
-      title: '',
-      creator: '',
-      remix_of: 0,
-      bpm: 0,
-      pitch: 0,
-      sources: data.sources.map(s => ({ code: s.code ?? '' })),
-      tracks: tracks.map(t => ({
-        boxes: t.info.boxes.map(b => ({
-          ...pick({ ...b.data }, [
-            'source_id',
-            'time',
-            'length',
-            'pitch',
-          ]),
-          params: b.data.params.map(p => ({
-            ...p,
-            values: p.values.map(v => ({ ...v }))
-          }))
-        }))
-      })),
-      comments: []
-    }
-    $()
-    const minified = [
-      json.bpm,
-      json.pitch,
-      json.title,
-      json.creator,
-      json.sources.map(s => s.code),
-      json.tracks.map(t => t.boxes.map(b => [
-        b.source_id,
-        b.time - 1024,
-        b.length,
-        b.pitch,
-        ...(!b.params.length ? [] : [b.params.map(p => [
-          p.name,
-          ...(!p.values.length ? [] : [p.values.map(v => [
-            v.time,
-            v.length,
-            v.slope,
-            v.amt,
-          ])])
-        ])]),
-      ]))
-    ]
-    if ((minified.at(-1) as any[])?.length === 0) return
-    const text = JSON.stringify(minified)
-    console.log(text, text.length)
   }
 
   project?: Project
@@ -288,7 +394,6 @@ A= A [delay 502 250 [tri 1.25 co*] * + ] A @ clip
 1.5 *
 `
   }
-
 
 }
 

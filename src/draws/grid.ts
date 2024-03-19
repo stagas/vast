@@ -944,6 +944,7 @@ export function Grid(surface: Surface) {
 
         if (!brushes.get(track)) $.untrack(() => {
           const templateBox = track.info.boxes[0]
+          if (!templateBox) return
           const brushBox = TrackBox(
             track,
             templateBox.info.source,

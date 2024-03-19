@@ -16,7 +16,7 @@ export interface BoxNote {
   data: NoteView
 }
 
-export function createNote(n: number, time: number, length: number, vel: number) {
+export function createNote(n: number, time: number, length: number, vel: number): BoxNote {
   const note = {
     info: $({
       n,

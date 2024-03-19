@@ -48,6 +48,7 @@
     "signal-jsx": "github:stagas/signal-jsx",
     "std": "github:stagas/std",
     "tailwindcss": "^3.4.1",
+    "urlsafe-lzma": "^1.0.4",
     "utils": "github:stagas/utils"
   }
 }
