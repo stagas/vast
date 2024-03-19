@@ -1171,6 +1171,16 @@ export function Grid(surface: Surface) {
     }
   })
 
+  $.fx(function update_active_track_moving_box() {
+    const { project } = $.of(lib)
+    const { movingBox } = $.of(info)
+    const { trackBox } = movingBox
+    $()
+    lastFocusedBoxes.set(trackBox.track, movingBox)
+    project.info.activeTrack = trackBox.track
+    project.info.activeTrackBox = trackBox
+  })
+
   $.fx(function update_box_isHovering() {
     const { hoveringBox } = $.of(info)
     const { trackBox } = hoveringBox
