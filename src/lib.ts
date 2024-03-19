@@ -1,5 +1,6 @@
 import { $ } from 'signal-jsx'
-import { Project } from './dsp/project.ts'
+import { pick } from 'utils'
+import { Project, ProjectData } from './dsp/project.ts'
 
 class Lib {
   @$.fn boot() {
@@ -40,6 +41,62 @@ class Lib {
       comments: []
     })
     // })
+  }
+
+  @$.fx save_on_change() {
+    const { project } = $.of(this)
+    const { data, tracks } = project.info
+    const json: ProjectData = {
+      id: 0,
+      timestamp: 0,
+      title: '',
+      creator: '',
+      remix_of: 0,
+      bpm: 0,
+      pitch: 0,
+      sources: data.sources.map(s => ({ code: s.code ?? '' })),
+      tracks: tracks.map(t => ({
+        boxes: t.info.boxes.map(b => ({
+          ...pick({ ...b.data }, [
+            'source_id',
+            'time',
+            'length',
+            'pitch',
+          ]),
+          params: b.data.params.map(p => ({
+            ...p,
+            values: p.values.map(v => ({ ...v }))
+          }))
+        }))
+      })),
+      comments: []
+    }
+    $()
+    const minified = [
+      json.bpm,
+      json.pitch,
+      json.title,
+      json.creator,
+      json.sources.map(s => s.code),
+      json.tracks.map(t => t.boxes.map(b => [
+        b.source_id,
+        b.time - 1024,
+        b.length,
+        b.pitch,
+        ...(!b.params.length ? [] : [b.params.map(p => [
+          p.name,
+          ...(!p.values.length ? [] : [p.values.map(v => [
+            v.time,
+            v.length,
+            v.slope,
+            v.amt,
+          ])])
+        ])]),
+      ]))
+    ]
+    if ((minified.at(-1) as any[])?.length === 0) return
+    const text = JSON.stringify(minified)
+    console.log(text, text.length)
   }
 
   project?: Project

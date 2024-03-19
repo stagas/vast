@@ -55,6 +55,16 @@ export function Grid(surface: Surface) {
     movingBox: null as null | GridBox,
     movingBoxOffsetX: 0,
 
+    get isHandling() {
+      return Boolean(
+        this.resizingBox
+        || this.drawingBox
+        || this.movingBox
+        || this.isDeletingBoxesTrack
+        || this.draggingNote
+      )
+    },
+
     hoveringNoteN: -1,
     hoveringNote: null as null | BoxNote,
     draggingNote: null as null | BoxNote,
@@ -1119,20 +1129,18 @@ export function Grid(surface: Surface) {
     } = services.audio
     $()
     if (!didPlay) return
-    if (info.drawingBox) return
-    if (info.resizingBox) return
-    if (info.isDeletingBoxesTrack) return
+    if (info.isHandling) return
     const m = intentMatrix
     const HALF = view.w / 2 - HEADS_WIDTH / 2
     intentMatrix.e = -boxes.info.left * m.a + HALF
   })
+
   $.fx(() => {
     const { boxes } = $.of(info)
     const {
-      info: { timeNow: x },
+      info: { timeNow: x, timeNowLerp: xl },
       player: { info: { isPlaying } }
     } = services.audio
-    // const { x } = rulerNow.p0
     const m = isPlaying ? intentMatrix : viewMatrix
     if (isPlaying) {
       const { a } = m
@@ -1141,19 +1149,22 @@ export function Grid(surface: Surface) {
       const { a, e } = m
     }
     $()
-    if (isPlaying) {
+    if (isPlaying && !info.isHandling) {
       overlayMatrix.a = 1
       overlayMatrix.e = 0
+
       const HALF = view.w / 2 - HEADS_WIDTH / 2
+
       rulerNow.p0.x =
         rulerNow.p1.x = HALF
+
       intentMatrix.e = -x * m.a + HALF
+
       snap.x = false
     }
     else {
-      const HALF = view.w / 2 - HEADS_WIDTH / 2
       rulerNow.p0.x =
-        rulerNow.p1.x = boxes.info.left
+        rulerNow.p1.x = isPlaying ? xl : x
       overlayMatrix.a = m.a
       overlayMatrix.e = m.e + 1
     }
