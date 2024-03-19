@@ -45,10 +45,13 @@ export function Grid(surface: Surface) {
   const info = $({
     redraw: 0,
 
+    isDeletingBoxesTrack: null as null | Track,
+
     hoverBoxMode: 'select' as 'select' | 'resize' | 'move',
     hoveringBox: null as null | GridBox,
     resizingBox: null as null | GridBox,
     focusedBox: null as null | GridBox,
+    drawingBox: null as null | GridBox,
     movingBox: null as null | GridBox,
     movingBoxOffsetX: 0,
 
@@ -264,13 +267,14 @@ export function Grid(surface: Surface) {
       if (brush) {
         // brush.rect.x = OFFSCREEN_X
         brush.hide()
-        brush = null
+        // brush = null
       }
     }
     else {
       unhoverBox()
 
       if (!lib.project) return
+      if (info.isDeletingBoxesTrack) return
 
       let { x, y } = mouse.screenPos
       x = Math.floor(x)
@@ -320,6 +324,12 @@ export function Grid(surface: Surface) {
 
       out: {
         if (box) {
+          if (info.isDeletingBoxesTrack) {
+            if (info.isDeletingBoxesTrack === box.trackBox.track) {
+              box.trackBox.track.removeBox(box.trackBox)
+            }
+            return
+          }
           if (mouse.screenPos.x >= box.rect.right
             - (RESIZE_HANDLE_WIDTH / viewMatrix.a)
           ) {
@@ -545,12 +555,20 @@ export function Grid(surface: Surface) {
       unhoverBox()
       if (brush) {
         brush.hide()
-        // brush.rect.x = OFFSCREEN_X
         brush = null
       }
       return
     }
     else if (ev.type === 'mouseup') {
+      if (info.isDeletingBoxesTrack) {
+        info.isDeletingBoxesTrack = null
+        $.flush()
+        brush?.show()
+      }
+      if (info.drawingBox) {
+        info.drawingBox = null
+        return
+      }
       if (info.resizingBox) {
         info.resizingBox = null
         return
@@ -566,9 +584,8 @@ export function Grid(surface: Surface) {
       debounceClearClicks()
       if (info.hoveringBox) {
         if (ev.buttons & MouseButtons.Right) {
-          info.hoveringBox.trackBox.track.removeBox(
-            info.hoveringBox.trackBox
-          )
+          info.isDeletingBoxesTrack = info.hoveringBox.trackBox.track
+          brush?.hide()
           $.flush()
         }
         else {
@@ -583,9 +600,8 @@ export function Grid(surface: Surface) {
               }),
             )
             clicks = 0
+            info.drawingBox = info.hoveringBox
             $.flush()
-            handleHoveringBox()
-            return
           }
           else if (clicks >= 2) {
             info.focusedBox = info.hoveringBox
@@ -646,16 +662,34 @@ export function Grid(surface: Surface) {
         handleDraggingNoteMove()
         return
       }
+      else if (info.drawingBox) {
+        const { data, info: { source }, track, track: { info: { y } } } = info.drawingBox.trackBox
+        const x = Math.floor(mouse.screenPos.x)
+        if (!info.boxes.overlaps(y, x, data.length)) {
+          track.addBox(
+            source,
+            $({
+              ...data,
+              time: x,
+              length: data.length,
+            }),
+          )
+          $.flush()
+        }
+        else {
+          return
+        }
+      }
       else if (info.resizingBox) {
         const x = Math.round(mouse.screenPos.x)
         const w = Math.max(1, x - info.resizingBox.rect.x)
-        info.resizingBox.info.trackBox.data.length = w
-        const brush = brushes.get(info.resizingBox.info.trackBox.track)
+        info.resizingBox.trackBox.data.length = w
+        const brush = brushes.get(info.resizingBox.trackBox.track)
         if (brush) brush.rect.w = w
         return
       }
       else if (info.movingBox) {
-        const { data, track: { info: { y } } } = info.movingBox.info.trackBox
+        const { data, track: { info: { y } } } = info.movingBox.trackBox
         const x = Math.floor(Math.floor(mouse.screenPos.x) - info.movingBoxOffsetX)
         if (!info.boxes.overlaps(y, x, data.length, info.movingBox)) {
           data.time = x
@@ -740,7 +774,6 @@ export function Grid(surface: Surface) {
     using $ = Signal()
 
     const info = $({
-      trackBox,
       notes: null as null | GridNotes,
     })
 
@@ -904,9 +937,9 @@ export function Grid(surface: Surface) {
           const brushBox = TrackBox(
             track,
             templateBox.info.source,
-            templateBox.data,
+            $({ ...templateBox.data }),
             $(new Rect, {
-              y: track.info.$.y,
+              y: track.info.y,
               w: templateBox.rect.w,
               h: 1
             })

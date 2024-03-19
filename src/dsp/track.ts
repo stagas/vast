@@ -43,10 +43,26 @@ export function TrackBox(track: Track, source: $<Source<Token>>, data: $<BoxData
   using $ = Signal()
 
   rect ??= $(new Rect, {
-    x: data.$.time,
-    y: track.info.$.y,
-    w: data.$.length,
+    x: data.time,
+    y: track.info.y,
+    w: data.length,
     h: 1
+  })
+
+  $.fx(() => {
+    const { time, length } = data
+    const { y } = track.info
+    $()
+    rect!.x = time
+    rect!.w = length
+    rect!.y = y
+  })
+
+  $.fx(() => {
+    const { x, w } = rect!
+    $()
+    data.time = x
+    data.length = w
   })
 
   const barBox = BarBox(wasmSeq.memory.buffer, wasmSeq.createBarBox())
