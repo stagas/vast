@@ -1119,6 +1119,9 @@ export function Grid(surface: Surface) {
     } = services.audio
     $()
     if (!didPlay) return
+    if (info.drawingBox) return
+    if (info.resizingBox) return
+    if (info.isDeletingBoxesTrack) return
     const m = intentMatrix
     const HALF = view.w / 2 - HEADS_WIDTH / 2
     intentMatrix.e = -boxes.info.left * m.a + HALF
