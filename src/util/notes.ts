@@ -22,7 +22,7 @@ export function createNote(n: number, time: number, length: number, vel: number)
       n,
       time,
       length,
-      vel: Math.random(),
+      vel,
     }),
     data: NoteView(wasm.memory.buffer, wasm.createNote())
   }

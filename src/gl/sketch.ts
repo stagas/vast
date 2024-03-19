@@ -335,7 +335,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
       info.needUpdate = true
     })
 
-    const shape = {
+    const shape = $({
       visible: true,
       rect,
       view,
@@ -344,7 +344,13 @@ export function Shapes(view: Rect, matrix: Matrix) {
         shapes.delete(shape)
         info.needUpdate = true
       }
-    }
+    })
+
+    $.fx(() => {
+      const { visible } = shape
+      $()
+      info.needUpdate = true
+    })
 
     shapes.add(shape)
 
@@ -371,7 +377,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
       info.needUpdate = true
     })
 
-    const shape = {
+    const shape = $({
       visible: true,
       rect,
       view,
@@ -380,7 +386,13 @@ export function Shapes(view: Rect, matrix: Matrix) {
         shapes.delete(shape)
         info.needUpdate = true
       }
-    }
+    })
+
+    $.fx(() => {
+      const { visible } = shape
+      $()
+      info.needUpdate = true
+    })
 
     shapes.add(shape)
 
@@ -412,7 +424,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
       info.needUpdate = true
     })
 
-    const shape = {
+    const shape = $({
       visible: true,
       p0,
       p1,
@@ -422,7 +434,13 @@ export function Shapes(view: Rect, matrix: Matrix) {
         shapes.delete(shape)
         info.needUpdate = true
       }
-    }
+    })
+
+    $.fx(() => {
+      const { visible } = shape
+      $()
+      info.needUpdate = true
+    })
 
     shapes.add(shape)
 
@@ -449,7 +467,7 @@ export function Shapes(view: Rect, matrix: Matrix) {
       info.needUpdate = true
     })
 
-    const shape = {
+    const shape = $({
       visible: true,
       rect,
       view,
@@ -458,7 +476,13 @@ export function Shapes(view: Rect, matrix: Matrix) {
         shapes.delete(shape)
         info.needUpdate = true
       },
-    }
+    })
+
+    $.fx(() => {
+      const { visible } = shape
+      $()
+      info.needUpdate = true
+    })
 
     shapes.add(shape)
 

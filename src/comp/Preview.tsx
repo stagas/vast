@@ -36,7 +36,7 @@ export function Preview(grid: Grid) {
     get trackBox() {
       return lib?.project?.info?.activeTrackBox
     },
-    hoverMode: 'grab' as 'grab' | 'resize',
+    hoverNoteMode: 'grab' as 'grab' | 'resize',
     hoveringNoteN: -1,
     hoveringNote: null as null | BoxNote,
     draggingNote: null as null | BoxNote,
@@ -206,7 +206,7 @@ export function Preview(grid: Grid) {
     //   info.hoveringNote = null
     //   return
     // }
-    const resizeWidth = 10 / (view.w / 16)
+    const resizeWidth = 10 / (view.w / (16 * box.data.length))
 
     let found = false
     for (let i = notes.length - 1; i >= 0; i--) {
@@ -215,10 +215,10 @@ export function Preview(grid: Grid) {
       if (n !== hn) continue
       if (x >= time && x < time + length) {
         if (x >= time + length - resizeWidth) {
-          info.hoverMode = 'resize'
+          info.hoverNoteMode = 'resize'
         }
         else {
-          info.hoverMode = 'grab'
+          info.hoverNoteMode = 'grab'
         }
         info.hoveringNote = note
         found = true
@@ -263,7 +263,7 @@ export function Preview(grid: Grid) {
       // TODO: right click start deleting
       // TODO: ctrl(alt?) click play notes vertical realtime
 
-      if (info.hoverMode === 'resize') {
+      if (info.hoverNoteMode === 'resize') {
         const note = info.draggingNote = info.hoveringNote
 
         screen.info.overlay = true
@@ -287,7 +287,7 @@ export function Preview(grid: Grid) {
           shapes.info.needUpdate = true
         }), { capture: true, once: true })
       }
-      else if (info.hoverMode === 'grab') {
+      else if (info.hoverNoteMode === 'grab') {
         const note = info.draggingNote = info.hoveringNote
 
         const offsetX = Math.floor(notePos.x - note.info.time)
@@ -329,10 +329,10 @@ export function Preview(grid: Grid) {
   }
 
   $.fx(() => {
-    const { hoveringNote, hoverMode } = info
+    const { hoveringNote, hoverNoteMode } = info
     $()
     if (hoveringNote) {
-      if (hoverMode === 'resize') {
+      if (hoverNoteMode === 'resize') {
         screen.info.cursor = 'ew-resize'
       }
       else {

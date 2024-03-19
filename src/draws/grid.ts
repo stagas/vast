@@ -40,7 +40,7 @@ export function Grid(surface: Surface) {
 
   const brushes = new Map<Track, GridBox>()
 
-  let lastFocusedBox: GridBox | null
+  const lastFocusedBoxes = new Map<Track, GridBox | null>()
 
   const info = $({
     redraw: 0,
@@ -256,11 +256,12 @@ export function Grid(surface: Surface) {
     if (box) {
       const { hoveringBox } = info
       // TODO: no need for rect check, only reference?
-      if (!hoveringBox || hoveringBox.rect.x !== box.rect.x || hoveringBox.rect.y !== box.rect.y) {
-        info.hoveringBox = box
-      }
+      // if (!hoveringBox || hoveringBox.rect.x !== box.rect.x || hoveringBox.rect.y !== box.rect.y) {
+      info.hoveringBox = box
+      // }
       if (brush) {
-        brush.rect.x = OFFSCREEN_X
+        // brush.rect.x = OFFSCREEN_X
+        brush.hide()
         brush = null
       }
     }
@@ -275,12 +276,27 @@ export function Grid(surface: Surface) {
       const track = lib.project.info.tracks[y]
       const lastBrush = brush
       brush = brushes.get(track)
+
       if (brush) {
+        brush.show()
         brush.rect.x = x
+
+        const boxAfter = track.info.boxes.sort((a, b) => a.data.time - b.data.time)
+          .find(box => box !== brush!.trackBox && box.data.time > x)
+
+        const lastW = lastFocusedBoxes.get(track)?.trackBox.rect.w ?? 1
+
+        if (boxAfter) {
+          brush.rect.w = Math.min(lastW, boxAfter.data.time - x)
+        }
+        else {
+          brush.rect.w = lastW
+        }
         info.hoveringBox = brush
       }
+
       if (lastBrush && lastBrush !== brush) {
-        lastBrush.rect.x = OFFSCREEN_X
+        lastBrush.hide()
       }
     }
   }
@@ -517,7 +533,8 @@ export function Grid(surface: Surface) {
     if (ev.type === 'mouseout' || ev.type === 'mouseleave') {
       unhoverBox()
       if (brush) {
-        brush.rect.x = OFFSCREEN_X
+        brush.hide()
+        // brush.rect.x = OFFSCREEN_X
         brush = null
       }
       return
@@ -551,6 +568,8 @@ export function Grid(surface: Surface) {
             )
             clicks = 0
             $.flush()
+            handleHoveringBox()
+            return
           }
           else if (clicks >= 2) {
             info.focusedBox = info.hoveringBox
@@ -695,13 +714,25 @@ export function Grid(surface: Surface) {
     const alpha = dimmed ? 0.25 : 1.0
     box.view.alpha = alpha
 
-    let waveformBg: ReturnType<Shapes['Wave']>
+    // let waveformBg: ReturnType<Shapes['Wave']>
     let waveform: ReturnType<Shapes['Wave']>
+
+    function hide() {
+      box.visible = false
+      if (info.notes) info.notes.notesShape.visible = false
+      if (waveform) waveform.visible = false
+    }
+
+    function show() {
+      box.visible = true
+      if (info.notes) info.notes.notesShape.visible = true
+      if (waveform) waveform.visible = true
+    }
 
     function remove() {
       box.remove()
       if (info.notes) sketch.scene.delete(info.notes.shapes)
-      if (waveformBg) waveformBg.remove()
+      // if (waveformBg) waveformBg.remove()
       if (waveform) waveform.remove()
       pianoroll?.hide()
       $.dispose()
@@ -764,7 +795,7 @@ export function Grid(surface: Surface) {
 
     })
 
-    return { rect, trackBox, info, box, dimmed, remove }
+    return { rect, trackBox, info, box, dimmed, remove, hide, show }
   }
 
   function toFront(shapes: Shapes) {
@@ -839,13 +870,14 @@ export function Grid(surface: Surface) {
             templateBox.info.source,
             templateBox.data,
             $(new Rect, {
-              x: OFFSCREEN_X,
               y: track.info.$.y,
               w: templateBox.rect.w,
               h: 1
             })
           )
-          brushes.set(track, GridBox(shapes, waveformShapes, brushBox, true))
+          const gridBox = GridBox(shapes, waveformShapes, brushBox, true)
+          gridBox.hide()
+          brushes.set(track, gridBox)
         })
 
         return gridBoxes
@@ -979,7 +1011,7 @@ export function Grid(surface: Surface) {
       }
     })
 
-    return { info, shapes }
+    return { info, shapes, notesShape }
   }
 
   const overlayMatrix = $(new Matrix, { d: intentMatrix.$.d })
@@ -1086,10 +1118,11 @@ export function Grid(surface: Surface) {
     }
     const { trackBox } = focusedBox
     $()
-    const brush = brushes.get(trackBox.track)
-    if (brush) {
-      brush.rect.w = trackBox.rect.w
-    }
+    lastFocusedBoxes.set(trackBox.track, focusedBox)
+    // const brush = brushes.get(trackBox.track)
+    // if (brush) {
+    //   brush.rect.w = trackBox.rect.w
+    // }
     trackBox.info.isFocused = true
     project.info.activeTrack = trackBox.track
     project.info.activeTrackBox = trackBox
