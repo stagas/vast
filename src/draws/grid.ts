@@ -1,6 +1,6 @@
 import { Signal } from 'signal-jsx'
 import { Matrix, Rect } from 'std'
-import { MouseButtons, clamp, debounce, dom } from 'utils'
+import { MouseButtons, clamp, debounce, dom, fract } from 'utils'
 import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
 import { Track, TrackBox } from '../dsp/track.ts'
 import { Shapes } from '../gl/sketch.ts'
@@ -45,10 +45,12 @@ export function Grid(surface: Surface) {
   const info = $({
     redraw: 0,
 
-    hoverBoxMode: 'select' as 'select' | 'resize',
+    hoverBoxMode: 'select' as 'select' | 'resize' | 'move',
     hoveringBox: null as null | GridBox,
     resizingBox: null as null | GridBox,
     focusedBox: null as null | GridBox,
+    movingBox: null as null | GridBox,
+    movingBoxOffsetX: 0,
 
     hoveringNoteN: -1,
     hoveringNote: null as null | BoxNote,
@@ -306,6 +308,8 @@ export function Grid(surface: Surface) {
     // if (state.isHoveringToolbar) return
     if (info.draggingNote) return
     if (!surface.info.isHovering) return
+    if (info.movingBox) return
+    if (info.resizingBox) return
 
     let { x, y } = mouse.screenPos
     x = Math.floor(x)
@@ -313,15 +317,19 @@ export function Grid(surface: Surface) {
 
     if (!isZooming || force) {
       const box = info.boxes?.hitmap.get(`${x}:${y}`)
-      if (box && mouse.screenPos.x >=
-        box.rect.right
-        - (RESIZE_HANDLE_WIDTH / viewMatrix.a)
-      ) {
-        info.hoverBoxMode = 'resize'
-      }
-      else {
+
+      out: {
+        if (box) {
+          if (mouse.screenPos.x >= box.rect.right
+            - (RESIZE_HANDLE_WIDTH / viewMatrix.a)
+          ) {
+            info.hoverBoxMode = 'resize'
+            break out
+          }
+        }
         info.hoverBoxMode = 'select'
       }
+
       updateHoveringBox(box)
     }
   }
@@ -332,6 +340,9 @@ export function Grid(surface: Surface) {
     if (hoveringBox) {
       if (hoverBoxMode === 'resize') {
         screen.info.cursor = 'ew-resize'
+      }
+      else if (hoverBoxMode === 'move') {
+        screen.info.cursor = 'grabbing'
       }
       else {
         screen.info.cursor = 'default'
@@ -544,6 +555,11 @@ export function Grid(surface: Surface) {
         info.resizingBox = null
         return
       }
+      if (info.movingBox) {
+        info.movingBox = null
+        info.hoverBoxMode = 'select'
+        return
+      }
     }
     else if (ev.type === 'mousedown') {
       updateMousePos()
@@ -596,7 +612,17 @@ export function Grid(surface: Surface) {
               return
             }
             else {
-              info.focusedBox = info.hoveringBox
+              if (fract(mouse.screenPos.y) >= NOTES_HEIGHT_NORMAL) {
+                info.focusedBox = null
+                info.hoverBoxMode = 'move'
+                info.movingBox = info.hoveringBox
+                lastFocusedBoxes.set(info.movingBox.trackBox.track, info.movingBox)
+                info.movingBoxOffsetX = Math.floor(mouse.screenPos.x - info.movingBox.rect.x)
+                return
+              }
+              else {
+                info.focusedBox = info.hoveringBox
+              }
             }
           }
         }
@@ -614,6 +640,8 @@ export function Grid(surface: Surface) {
     else if (ev.type === 'mousemove' || ev.type === 'mouseenter') {
       mouse.matrix = viewMatrix
       updateMousePos()
+      if (!info.boxes) return
+
       if (info.draggingNote) {
         handleDraggingNoteMove()
         return
@@ -624,6 +652,14 @@ export function Grid(surface: Surface) {
         info.resizingBox.info.trackBox.data.length = w
         const brush = brushes.get(info.resizingBox.info.trackBox.track)
         if (brush) brush.rect.w = w
+        return
+      }
+      else if (info.movingBox) {
+        const { data, track: { info: { y } } } = info.movingBox.info.trackBox
+        const x = Math.floor(Math.floor(mouse.screenPos.x) - info.movingBoxOffsetX)
+        if (!info.boxes.overlaps(y, x, data.length, info.movingBox)) {
+          data.time = x
+        }
         return
       }
     }
@@ -897,7 +933,6 @@ export function Grid(surface: Surface) {
 
     $.fx(() => {
       const { rows } = info
-      // $()
       hitmap.clear()
       for (const row of rows) {
         for (const gridBox of row) {
@@ -909,7 +944,16 @@ export function Grid(surface: Surface) {
       }
     })
 
-    return { info, hitmap, shapes, $ }
+    function overlaps(y: number, time: number, length: number, ignoreGridBox?: GridBox) {
+      const end = time + length
+      for (let x = time; x < end; x++) {
+        const box = hitmap.get(`${x}:${y}`)
+        if (box && box !== ignoreGridBox) return true
+      }
+      return false
+    }
+
+    return { $, info, shapes, hitmap, overlaps }
   }
 
   function Pianoroll(trackBox: TrackBox) {
@@ -1119,10 +1163,6 @@ export function Grid(surface: Surface) {
     const { trackBox } = focusedBox
     $()
     lastFocusedBoxes.set(trackBox.track, focusedBox)
-    // const brush = brushes.get(trackBox.track)
-    // if (brush) {
-    //   brush.rect.w = trackBox.rect.w
-    // }
     trackBox.info.isFocused = true
     project.info.activeTrack = trackBox.track
     project.info.activeTrackBox = trackBox
