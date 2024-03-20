@@ -74,8 +74,10 @@ export function Dsp({ sampleRate, core$ }: {
       // so that the sample rate is reset.
       `[nrate 1]`
       // some builtin procedures
-      + `{ .5* .5+ } norm=`
-      + `{ n= p= sp= 1 [inc sp co* t n*] clip - p^ * } decay=`
+      + ` { .5* .5+ } norm= `
+      + ` { at= p= sp= 1 [inc sp co* at] clip - p^ } dec= `
+      // + `{ n= p= sp= 1 [inc sp co* t n*] clip - p^ } decay=`
+      // + ` { t= p= sp= 1 [inc sp co* t] clip - p^ } down= `
   })]
 
   function Sound() {

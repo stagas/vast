@@ -5,19 +5,18 @@ export class Inc extends Gen {
   amt: f32 = 1.0;
 
   /** Trigger phase sync when set to 0. */
-  trig: f32 = 0.0
+  trig: f32 = -1.0
   _lastTrig: i32 = -1
 
-  _initial: boolean = true
   _value: f32 = 0.0
 
   _reset(): void {
-    this._initial = true
+    this.trig = -1.0
+    this._lastTrig = -1
   }
 
   _update(): void {
-    if (this._initial || this._lastTrig !== i32(this.trig)) {
-      this._initial = false
+    if (this._lastTrig !== i32(this.trig)) {
       this._value = 0.0
     }
 

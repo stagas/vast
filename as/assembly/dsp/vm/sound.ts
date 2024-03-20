@@ -81,7 +81,7 @@ export class Sound {
         const voice = voices[y++]
         this.scalars[voice[Voice.n]] = note.n
         this.scalars[voice[Voice.f]] = ntof(note.n)
-        this.scalars[voice[Voice.t]]++
+        this.scalars[voice[Voice.t]] = note.time
         this.scalars[voice[Voice.v]] = note.vel
         if (y === 6) return
       }
@@ -131,10 +131,10 @@ export class Sound {
         data.end = i + CHUNK_SIZE > chunkEnd ? chunkEnd - i : i + CHUNK_SIZE
         dspRun(this, ops$)
 
+        chunkCount++
+
         c.time = f64(chunkCount * CHUNK_SIZE) * c.timeStep
         c.barTime = f64(chunkCount * CHUNK_SIZE) * c.barTimeStep
-
-        chunkCount++
       }
 
       const audio = this.audios[audio_LR$]

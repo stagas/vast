@@ -15,10 +15,10 @@ export class Adsr extends Gen {
   release: f32 = 500
 
   /** Trigger */
-  on: f32 = 0.0
-  _lastOn: i32 = 0
-  off: f32 = 0.0
-  _lastOff: i32 = 0
+  on: f32 = -1.0
+  _lastOn: i32 = -1
+  off: f32 = -1.0
+  _lastOff: i32 = -1
 
   _state: AdsrState = AdsrState.Release
 

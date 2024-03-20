@@ -399,6 +399,7 @@ export function interpret(sound: Sound, data: Record<string, any>, tokens: Token
             throw new Error('Missing right operand.', { cause: { nodes: [t] } })
           }
           if (r.type !== AstNode.Type.Id) {
+            console.error(r, l, scope)
             throw new Error('Expected identifier for assignment operation.', { cause: { nodes: [r] } })
           }
           if (!l) {

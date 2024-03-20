@@ -5,14 +5,14 @@ export abstract class Osc extends Gen {
   /** Frequency. */
   hz: f32 = 440
   /** Trigger phase sync when set to 0. */
-  trig: f32 = 0
+  trig: f32 = -1.0
   /** Phase offset. */
   offset: f32 = 0
 
   _phase: u32 = 0
   _step: u32 = 0
   _sample: f32 = 0
-  _lastTrig: i32 = 0
+  _lastTrig: i32 = -1
   _offsetU32: u32 = 0
   _initial: boolean = true
 
@@ -26,9 +26,9 @@ export abstract class Osc extends Gen {
 
   _reset(): void {
     this.hz = 0
-    this.trig = 0
+    this.trig = -1.0
     this.offset = 0
-    this._lastTrig = 0
+    this._lastTrig = -1
     this._phase = 0
   }
 

@@ -172,37 +172,41 @@ class Lib {
       }
     }
 
-    const sources = [
-      lib.cool_bass_source,
-      lib.demo_source_kick,
-      lib.demo_source_hihat,
-      lib.demo_source_eyo,
-      lib.demo_source_radio_signals,
-    ]
+    // const demo_p = `XQAAAALBDQAAAAAAAAAtiKxZCEM6Xo7_UU1sLI6CbXpMLf4dmQQ_APXnu-zKBCHhJIyxotjwniEqZZ_Jktb68T2Cfx5Ypg9n5xhpWj6InGwfUsL48fswLsXQCmmsLGrLaHGv9UNPIxuRDUTt-7orn23Q8tOAf3NOe-uK5cyZHsi8qUuqSZpZNvcR6MM7Uq01BvptvjO_QKKTFt50Qrg9UtoknLqCvDe7qoVIqWNp-KOfTaOIfUZ439PGjDmBkf7RuEqiQ_wAbvgvuPUtDG0rkMXDyz35RDrSLa_TT_61VCvfnZhfl_bwbPbYOJf0wvMi4GAcqHT57xgrUYaww0YG3g4of2X4ZE6xexcaf91GaKFQ1exDT974_KZh8jJVPAL1VwSpo6ylV23gVZ7CWlJyXofwwWODVit5MCRFoFOCyHkyQLFtnCVCA57-fyW12c8ZRmFqJzSGQpNrGrZMZexVC4LWdT0V1TBAzeHcapmxw26ErywgC-QxtVHt45vd9C8IbMHxEP1jOTyDzy69IIBHQbKA4CaHQVFAGI7sPc82skCVpujtmfkpO7wO-D1J1RwnJH5ed6EiYzpWXqbLwAydSKKqj6UVClIdvGtfstLn9AnsqeqNLUpnQTkx98jvGB-2i9dSg0Nw0KsJaUNWmVcDliJP44OxRbzab6DGG7XEVyLiC7sEM688Vi4w8R1wiJXZDWGrDeCW4lJEoixEkk2cv8JyitSMz6oi8sxzDidSTIcVhNEW0IK96riDBR5hDto4a6fRLYrujpyMb2tVQeoH8nsFZp2i0zCwOzjCFZHAmOLYDV4QPtjJ2Kvux4O3PMAt5je43nbo6-qHBWJ-VrOIJTWAFO4FZ-XULpb_ArVx6VAZ5_bG_Oh-rsx1FCPOyCBs2FU8lhOr_le8d2kNhkUCR-ABmr6hvULbdn5UM8B-Rf0Jyzsew3WVpt1Im1D27uUXwcqoyPSQAgLSrxff1qJPEjyOv8cUDZPtZh51M_tTYNk2uRxIYbjcbxiYOgJV61OmwKY6tDe5DVT84lwobIJzUu7fksTm_M1eCwUhbg2a_GqDz6Z1ZBWgazw4C5zIM5dZ-VEykYtVRxZUiIiTW8NK06rLSOyT5isikueLjhIOmFofXp6ls_NGaHcOUH1sOg4bkAJShx3yw88EIFDZyYo2TGjmT7pMKmjI3m-tJNrDlpSqiEcgDmUrpq14p_XzDjVfHwEBHlYdSY1qWrNtpnpXJDcHplK_IsWiGYjumsQ46uI38kaQcCgt2GMGbtFB1wLuMFjX9Oo2dXk0CPt27VHLgQD3plzQgwjcpzUvzPK_Tokjpb88sPmom_yQoB4CU81SN-dxDTMm0vB1ya_Yl4TQBZOyci_brjoheXGadLiJKQg_uXHQhFt1RrsHn1c9cxmz3Dh6BWvRcKx0m2DfZJW0221Em2Nfmlcjpyf8fNeFhX9VJ9e-AtrWlRAA`
+    const demo_p = `XQAAAAKBDQAAAAAAAAAtiKxZCEM6Xo7_UU1sLI6CbXpMLf4dmQQ_APXnu-zKBCHhJIyxopIWNu081_Gly9-GKyh0Rxu1Sv4MBqh1nixvTD9AIJFKgVsgxQG8M2OeDCwV76YCB924TcP9l69FemxWhT4W6gEAtKo5qI_1uUUKwRZ-Dp1u9Igc3dz928uTxKmYL_nRMPspDw5Yrgh72grF3LAHMtQBUhkvHcQQmWue6EfJNIyic_jw9V6MLTFPGqaDLHCgxHUXSsEjwsJX5SA9spACyKRUuOH1U14KVfOlZoalKLDOUiiKYTtp1tOtONWeMTh1_WiD2zFDxaLsekiSCHm8OEFTjOQDKb-8ZgsZCSJmSNqLHSxgvzCRAK4XqLkz5AVaPjkQGm-5JKFKAW6ePD4Ik2GlQS7GmLkhrXHIlRT6eQZpvuNYBUky_V4XxNmNmnbyNpCSP9nsg32VZ7eonOfSARRGNDxbRLWXfh1THnhj61G-O3jNktJA5m5RYxc9mx_oiuaoB2QXQpor1qklkT0FtIZXeI52_zk6QFxF3MOJ5DjuY-M-5QykrkvGTdalgr3lU8gvd312DMGrXgBV3sh8QLpx6pArt4M7UwHBClGg2ETCLyzUfuiscQopw7XyaooQg9O2ESLL4kNSkaGLIkgeGgjR1lVLwAhQWPHRUYEZrLIow0dWJ6dQZoAXHPk7umKfoRDHa6B5drTDXpElPhxQUOmWgVF6i1SdHoHIPonxAB1cAq04Ww29t3F-cEuXOtcap8IBtIhS21L_wfqXHR6f8ucfPLm2-YvN4cMdUrT7I2pZChnImj3WE1KjP6hwTqwLJA0WrZwHXHXa_Opofz48XhEVMsovdxDPc33TD0jz5Q4-5GrEcjKCe6V3VjfBPMAgr6z47Y9iPjnoyeVvHXvIP2djgxGK8dF8Lmw6SFkU0t7azlhPBTAN_pIHwTm6b-8dfs3z45I17HXc24J5A8edOqG9Lub74V0UgSNhZJR1a7pyjTHZDnrl_WJY7XcbnOTi4fvdIdHmbErsHvKBtOhbZ6ALjUi4I-oOsCQbahSzel7IkVK2DJV3Xi9qDMxXYCpQGd4q1b2y7XU3Yzoiy77LBg-HaFi4-yXyhRtiRRgRWOs7fWVLXLZv4nXH6mk-HAXleIIJYL3KRgPnUjmx8wGpqYACeQClS2MS8hoAdJ8aiJfR9iN2HkQMPI3ss1IB0HJIDgLTS8NOfB2_cJPjBhlcKEdzcdwo4zE-0HuytF6Xrr1-klHH_AQ0DN_EZcDDk0EOtT_fuGhQSMWAdm9sFR06xrSMmKAuYoXQxNl-3mf64V3etr11laMxIiyAgA-VTTuLPv5L_hyy1vFQoqkEnc819lDBEclGGGsq_U0OYLmPcd_Es1BmrJdhwsnxKXt4iO2nUp8hhXoOrVpHAA%253D%253D`
+    lib.project = parse(Date.now(), demo_p)
 
-    let count = 4
-    const length = 2
-    lib.project = Project({
-      id: 0,
-      timestamp: 0,
-      title: '',
-      creator: '',
-      remix_of: 0,
-      bpm: 0,
-      pitch: 0,
-      sources,
-      tracks: Array.from(sources, (_, y) => ({
-        notes: [],
-        boxes: Array.from({ length: count }, (_, x) => ({
-          source_id: y,
-          time: 1024 + (x * length),
-          length,
-          pitch: 0,
-          params: []
-        })),
-      })),
-      comments: []
-    })
+    // const sources = [
+    //   lib.cool_bass_source,
+    //   lib.demo_source_kick,
+    //   lib.demo_source_hihat,
+    //   lib.demo_source_eyo,
+    //   lib.demo_source_radio_signals,
+    // ]
+
+    // let count = 4
+    // const length = 2
+    // lib.project = Project({
+    //   id: 0,
+    //   timestamp: 0,
+    //   title: '',
+    //   creator: '',
+    //   remix_of: 0,
+    //   bpm: 0,
+    //   pitch: 0,
+    //   sources,
+    //   tracks: Array.from(sources, (_, y) => ({
+    //     notes: [],
+    //     boxes: Array.from({ length: count }, (_, x) => ({
+    //       source_id: y,
+    //       time: 1024 + (x * length),
+    //       length,
+    //       pitch: 0,
+    //       params: []
+    //     })),
+    //   })),
+    //   comments: []
+    // })
   }
 
   project?: Project
