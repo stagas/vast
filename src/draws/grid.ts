@@ -12,6 +12,8 @@ import { Surface } from '../surface.ts'
 import { transformMatrixRect } from '../util/geometry.ts'
 import { BLACK_KEYS, BoxNote, MAX_NOTE, getNotesScale } from '../util/notes.ts'
 import { HEADS_WIDTH } from '../constants.ts'
+import { Source } from '../source.ts'
+import { tokenize } from '../lang/tokenize.ts'
 
 const DEBUG = true
 const SCALE_X = 1 / 16
@@ -943,15 +945,27 @@ export function Grid(surface: Surface) {
         }
 
         if (!brushes.get(track)) $.untrack(() => {
-          const templateBox = track.info.boxes[0]
-          if (!templateBox) return
+          const templateBox = track.info.boxes[0] as TrackBox | undefined
+          // if (!templateBox) return
           const brushBox = TrackBox(
             track,
-            templateBox.info.source,
-            $({ ...templateBox.data }),
+            $(
+              templateBox?.info.source
+              ?? ([...track.info.sources?.values() ?? []][0])
+              ?? $(new Source(tokenize), { code: '' })
+            ),
+            $({
+              ...templateBox?.data ?? ({
+                source_id: 0,
+                time: 0,
+                length: 1,
+                pitch: 0,
+                params: [],
+              })
+            }),
             $(new Rect, {
               y: track.info.y,
-              w: templateBox.rect.w,
+              w: templateBox?.rect.w ?? 1,
               h: 1
             })
           )

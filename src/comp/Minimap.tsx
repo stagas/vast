@@ -1,13 +1,12 @@
 import { Signal } from 'signal-jsx'
-import { Matrix, Rect } from 'std'
+import { Matrix, Point, Rect } from 'std'
 import { dom } from 'utils'
-import { HEADS_WIDTH } from '../constants.ts'
 import { Grid } from '../draws/grid.ts'
+import { layout } from '../layout.ts'
 import { screen } from '../screen.tsx'
-import { log, state } from '../state.ts'
+import { log } from '../state.ts'
 import { toHex } from '../util/rgb.ts'
 import { Canvas } from './Canvas.tsx'
-import { layout } from '../layout.ts'
 
 const DEBUG = true
 
@@ -16,8 +15,19 @@ export type Minimap = ReturnType<typeof Minimap>
 export function Minimap(grid: Grid) {
   using $ = Signal()
 
-  const view = $(new Rect, { w: layout.info.$.minimapWidth, h: 34, pr: screen.info.$.pr })
-  const handleView = $(new Rect, { w: layout.info.$.minimapHandleWidth, h: 42, pr: screen.info.$.pr })
+  const view = $(new Rect($(new Point, {
+    x: layout.info.$.minimapWidth,
+    y: 34,
+  })), {
+    pr: screen.info.$.pr
+  })
+
+  const handleView = $(new Rect($(new Point, {
+    x: layout.info.$.minimapHandleWidth,
+    y: 42,
+  })), {
+    pr: screen.info.$.pr
+  })
 
   const canvas = <Canvas view={view} class="-mb-[1px]" /> as Canvas
   const handle = <Canvas view={handleView} class="absolute -left-[5px] -top-[4px]" /> as Canvas

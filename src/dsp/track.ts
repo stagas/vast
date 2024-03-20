@@ -1,7 +1,7 @@
 import wasmGfx from 'assembly-gfx'
 import wasmSeq from 'assembly-seq'
 import { $, Signal } from 'signal-jsx'
-import { Rect } from 'std'
+import { Point, Rect } from 'std'
 import { Lru, hueshift, luminate, saturate } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
 import { AstNode } from '../lang/interpreter.ts'
@@ -12,7 +12,7 @@ import { Source } from '../source.ts'
 import { state } from '../state.ts'
 import { Floats } from '../util/floats.ts'
 import { Note } from '../util/notes-shared.ts'
-import { createDemoNotes, createNote } from '../util/notes.ts'
+import { createNote } from '../util/notes.ts'
 import { hexToInt, intToHex, toHex } from '../util/rgb.ts'
 import { DspService } from './dsp-service.ts'
 import { BarBox, PlayerTrack } from './player-shared.ts'
@@ -42,28 +42,32 @@ export interface TrackBox {
 export function TrackBox(track: Track, source: $<Source<Token>>, data: $<BoxData>, rect?: $<Rect>): TrackBox {
   using $ = Signal()
 
-  rect ??= $(new Rect, {
-    x: data.time,
-    y: track.info.y,
-    w: data.length,
-    h: 1
-  })
+  rect ??= $(new Rect(
+    $(new Point, {
+      x: data.$.length,
+      y: 1,
+    }),
+    $(new Point, {
+      x: data.$.time,
+      y: track.info.$.y,
+    })
+  ))
 
-  $.fx(() => {
-    const { time, length } = data
-    const { y } = track.info
-    $()
-    rect!.x = time
-    rect!.w = length
-    rect!.y = y
-  })
+  // $.fx(() => {
+  //   const { time, length } = data
+  //   const { y } = track.info
+  //   $()
+  //   rect!.x = time
+  //   rect!.w = length
+  //   rect!.y = y
+  // })
 
-  $.fx(() => {
-    const { x, w } = rect!
-    $()
-    data.time = x
-    data.length = w
-  })
+  // $.fx(() => {
+  //   const { x, w } = rect!
+  //   $()
+  //   data.time = x
+  //   data.length = w
+  // })
 
   const barBox = BarBox(wasmSeq.memory.buffer, wasmSeq.createBarBox())
   $.fx(() => {

@@ -5,6 +5,7 @@ import { ShapeOpts } from '../../as/assembly/gfx/sketch-shared.ts'
 import { Grid } from '../draws/grid.ts'
 import { Shapes, Sketch } from '../gl/sketch.ts'
 import { layout } from '../layout.ts'
+import { lib } from '../lib.ts'
 import { screen } from '../screen.tsx'
 import { services } from '../services.ts'
 import { state } from '../state.ts'
@@ -13,8 +14,6 @@ import { BoxNote, MAX_NOTE, createNote, getNotesScale } from '../util/notes.ts'
 import { WebGL } from '../webgl.ts'
 import { Mouse } from '../world/mouse.ts'
 import { Canvas } from './Canvas.tsx'
-import { lib } from '../lib.ts'
-import { Note } from '../util/notes-shared.ts'
 
 const DEBUG = true
 
@@ -25,7 +24,7 @@ export function Preview(grid: Grid) {
   using $ = Signal()
 
   const view = $(new Rect(
-    $(new Point(), {
+    $(new Point, {
       x: layout.info.$.previewWidth,
       y: layout.info.$.codeHeight,
     })
@@ -39,6 +38,7 @@ export function Preview(grid: Grid) {
     get trackBox() {
       return lib?.project?.info?.activeTrackBox
     },
+    isWheeling: false,
     hoverNoteMode: 'grab' as 'grab' | 'resize',
     hoveringNoteN: -1,
     hoveringNote: null as null | BoxNote,
@@ -63,12 +63,6 @@ export function Preview(grid: Grid) {
     bottom-0
     z-10
   " /> as Canvas
-
-  // $.fx(() => {
-  //   const { mainYBottom: y } = layout.info
-  //   $()
-  //   canvas.style.transform = `translateY(${y}px)`
-  // })
 
   const webgl = WebGL(view, canvas, true)
   const sketch = Sketch(webgl.GL, view)
@@ -239,9 +233,23 @@ export function Preview(grid: Grid) {
   }
 
   function onMouseMove(e: MouseEvent) {
+    info.isWheeling = false
     if (info.draggingNote) return
     updateMousePos(e)
     updateHoveringNote()
+  }
+
+  function onWheel(e: WheelEvent) {
+    info.isWheeling = true
+    updateMousePos(e)
+    updateHoveringNote()
+    if (info.hoveringNote) {
+      info.hoveringNote.info.vel = clamp(0, 1,
+        info.hoveringNote.info.vel + e.deltaY * 0.001
+      )
+      shapes.info.needUpdate = true
+      grid.info.redraw++
+    }
   }
 
   let lastClickedNote: BoxNote | null
@@ -302,7 +310,7 @@ export function Preview(grid: Grid) {
           updateMousePos(e)
           updateHoveringNoteN()
           note.info.n = info.hoveringNoteN
-          note.info.time = Math.floor(notePos.x - offsetX)
+          note.info.time = Math.max(0, Math.floor(notePos.x - offsetX))
           shapes.info.needUpdate = true
         }), { capture: true })
 
@@ -349,9 +357,10 @@ export function Preview(grid: Grid) {
   })
 
   $.fx(() => {
-    const { hoveringNote } = info
+    const { hoveringNote, isWheeling } = info
     $()
-    notesShape.view.hoveringNote$ = hoveringNote?.data.ptr ?? 0
+
+    notesShape.view.hoveringNote$ = isWheeling ? 0 : (hoveringNote?.data.ptr ?? 0)
     shapes.info.needUpdate = true
     return () => {
       notesShape.view.hoveringNote$ = 0
@@ -360,6 +369,7 @@ export function Preview(grid: Grid) {
   })
 
   $.fx(() => ([
+    [canvas, 'wheel', onWheel as any],
     [canvas, 'mousemove', onMouseMove],
     [canvas, 'mousedown', onMouseDown],
     [canvas, 'contextmenu', (e: Event) => dom.stop.prevent(e)]

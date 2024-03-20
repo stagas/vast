@@ -30,7 +30,7 @@ function parse(timestamp: number, text: string) {
     tracks: tracks.map(([notes, boxes]) => ({
       notes: notes.map(([n, time, length, vel]) => ({
         n,
-        time,
+        time: Math.max(0, time),
         length,
         vel,
       })),

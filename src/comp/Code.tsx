@@ -1,17 +1,17 @@
 import { Signal } from 'signal-jsx'
 import { Point, Rect } from 'std'
 import { clamp, dom, isMobile } from 'utils'
-import { CODE_WIDTH, HEADER_HEIGHT } from '../constants.ts'
+import { CODE_WIDTH } from '../constants.ts'
 import { Editor, createEditor } from '../editor/editor.ts'
 import { Keyboard } from '../editor/keyboard.ts'
 import { Pointer, PointerEventType } from '../editor/pointer.ts'
 import { Token } from '../lang/tokenize.ts'
+import { layout } from '../layout.ts'
 import { lib } from '../lib.ts'
 import { screen } from '../screen.tsx'
 import { state } from '../state.ts'
 import { toHex } from '../util/rgb.ts'
 import { Canvas } from './Canvas.tsx'
-import { layout } from '../layout.ts'
 
 export function Code() {
   using $ = Signal()
@@ -29,11 +29,15 @@ export function Code() {
     lineHeight: 16,
   })
 
-  const view = $(new Rect, {
-    x: 0,
-    y: layout.info.$.mainYBottom,
-    w: layout.info.$.codeWidth,
-    h: layout.info.$.codeHeight,
+  const view = $(new Rect(
+    $(new Point, {
+      x: layout.info.$.codeWidth,
+      y: layout.info.$.codeHeight
+    }),
+    $(new Point, {
+      y: layout.info.$.mainYBottom
+    }),
+  ), {
     pr: screen.info.$.pr,
   })
 

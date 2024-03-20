@@ -12,7 +12,7 @@ export abstract class Osc extends Gen {
   _phase: u32 = 0
   _step: u32 = 0
   _sample: f32 = 0
-  _lastTrig: i32 = -1
+  _lastTrig: i32 = 0
   _offsetU32: u32 = 0
   _initial: boolean = true
 
@@ -28,9 +28,8 @@ export abstract class Osc extends Gen {
     this.hz = 0
     this.trig = 0
     this.offset = 0
-    this._lastTrig = -1
+    this._lastTrig = 0
     this._phase = 0
-    this._initial = true
   }
 
   _update(): void {
@@ -39,8 +38,7 @@ export abstract class Osc extends Gen {
     this._offsetU32 = u32(<f64>this.offset * <f64>0xFFFFFFFF)
     this.offset = 0
 
-    if (this._initial || this._lastTrig !== i32(this.trig)) {
-      this._initial = false
+    if (this._lastTrig !== i32(this.trig)) {
       this._phase = 0
     }
 

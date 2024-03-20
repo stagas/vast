@@ -117,6 +117,7 @@ export class Sound {
     data.begin = i
     data.end = i
     dspRun(this, ops$)
+
     for (let x = i; x < end; x += BUFFER_SIZE) {
       const chunkEnd = x + BUFFER_SIZE > end ? end - x : BUFFER_SIZE
 
