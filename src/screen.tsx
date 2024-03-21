@@ -25,9 +25,9 @@ export function Screen() {
     overlay: false,
     pr: window.devicePixelRatio,
     rect,
-    theme: storage<Theme>('dark'),
+    theme: storage<Theme>('dim'),
     get colors() {
-      return themes[this.theme]
+      return themes[this.theme] ?? themes.dim
     },
     get primaryColorInt() {
       return hexToInt(toHex(this.colors.primary))

@@ -1,8 +1,8 @@
 import { Signal, nu } from 'signal-jsx'
-import dspWorkerUrl from './dsp-worker.ts?url'
 import { Deferred, rpc } from 'utils'
-import { DspWorker } from './dsp-worker.ts'
 import { Clock } from './dsp-shared.ts'
+import type { DspWorker } from './dsp-worker.ts'
+import DspWorkerFactory from './dsp-worker.ts?worker'
 
 export type DspService = ReturnType<typeof DspService>
 
@@ -11,7 +11,7 @@ export function DspService(ctx: AudioContext) {
 
   const deferred = Deferred<void>()
   const ready = deferred.promise
-  const worker = new Worker(dspWorkerUrl, { type: 'module' })
+  const worker = new DspWorkerFactory()
 
   const service = rpc<DspWorker>(worker, {
     async isReady() {

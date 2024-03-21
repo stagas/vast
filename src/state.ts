@@ -1,36 +1,14 @@
-import { Theme } from 'daisyui'
-import themes from 'daisyui/src/theming/themes'
 import { $, storage } from 'signal-jsx'
 import { Matrix } from 'std'
 import { Task } from 'tinybench'
-import { Token, tokenize } from './lang/tokenize.ts'
-import { Source } from './source.ts'
-import { LerpMatrix } from './util/geometry.ts'
-import { hexToInt, toHex } from './util/rgb.ts'
-import { Mesh } from './webgl.ts'
-import { AnimMode } from './world/anim.ts'
-import { Track } from './dsp/track.ts'
 import { ZoomState } from './draws/grid.ts'
-import { Project } from './dsp/project.ts'
-import { Audio } from './audio.ts'
-import { dom } from 'utils'
+import { LerpMatrix } from './util/geometry.ts'
+import { AnimMode } from './world/anim.ts'
 
 const DEBUG = true
 
 class State {
   name = 'ravescript'
-
-  // cursor = 'default'
-  // overlay = false
-  // pr = window.devicePixelRatio
-  // theme = storage<Theme>('dark')
-  // get colors() {
-  //   // console.log(themes[state.theme] )
-  //   return themes[state.theme]
-  // }
-  // get primaryColorInt() {
-  //   return hexToInt(toHex(screen.info.colors.primary))
-  // }
 
   mode = storage('audio')
 

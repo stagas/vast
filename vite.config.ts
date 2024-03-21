@@ -3,15 +3,16 @@ import fs from 'fs'
 import openInEditor from 'open-in-editor'
 import os from 'os'
 import path from 'path'
-import { defineConfig, transformWithEsbuild } from 'vite'
+import { build, createLogger, defineConfig, transformWithEsbuild } from 'vite'
 import externalize from "vite-plugin-externalize-dependencies"
 import { watchAndRun } from 'vite-plugin-watch-and-run'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import assemblyScriptPlugin from './vendor/vite-plugin-assemblyscript'
 import ViteUsing from './vendor/vite-plugin-using'
 import bundledEntryPlugin from './vendor/vite-plugin-bundled-entry'
+import alias from '@rollup/plugin-alias'
 
-import type { HmrContext, Plugin } from 'vite'
+import type { HmrContext, Plugin, PluginOption, UserConfig } from 'vite'
 
 interface DebounceOptions {
   first?: boolean
@@ -93,6 +94,68 @@ function PrintUrlsPlugin(): Plugin {
         })
       })
     }
+  }
+}
+
+function tsBundleUrlPlugin(): PluginOption {
+  let viteConfig: UserConfig
+
+  return {
+    name: 'vite-plugin-ts-bundle-url',
+    apply: 'build',
+    enforce: 'post',
+
+    config(config) {
+      viteConfig = config
+    },
+
+    async transform(_code, id) {
+      if (!id.endsWith('.ts?url')) {
+        return
+      }
+
+      const quietLogger = createLogger()
+      quietLogger.info = () => undefined
+
+      const output = await build({
+        ...viteConfig,
+        configFile: false,
+        clearScreen: false,
+        customLogger: quietLogger,
+        build: {
+          ...viteConfig?.build,
+          lib: {
+            entry: id.replace('?url', ''),
+            name: '_',
+            formats: ['iife'],
+          },
+          rollupOptions: {
+            plugins: [
+              ViteUsing(),
+              hexLoader,
+              tsconfigPaths(),
+            ]
+          },
+          write: false,
+        },
+      })
+
+      if (!(output instanceof Array)) {
+        throw new Error('Expected output to be Array')
+      }
+      const iife = output[0].output[0].code
+      const encoded = Buffer.from(iife, 'utf8').toString('base64')
+      const transformed = `export default "data:text/javascript;base64,${encoded}";`
+      // TODO: Fix this so emoji etc. get properly decoded from within audio worklet module added using this url
+
+      // const relative = relativePath('.', id);
+      console.log(
+        `TypeScript bundle url: ${id} (${transformed.length} bytes)`,
+      )
+
+      // eslint-disable-next-line consistent-return -- We need to return a string here and undefined above
+      return transformed
+    },
   }
 }
 
@@ -190,13 +253,29 @@ export default defineConfig({
   },
   esbuild: {
     jsx: 'automatic',
-    // target: 'esnext',
+    target: 'esnext',
     // include: /\.(m?[jt]s|[jt]sx)$/,
     // exclude: ['**/assembly/dsp/**/*']
   },
+  worker: {
+    format: 'es',
+  },
   build: {
     target: 'esnext',
+    minify: false,
     rollupOptions: {
+      plugins: [
+        ViteUsing(),
+        hexLoader,
+        tsconfigPaths(),
+        tsBundleUrlPlugin(),
+        // alias({
+        //   entries: [{
+        //     find: 'assembly-dsp',
+        //     replacement: path.resolve('./src/bindings-dsp.ts'),
+        //   }],
+        // })
+      ],
       treeshake: { propertyReadSideEffects: 'always' },
     }
   },

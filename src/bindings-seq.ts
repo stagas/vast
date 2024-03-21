@@ -8,7 +8,7 @@ const DEBUG = false
 
 let mod: WebAssembly.Module
 
-if (import.meta.env) {
+if (import.meta.env && import.meta.env.MODE !== 'production') {
   const hex = (await import('../as/build/seq.wasm?raw-hex')).default
   const fromHexString = (hexString: string) => Uint8Array.from(
     hexString.match(/.{1,2}/g)!.map(byte =>
@@ -22,7 +22,7 @@ if (import.meta.env) {
   mod = await WebAssembly.compile(binary)
 }
 else {
-  mod = await WebAssembly.compileStreaming(fetch(url))
+  mod = await WebAssembly.compileStreaming(fetch(new URL(url, location.href)))
 }
 
 const wasm = await instantiate(mod, {
