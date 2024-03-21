@@ -33,8 +33,8 @@ export function Sequencer() {
     const { w } = screen.info.rect
     const { mainY } = layout.info
     $()
-    view.x = HEADS_WIDTH
-    view.w = w - HEADS_WIDTH
+    view.x = HEADS_WIDTH + 1
+    view.w = w - HEADS_WIDTH - 1
     view.h = mainY - HEADER_HEIGHT / 2
   })
 

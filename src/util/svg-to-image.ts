@@ -1,3 +1,4 @@
+import { screen } from '../screen.tsx'
 import { state } from '../state.ts'
 
 export async function svgToImg(svg: string, color: string) {

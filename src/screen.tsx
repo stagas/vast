@@ -18,12 +18,12 @@ export function Screen() {
   />
   dom.body.append(overlayEl)
 
-  const rect = $(new Rect)
+  const rect = $(new Rect, { pr: window.devicePixelRatio })
 
   const info = $({
     cursor: 'default',
     overlay: false,
-    pr: window.devicePixelRatio,
+    pr: rect.$.pr,
     rect,
     theme: storage<Theme>('dim'),
     get colors() {
@@ -37,7 +37,7 @@ export function Screen() {
   $.fx(() => dom.on(window, 'resize', $.fn(() => {
     info.rect.w = window.innerWidth
     info.rect.h = window.innerHeight
-    info.pr = window.devicePixelRatio
+    info.rect.pr = window.devicePixelRatio
   }), { unsafeInitial: true }))
 
   $.fx(function update_style_cursor() {

@@ -30,17 +30,17 @@ export function Canvas(props: { view: Rect, actual?: boolean, class?: string, on
     const yOffset = lastHeight - height
     props.onresize?.(yOffset)
   })
-  $.fx(() => {
-    if (props.actual) return
-    const { x, y } = $.of(props.view)
-    $()
-    el.style.transform = `translateX(${x}px)`
-    // el.height = (lastHeight_pr = Math.max(lastHeight_pr, h_pr))
-    // el.style.width = (lastWidth = Math.max(width, lastWidth)) + 'px'
-    // el.style.height = (lastHeight = Math.max(height, lastHeight)) + 'px'
-    // const yOffset = lastHeight - height
-    // props.onresize?.(yOffset)
-  })
+  // $.fx(() => {
+  //   if (props.actual) return
+  //   const { x, y } = $.of(props.view)
+  //   $()
+  //   el.style.transform = `translateX(${x}px)`
+  //   // el.height = (lastHeight_pr = Math.max(lastHeight_pr, h_pr))
+  //   // el.style.width = (lastWidth = Math.max(width, lastWidth)) + 'px'
+  //   // el.style.height = (lastHeight = Math.max(height, lastHeight)) + 'px'
+  //   // const yOffset = lastHeight - height
+  //   // props.onresize?.(yOffset)
+  // })
 
   return el
 }

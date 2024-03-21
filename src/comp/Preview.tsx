@@ -57,21 +57,15 @@ export function Preview(grid: Grid) {
     info.redraw++
   }
 
-  const canvas = <Canvas view={view} onresize={onresize} class="
+  const canvas = <Canvas actual view={view} onresize={onresize} class="
     absolute
     right-0
     bottom-0
     z-10
+    pixelated
   " /> as Canvas
 
   const webglView = $(new Rect, { pr: screen.info.$.pr })
-  $.fx(() => {
-    const { previewWidth, codeWidth, codeHeight } = layout.info
-    $()
-    view.x = (canvas.width / screen.info.pr) - previewWidth
-    webglView.w = previewWidth
-    webglView.h = codeHeight
-  })
   const webgl = WebGL(webglView, canvas, true)
   const sketch = Sketch(webgl.GL, view)
   webgl.add($, sketch)
@@ -86,7 +80,17 @@ export function Preview(grid: Grid) {
     h: 1,
   })
   $.fx(() => {
-    const { w, h } = view
+    const { pr } = screen.info
+    const { previewWidth, codeWidth, codeHeight } = layout.info
+    $()
+    view.x = (canvas.width / pr) - previewWidth
+    webglView.w = previewWidth
+    webglView.h = codeHeight
+    $.flush()
+    shapes.info.needUpdate = true
+  })
+  $.fx(() => {
+    const { w, h } = webglView
     const { trackBox } = $.of(info)
     const { length } = trackBox.data
     $()
@@ -164,7 +168,7 @@ export function Preview(grid: Grid) {
     shapes.info.needUpdate = true
   })
 
-  const mouse = Mouse(view, viewMatrix)
+  const mouse = Mouse(webglView, viewMatrix)
   const notePos = { x: -1, y: -1 }
 
   function updateHoveringNoteN() {
@@ -237,7 +241,7 @@ export function Preview(grid: Grid) {
 
   function updateMousePos(e: MouseEvent) {
     mouse.pos.setFromEvent(e, canvas)
-    mouse.pos.y -= info.mouseOffsetY
+    // mouse.pos.y -= info.mouseOffsetY
   }
 
   function onMouseMove(e: MouseEvent) {

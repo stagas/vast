@@ -15,9 +15,11 @@ export function Layout() {
     get mainYBottom() { return this.mainY + HEADER_HEIGHT / 2 + 2 },
     codeWidthPct: 0.5,
     get codeWidth() {
-      return screen.info.rect.w * this.codeWidthPct },
+      return screen.info.rect.w * this.codeWidthPct
+    },
     get codeHeight() {
-      return screen.info.rect.h - (this.mainY + HEADER_HEIGHT / 2) - 2 },
+      return screen.info.rect.h - (this.mainY + HEADER_HEIGHT / 2) - 2
+    },
     get previewWidth() {
       return screen.info.rect.w - this.codeWidth - 2
     },

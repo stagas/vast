@@ -21,9 +21,12 @@ export function Surface(view: $<Rect>, intentMatrix: $<Matrix>, viewMatrix: Lerp
   const world = World(view, intentMatrix)
   const { anim, mouse, keyboard } = world
 
-  const canvas = <Canvas view={world.view} class="absolute left-0 top-0 z-20" /> as HTMLCanvasElement
-  canvas.style.imageRendering = 'pixelated'
-
+  const canvas = <Canvas actual view={world.view} class="absolute left-0 top-0 z-20 pixelated" /> as HTMLCanvasElement
+  $.fx(() => {
+    const { x } = world.view
+    $()
+    canvas.style.transform = `translateX(${x}px)`
+  })
   $.fx(() => {
     anim.ticks.add(viewMatrix.tick)
     return () => {

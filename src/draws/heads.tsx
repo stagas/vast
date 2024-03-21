@@ -27,8 +27,8 @@ export function Heads(surface: Surface, grid: Grid) {
     view.h = h
   })
 
-  const canvas = <Canvas onresize={(y) => {
-    surface.sketch.view.y = y
+  const canvas = <Canvas actual onresize={(y) => {
+    // surface.sketch.view.y = y
   }} view={view} class="
     absolute left-0 top-0
     pointer-events-none
@@ -156,6 +156,7 @@ export function Heads(surface: Surface, grid: Grid) {
   })
 
   $.fx(() => {
+    const { pr } = screen.info
     const { play } = $.of(icons)
     // const { play, stop, loop, solo, mute } = $.of(icons)
     $()
@@ -210,8 +211,10 @@ export function Heads(surface: Surface, grid: Grid) {
         // info.hoveringTrack === track
         //   ? icons.play.img_hover
         //   :
-        icons.play.img
-        , 0, y)
+        icons.play.img,
+        0, 0, icons.play.img.width, icons.play.img.height,
+        0, y, w, w * (icons.play.img.height / icons.play.img.width),
+        )
       c.restore()
       c.beginPath()
       c.moveTo(w, y)
