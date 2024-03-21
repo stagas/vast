@@ -39,6 +39,10 @@ export interface TrackBox {
   data: $<BoxData>
 }
 
+const barBoxPool = Array.from({ length: 1024 }, () =>
+  wasmSeq.createBarBox()
+)
+
 export function TrackBox(track: Track, source: $<Source<Token>>, data: $<BoxData>, rect?: $<Rect>): TrackBox {
   using $ = Signal()
 
@@ -69,7 +73,11 @@ export function TrackBox(track: Track, source: $<Source<Token>>, data: $<BoxData
   //   data.length = w
   // })
 
-  const barBox = BarBox(wasmSeq.memory.buffer, wasmSeq.createBarBox())
+  const barBox$ = barBoxPool.pop()
+  if (!barBox$) {
+    throw new Error('Out of bar box elements.')
+  }
+  const barBox = BarBox(wasmSeq.memory.buffer, barBox$)
   $.fx(() => {
     const { time } = data
     $()
@@ -79,6 +87,9 @@ export function TrackBox(track: Track, source: $<Source<Token>>, data: $<BoxData
     const { pt } = track
     $()
     barBox.pt$ = pt.ptr
+  })
+  $.fx(() => () => {
+    barBoxPool.push(barBox$)
   })
 
   const info = $({
@@ -234,7 +245,7 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
 
   const renderedEpoch = new Map<Source<Token>, number>()
 
-  const getFloats = Lru(10, (length: number) => wasmSeq.alloc(Float32Array, length), item => item.fill(0), item => item.free())
+  const getFloats = Lru(20, (length: number) => wasmSeq.alloc(Float32Array, length), item => item.fill(0), item => item.free())
 
   let isRendering = false
   let toRender = new Set<Source<Token>>()

@@ -99,9 +99,9 @@ class Lib {
       console.log('[save] no changes - nothing to save')
       return minified
     }
-    console.log(res, res.length)
+    // console.log(res, res.length)
     history.replaceState({}, '', '?t=' + (new Date()).toISOString() + '&p=' + encodeURIComponent(res))
-    console.log('[save] saved in url', location.href)
+    console.log('[save] saved in url', location.href, location.href.length, 'bytes')
     return minified
   }))
 

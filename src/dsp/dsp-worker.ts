@@ -15,8 +15,8 @@ export type DspWorker = typeof worker
 
 const sounds = new Map<number, Sound>()
 
-const getFloats = Lru(10, (key: string, length: number) => wasmDsp.alloc(Float32Array, length), item => item.fill(0), item => item.free())
-const getNotes = Lru(10, (length: number) => wasmDsp.alloc(Float32Array, length), item => item.fill(0), item => item.free())
+const getFloats = Lru(20, (key: string, length: number) => wasmDsp.alloc(Float32Array, length), item => item.fill(0), item => item.free())
+const getNotes = Lru(20, (length: number) => wasmDsp.alloc(Float32Array, length), item => item.fill(0), item => item.free())
 
 const worker = {
   dsp: null as null | Dsp,
