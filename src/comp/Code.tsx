@@ -65,7 +65,7 @@ export function Code() {
     info.redraw++
   }
 
-  const canvas = <Canvas view={view} onresize={onresize} class="absolute left-0 z-40" /> as Canvas
+  const canvas = <Canvas actual view={view} onresize={onresize} class="absolute left-0 z-40" /> as Canvas
   $.fx(() => {
     const { y } = view
     $()
@@ -329,8 +329,8 @@ export function Code() {
       $()
       // console.log(view.text)
       // console.log(editor.rect.text, editor.view.text, view.text)
-      editor.rect.w = editor.view.w = view.w * pr
-      editor.rect.h = editor.view.h = view.h * pr
+      editor.rect.w = editor.view.w = view.w //* pr
+      editor.rect.h = editor.view.h = view.h * pr - 50
       // editor.view.size.set(view.size).mul(screen.info.pr)
       targetRect.set(view) //editor.view)
       // targetRect.pos.div(screen.info.pr)

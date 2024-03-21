@@ -29,8 +29,8 @@ export function Minimap(grid: Grid) {
     pr: screen.info.$.pr
   })
 
-  const canvas = <Canvas view={view} class="-mb-[1px]" /> as Canvas
-  const handle = <Canvas view={handleView} class="absolute -left-[5px] -top-[4px]" /> as Canvas
+  const canvas = <Canvas actual view={view} class="-mb-[1px]" /> as Canvas
+  const handle = <Canvas actual view={handleView} class="absolute -left-[5px] -top-[4px]" /> as Canvas
   const el = <div class="relative m-1.5 h-8">
     {canvas}
     {handle}
@@ -81,7 +81,7 @@ export function Minimap(grid: Grid) {
     const { boxes } = $.of(info)
     const { left, width, rows } = boxes.info
     const { colors } = screen.info
-    const { pr } = view
+    const { pr, w, h } = view
     $()
     Matrix.viewBox(matrix, view, {
       x: left,

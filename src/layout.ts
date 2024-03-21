@@ -13,9 +13,14 @@ export function Layout() {
     },
     mainY: storage(window.innerHeight / 100 * 60),
     get mainYBottom() { return this.mainY + HEADER_HEIGHT / 2 + 2 },
-    codeWidth: window.innerWidth / 2, //storage(window.innerWidth / 2),
-    get codeHeight() { return screen.info.rect.h - (this.mainY + HEADER_HEIGHT / 2) - 2 },
-    get previewWidth() { return screen.info.rect.w - this.codeWidth - 2 },
+    codeWidthPct: 0.5,
+    get codeWidth() {
+      return screen.info.rect.w * this.codeWidthPct },
+    get codeHeight() {
+      return screen.info.rect.h - (this.mainY + HEADER_HEIGHT / 2) - 2 },
+    get previewWidth() {
+      return screen.info.rect.w - this.codeWidth - 2
+    },
   })
   return { info }
 }

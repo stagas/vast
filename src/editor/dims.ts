@@ -50,7 +50,7 @@ export class Dims extends Comp {
     return this.ctx.scroll.pos
   }
   @nu get overscrollX() {
-    return this.ctx.text.padding.x + 2 + of(this).charWidth * 7
+    return this.ctx.text.padding.x + 2 + of(this).charWidth * 2
   }
   @nu get innerSizeWidth() {
     const { longestLine, charWidth, scrollbarSize } = of(this)

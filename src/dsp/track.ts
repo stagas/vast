@@ -77,6 +77,7 @@ export function TrackBox(track: Track, source: $<Source<Token>>, data: $<BoxData
   if (!barBox$) {
     throw new Error('Out of bar box elements.')
   }
+
   const barBox = BarBox(wasmSeq.memory.buffer, barBox$)
   $.fx(() => {
     const { time } = data

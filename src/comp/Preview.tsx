@@ -27,7 +27,7 @@ export function Preview(grid: Grid) {
     $(new Point, {
       x: layout.info.$.previewWidth,
       y: layout.info.$.codeHeight,
-    })
+    }),
   ), {
     pr: screen.info.$.pr
   })
@@ -64,7 +64,15 @@ export function Preview(grid: Grid) {
     z-10
   " /> as Canvas
 
-  const webgl = WebGL(view, canvas, true)
+  const webglView = $(new Rect, { pr: screen.info.$.pr })
+  $.fx(() => {
+    const { previewWidth, codeWidth, codeHeight } = layout.info
+    $()
+    view.x = (canvas.width / screen.info.pr) - previewWidth
+    webglView.w = previewWidth
+    webglView.h = codeHeight
+  })
+  const webgl = WebGL(webglView, canvas, true)
   const sketch = Sketch(webgl.GL, view)
   webgl.add($, sketch)
 
