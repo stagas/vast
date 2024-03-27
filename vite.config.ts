@@ -290,9 +290,9 @@ export default defineConfig({
         })
       },
     },
-    ViteUsing(),
     hexLoader,
     tsconfigPaths(),
+    ViteUsing(),
     externalize({
       externals: [
         'node:fs/promises',

@@ -1,6 +1,6 @@
 import { Signal } from 'signal-jsx'
 import { Matrix, Point, Rect } from 'std'
-import { dom } from 'utils'
+import { MouseButtons, dom } from 'utils'
 import { Grid } from '../draws/grid.ts'
 import { layout } from '../layout.ts'
 import { screen } from '../screen.tsx'
@@ -36,7 +36,16 @@ export function Minimap(grid: Grid) {
     {handle}
   </div>
 
+  $.fx(() => dom.on(canvas, 'contextmenu', e => {
+    e.preventDefault()
+  }))
+
+  $.fx(() => dom.on(handle, 'contextmenu', e => {
+    e.preventDefault()
+  }))
+
   $.fx(() => dom.on(handle, 'wheel', e => {
+    grid.snap.x = false
     const m = grid.intentMatrix
     grid.mousePos.x = (-m.e / m.a) + 1 / m.a
     grid.mousePos.y = 0
@@ -45,9 +54,12 @@ export function Minimap(grid: Grid) {
   }, { passive: true }))
 
   $.fx(() => dom.on(handle, 'mousedown', e => {
+    if (!(e.buttons & MouseButtons.Left)) return
+
     const rect = handle.getBoundingClientRect()
 
     function moveToTarget(e: MouseEvent) {
+      grid.snap.x = false
       const m = grid.intentMatrix
       const boxes = grid.info.boxes
       if (!boxes) return

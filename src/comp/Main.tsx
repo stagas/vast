@@ -7,6 +7,7 @@ import { Bench, BenchResults } from './Bench.tsx'
 import { Console } from './Console.tsx'
 import { Navbar } from './Navbar.tsx'
 import { Sequencer } from './Sequencer.tsx'
+import { dom } from 'utils'
 
 const DEBUG = true
 

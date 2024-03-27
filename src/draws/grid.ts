@@ -951,12 +951,11 @@ export function Grid(surface: Surface) {
             track,
             $(
               templateBox?.info.source
-              ?? ([...track.info.sources?.values() ?? []][0])
-              ?? $(new Source(tokenize), { code: '' })
+              ?? track.info.sources[0]
             ),
             $({
               ...templateBox?.data ?? ({
-                source_id: 0,
+                source_id: track.info.sources[0].id,
                 time: 0,
                 length: 1,
                 pitch: 0,
@@ -1263,6 +1262,7 @@ export function Grid(surface: Surface) {
   const grid = {
     info,
     view,
+    snap,
     mouse,
     mousePos,
     intentMatrix,

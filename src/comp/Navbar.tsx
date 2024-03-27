@@ -1,5 +1,5 @@
 import { Signal } from 'signal-jsx'
-import { clamp, dom } from 'utils'
+import { MouseButtons, clamp, dom } from 'utils'
 import { HEADER_HEIGHT } from '../constants.ts'
 import { layout } from '../layout.ts'
 import { lib } from '../lib.ts'
@@ -10,6 +10,8 @@ import { Btn, MainBtn } from './MainBtn.tsx'
 import { MainMenu } from './MainMenu.tsx'
 import { Sequencer } from './Sequencer.tsx'
 import { ThemePicker } from './ThemePicker.tsx'
+import { Source, getSourceId } from '../source.ts'
+import { Token, tokenize } from '../lang/tokenize.ts'
 
 const DEBUG = true
 
@@ -72,20 +74,41 @@ export function Navbar(props: { sequencer: Sequencer }) {
       //   </a>
       // </div>
       // ,
-      <div>
-        <Btn onpointerdown={() => {
+      <div oncontextmenu={(e: MouseEvent) => {
+        e.stopPropagation()
+        e.preventDefault()
+      }}>
+        <Btn onpointerdown={e => {
+          if (!(e.buttons & MouseButtons.Left)) return
+          // play
           services.audio.player.start()
         }}>{/* play button */}
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-[27px] w-6" preserveAspectRatio="xMidYMid slice" viewBox="0 0 24 24">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-[27px] w-5" preserveAspectRatio="xMidYMid slice" viewBox="0 0 24 24">
             <path fill="none" stroke={() => screen.info.colors.primary} stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M7 17.259V6.741a1 1 0 0 1 1.504-.864l9.015 5.26a1 1 0 0 1 0 1.727l-9.015 5.259A1 1 0 0 1 7 17.259" />
           </svg>
         </Btn>
-        <Btn onpointerdown={() => {
+        <Btn onpointerdown={e => {
+          if (!(e.buttons & MouseButtons.Left)) return
+          // stop
           services.audio.player.stop()
           lib.project?.info.tracks.forEach(t => t.stop())
         }}>{/* stop button */}
           <svg xmlns="http://www.w3.org/2000/svg" class="h-[22.5px] w-5" preserveAspectRatio="xMidYMid slice" viewBox="0 0 24 24">
             <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M5 8.2v7.6c0 1.12 0 1.68.218 2.107c.192.377.497.683.874.875c.427.218.987.218 2.105.218h7.607c1.118 0 1.676 0 2.104-.218c.376-.192.682-.498.874-.875c.218-.427.218-.986.218-2.104V8.197c0-1.118 0-1.678-.218-2.105a2 2 0 0 0-.874-.874C17.48 5 16.92 5 15.8 5H8.2c-1.12 0-1.68 0-2.108.218a1.999 1.999 0 0 0-.874.874C5 6.52 5 7.08 5 8.2" />
+          </svg>
+        </Btn>
+        <Btn onpointerdown={$.fn(e => {
+          if (!(e.buttons & MouseButtons.Left)) return
+          // add track
+          const p = lib.project!
+          p.info.data.tracks = [...p.info.data.tracks, $({
+            sources: [{ code: '' }],
+            boxes: [],
+            notes: [],
+          })]
+        })} title="+ add new track">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-[24px] w-5" preserveAspectRatio="xMidYMid slice" viewBox="0 0 16 16">
+            <path fill={() => screen.info.colors.secondary} fill-rule="evenodd" d="M8 1.75a.75.75 0 0 1 .75.75v4.75h4.75a.75.75 0 0 1 0 1.5H8.75v4.75a.75.75 0 0 1-1.5 0V8.75H2.5a.75.75 0 0 1 0-1.5h4.75V2.5A.75.75 0 0 1 8 1.75" clip-rule="evenodd" />
           </svg>
         </Btn>
       </div>
@@ -101,8 +124,12 @@ export function Navbar(props: { sequencer: Sequencer }) {
       //   photo
       // </MainBtn>
       ,
-      <div>
-        <Btn onpointerdown={() => {
+      <div oncontextmenu={(e: MouseEvent) => {
+        e.stopPropagation()
+        e.preventDefault()
+      }}>
+        <Btn onpointerdown={e => {
+          if (!(e.buttons & MouseButtons.Left)) return
           state.mode = 'notes'
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" class={() => [
@@ -112,7 +139,8 @@ export function Navbar(props: { sequencer: Sequencer }) {
             <path fill="currentColor" d="M212.92 25.69a8 8 0 0 0-6.86-1.45l-128 32A8 8 0 0 0 72 64v110.08A36 36 0 1 0 88 204v-85.75l112-28v51.83A36 36 0 1 0 216 172V32a8 8 0 0 0-3.08-6.31M52 224a20 20 0 1 1 20-20a20 20 0 0 1-20 20m36-122.25v-31.5l112-28v31.5ZM180 192a20 20 0 1 1 20-20a20 20 0 0 1-20 20" />
           </svg>
         </Btn>
-        <Btn onpointerdown={() => {
+        <Btn onpointerdown={e => {
+          if (!(e.buttons & MouseButtons.Left)) return
           state.mode = 'audio'
         }}>
           <svg xmlns="http://www.w3.org/2000/svg" class={() => [
@@ -127,7 +155,10 @@ export function Navbar(props: { sequencer: Sequencer }) {
         </Btn>
       </div>
       ,
-      <div onmousedown={beginDragging} onwheel={props.sequencer.grid.handleZoom} class="flex-1 flex" />
+      <div oncontextmenu={(e: MouseEvent) => {
+        e.stopPropagation()
+        e.preventDefault()
+      }} onmousedown={beginDragging} onwheel={props.sequencer.grid.handleZoom} class="flex-1 flex" />
       ,
       // <div class="flex-1 flex items-end justify-end">
       //   {state.mode === 'dev' && <>
@@ -162,7 +193,7 @@ export function Navbar(props: { sequencer: Sequencer }) {
       //   mode
       // </MainBtn>
       // ,
-      <Btn onclick={() => { }}>
+      <Btn>
         <a href="https://github.com/stagas/ravescript" target="_blank">
           <div>{/* class="h-[28px] -mt-[2.5px] -mr-[5px]" */}
             <svg xmlns="http://www.w3.org/2000/svg" class="mt-[1px] h-[24px] w-[24px]"

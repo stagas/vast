@@ -1,9 +1,7 @@
-import { $, Signal } from 'signal-jsx'
-import { Token, tokenize } from '../lang/tokenize.ts'
+import { Signal } from 'signal-jsx'
 import { services } from '../services.ts'
-import { Source } from '../source.ts'
-import { Track, TrackBox } from './track.ts'
 import { Note } from '../util/notes-shared.ts'
+import { Track, TrackBox } from './track.ts'
 
 interface SourceData {
   code?: string
@@ -22,7 +20,7 @@ interface ParamData {
 }
 
 export interface BoxData {
-  source_id: number
+  source_id: string
   time: number
   length: number
   pitch: number
@@ -30,6 +28,7 @@ export interface BoxData {
 }
 
 export interface TrackData {
+  sources: SourceData[]
   notes: Note[]
   boxes: BoxData[]
 }
@@ -51,7 +50,6 @@ export interface ProjectData {
   remix_of: number
   bpm: number
   pitch: number
-  sources: SourceData[]
   tracks: TrackData[]
   comments: CommentData[]
 }
@@ -61,13 +59,13 @@ export type Project = ReturnType<typeof Project>
 export function Project(data: ProjectData, isSaved: boolean = true) {
   using $ = Signal()
 
-  // TODO(Signal): $.deep({...})
   const info = $({
     isSaved,
     isLoaded: false,
     data: $(data, {
-      sources: data.sources.map(source => $(source)),
       tracks: data.tracks.map(track => $(track, {
+        sources: track.sources.map(source => $(source)),
+        notes: track.notes.map(note => $(note)),
         boxes: track.boxes.map(box => $(box, {
           track,
           params: box.params.map(param => $(param, {
@@ -83,32 +81,45 @@ export function Project(data: ProjectData, isSaved: boolean = true) {
   })
 
   $.fx(() => {
-    const { isLoaded } = info
+    const { isLoaded } = $.of(info)
     if (!isLoaded) return
 
-    const { sources, tracks } = info.data
+    const { tracks } = info.data
     const { audio } = $.of(services)
     const { dsp } = $.of(audio.dsp.info)
 
     $()
 
-    const sourcesMap = new Map<number, $<Source<Token>>>()
     const newTracks = []
+
+    const prevTracks = info.tracks
 
     for (let y = 0; y < tracks.length; y++) {
       const track = tracks[y]
+
+      const prevIndex = prevTracks.findIndex(t => t.data === track)
+      if (prevIndex >= 0) {
+        const [prev] = prevTracks.splice(prevIndex, 1)
+        newTracks.push(prev)
+        continue
+      }
+
       const t = Track(audio.dsp, track, y)
 
       newTracks.push(t)
 
       for (const box of track.boxes) {
-        let source = sourcesMap.get(box.source_id)
-        if (!source) sourcesMap.set(box.source_id,
-          source = $(new Source<Token>(tokenize), {
-            code: $(sources[box.source_id]).$.code!
-          })
-        )
+        const source = t.info.sources.find(s => s.id === box.source_id)!
         t.addBox(source, $(box))
+      }
+    }
+
+    // we didn't find these tracks, so we're guessing they
+    // were removed, so stop them and dispose them.
+    if (prevTracks.length) {
+      let prev: Track | undefined
+      while (prev = prevTracks.pop()) {
+        prev.destroy()
       }
     }
 

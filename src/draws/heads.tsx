@@ -1,8 +1,8 @@
 import { Signal } from 'signal-jsx'
 import { Point, Rect } from 'std'
-import { dom } from 'utils'
+import { MouseButtons, dom } from 'utils'
 import { HEADER_HEIGHT, HEADS_WIDTH } from '../constants.ts'
-import { Track } from '../dsp/track.ts'
+import { Track, palette } from '../dsp/track.ts'
 import { lib } from '../lib.ts'
 import { screen } from '../screen.tsx'
 import { state } from '../state.ts'
@@ -11,6 +11,7 @@ import { fromSvg } from '../util/svg-to-image.ts'
 import { Grid } from './grid.ts'
 import { layout } from '../layout.ts'
 import { Canvas } from '../comp/Canvas.tsx'
+import { intToHex } from '../util/rgb.ts'
 
 const DEBUG = true
 
@@ -27,13 +28,64 @@ export function Heads(surface: Surface, grid: Grid) {
     view.h = h
   })
 
+  const info = $({
+    hoveringTrack: null as Track | null,
+  })
+
+  function Colors() {
+    return <div class="flex flex-row flex-nowrap cursor-pointer">{palette.map(x =>
+      <button class={`w-6 h-6 flex items-center justify-center hover:bg-base-100 hover:bg-opacity-80`}>
+        <div class="w-4 h-4" style={{ background: intToHex(x) }}></div>
+      </button>
+    )}</div>
+  }
+
+  const contextmenu = <div class="w-fit fixed z-50 bg-base-100 text-base-content py-1">
+    <div class="w-[280px]">
+      {[
+        <div class="flex flex-row flex-nowrap items-center justify-between"><div>Change color</div> <Colors /></div>,
+        <div class="flex flex-row flex-nowrap items-center justify-between"><div>Duplicate as</div> <Colors /></div>,
+        <div class="flex flex-row flex-nowrap items-center justify-between"><div>Insert as</div> <Colors /></div>,
+        <div class="flex flex-row flex-nowrap items-center justify-between">
+          Remove
+          <div class="w-4 h-4 mr-1" style={() => ({
+            background: info.hoveringTrack?.info.colors?.hexColor ?? '#fff'
+          })} />
+        </div>
+      ].map(label =>
+        <button class="w-full pl-4 pr-3 h-8 text-sm box-border text-left hover:bg-primary hover:text-primary-content cursor-default">
+          {label}
+        </button>
+      )}
+    </div>
+  </div> as HTMLDivElement
+
   const canvas = <Canvas actual onresize={(y) => {
     // surface.sketch.view.y = y
   }} view={view} class="
     absolute left-0 top-0
-    pointer-events-none
     pixelated
   " /> as Canvas
+
+  canvas.title = 'Left click - Play sound\nWheel - Volume\nRight click - More options'
+
+  let contextMenuOpen = false
+  $.fx(() => dom.on(canvas, 'contextmenu', e => {
+    e.preventDefault()
+    e.stopPropagation()
+    contextMenuOpen = false
+    handleHover(e)
+    contextMenuOpen = true
+    contextmenu.style.left = e.pageX + 'px'
+    contextmenu.style.top = e.pageY + 'px'
+    dom.body.append(contextmenu)
+    dom.on(window, 'pointerdown', e => {
+      e.preventDefault()
+      e.stopPropagation()
+      contextMenuOpen = false
+      contextmenu.remove()
+    }, { capture: true, once: true })
+  }))
 
   const c = canvas.getContext('2d', { alpha: true })!
   c.imageSmoothingEnabled = false
@@ -43,10 +95,6 @@ export function Heads(surface: Surface, grid: Grid) {
   const r = $(new Rect)
 
   const mousePos = $(new Point)
-
-  const info = $({
-    hoveringTrack: null as Track | null,
-  })
 
   function handleHover(e: MouseEvent | WheelEvent) {
     const { pr } = screen.info
@@ -87,9 +135,10 @@ export function Heads(surface: Surface, grid: Grid) {
       }
     }
 
-    info.hoveringTrack = hoveringTrack
-
-    surface.anim.info.epoch++
+    if (!contextMenuOpen) {
+      info.hoveringTrack = hoveringTrack
+      surface.anim.info.epoch++
+    }
   }
 
   $.fx(() => dom.on(window, 'mousemove', $.fn((e: MouseEvent) => {
@@ -97,6 +146,8 @@ export function Heads(surface: Surface, grid: Grid) {
   })))
 
   $.fx(() => dom.on(window, 'mousedown', $.fn((e: MouseEvent) => {
+    if (!(e.buttons & MouseButtons.Left)) return
+
     const { hoveringTrack } = info
 
     if (hoveringTrack) {
@@ -214,7 +265,7 @@ export function Heads(surface: Surface, grid: Grid) {
         icons.play.img,
         0, 0, icons.play.img.width, icons.play.img.height,
         0, y, w, w * (icons.play.img.height / icons.play.img.width),
-        )
+      )
       c.restore()
       c.beginPath()
       c.moveTo(w, y)

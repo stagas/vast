@@ -2,6 +2,7 @@ import { $ } from 'signal-jsx'
 import { compressUrlSafe, decompressUrlSafe } from 'urlsafe-lzma'
 import { checksum, debounce, pick } from 'utils'
 import { Project, ProjectData } from './dsp/project.ts'
+import { getSourceId } from './source.ts'
 
 function parse(timestamp: number, text: string) {
   const id = checksum(text)
@@ -14,7 +15,6 @@ function parse(timestamp: number, text: string) {
     remix_of,
     bpm,
     pitch,
-    sources,
     tracks,
   ] = json
 
@@ -26,8 +26,8 @@ function parse(timestamp: number, text: string) {
     remix_of,
     bpm,
     pitch,
-    sources: sources.map(code => ({ code })),
-    tracks: tracks.map(([notes, boxes]) => ({
+    tracks: tracks.map(([sources, notes, boxes], y) => ({
+      sources: sources.map(code => ({ code })),
       notes: notes.map(([n, time, length, vel]) => ({
         n,
         time: Math.max(0, time),
@@ -53,7 +53,7 @@ function parse(timestamp: number, text: string) {
     comments: []
   })
 
-  // console.log(project)
+  console.log(project)
 
   return project
 }
@@ -66,8 +66,8 @@ class Lib {
       json.remix_of,
       json.bpm,
       json.pitch,
-      json.sources.map(s => s.code ?? ''),
       json.tracks.map(t => [
+        t.sources.map(s => s.code ?? ''),
         t.notes.filter(n => n.n != null).map(n => [
           n.n,
           n.time,
@@ -92,6 +92,7 @@ class Lib {
       ] as const)
     ] as const
     if (json.tracks.length === 0) return minified
+    // return minified // NOTE: temp
     const text = JSON.stringify(minified)
     const res = compressUrlSafe(text, { mode: 9, enableEndMark: false })
     const id = checksum(res)
@@ -127,13 +128,11 @@ class Lib {
       remix_of,
       bpm,
       pitch,
-      sources: data.sources.map(s => ({
-        code: s.code ?? ''
-      })),
       tracks: tracks.map(t => ({
+        sources: t.info.sources.map(s => ({ code: s.code ?? '' })),
         notes: t.info.notesJson,
         boxes: t.info.boxes.map(b => ({
-          ...pick({ ...b.data }, [
+          ...pick(b.data, [
             'source_id',
             'time',
             'length',
@@ -172,42 +171,41 @@ class Lib {
       }
     }
 
-    // const demo_p = `XQAAAALBDQAAAAAAAAAtiKxZCEM6Xo7_UU1sLI6CbXpMLf4dmQQ_APXnu-zKBCHhJIyxotjwniEqZZ_Jktb68T2Cfx5Ypg9n5xhpWj6InGwfUsL48fswLsXQCmmsLGrLaHGv9UNPIxuRDUTt-7orn23Q8tOAf3NOe-uK5cyZHsi8qUuqSZpZNvcR6MM7Uq01BvptvjO_QKKTFt50Qrg9UtoknLqCvDe7qoVIqWNp-KOfTaOIfUZ439PGjDmBkf7RuEqiQ_wAbvgvuPUtDG0rkMXDyz35RDrSLa_TT_61VCvfnZhfl_bwbPbYOJf0wvMi4GAcqHT57xgrUYaww0YG3g4of2X4ZE6xexcaf91GaKFQ1exDT974_KZh8jJVPAL1VwSpo6ylV23gVZ7CWlJyXofwwWODVit5MCRFoFOCyHkyQLFtnCVCA57-fyW12c8ZRmFqJzSGQpNrGrZMZexVC4LWdT0V1TBAzeHcapmxw26ErywgC-QxtVHt45vd9C8IbMHxEP1jOTyDzy69IIBHQbKA4CaHQVFAGI7sPc82skCVpujtmfkpO7wO-D1J1RwnJH5ed6EiYzpWXqbLwAydSKKqj6UVClIdvGtfstLn9AnsqeqNLUpnQTkx98jvGB-2i9dSg0Nw0KsJaUNWmVcDliJP44OxRbzab6DGG7XEVyLiC7sEM688Vi4w8R1wiJXZDWGrDeCW4lJEoixEkk2cv8JyitSMz6oi8sxzDidSTIcVhNEW0IK96riDBR5hDto4a6fRLYrujpyMb2tVQeoH8nsFZp2i0zCwOzjCFZHAmOLYDV4QPtjJ2Kvux4O3PMAt5je43nbo6-qHBWJ-VrOIJTWAFO4FZ-XULpb_ArVx6VAZ5_bG_Oh-rsx1FCPOyCBs2FU8lhOr_le8d2kNhkUCR-ABmr6hvULbdn5UM8B-Rf0Jyzsew3WVpt1Im1D27uUXwcqoyPSQAgLSrxff1qJPEjyOv8cUDZPtZh51M_tTYNk2uRxIYbjcbxiYOgJV61OmwKY6tDe5DVT84lwobIJzUu7fksTm_M1eCwUhbg2a_GqDz6Z1ZBWgazw4C5zIM5dZ-VEykYtVRxZUiIiTW8NK06rLSOyT5isikueLjhIOmFofXp6ls_NGaHcOUH1sOg4bkAJShx3yw88EIFDZyYo2TGjmT7pMKmjI3m-tJNrDlpSqiEcgDmUrpq14p_XzDjVfHwEBHlYdSY1qWrNtpnpXJDcHplK_IsWiGYjumsQ46uI38kaQcCgt2GMGbtFB1wLuMFjX9Oo2dXk0CPt27VHLgQD3plzQgwjcpzUvzPK_Tokjpb88sPmom_yQoB4CU81SN-dxDTMm0vB1ya_Yl4TQBZOyci_brjoheXGadLiJKQg_uXHQhFt1RrsHn1c9cxmz3Dh6BWvRcKx0m2DfZJW0221Em2Nfmlcjpyf8fNeFhX9VJ9e-AtrWlRAA`
-    // const demo_p = `XQAAAAKXDAAAAAAAAAAtiKxZCEM6Xo7_UU1sLI6CbXpMLf4dmQQ_APXnu-zKBCHhJIyxopIWNu081_Gly9-GKyh0Rxu1Sv4MBqh1nixvTD9AIJFKgVsgxQG8M_5tQTMnnQqVuQYJNex0VNLJkwcgBK5oH0ZIhZSns83HGEKQMykVjb4eAHAkbpyZtiykfoChZNVNx1-wAJmRczxUudh0puJfPeDDRB9ZoBMHxaed1CsKHNyBloOwPj18iRIuhtl4hfAwD_hkI8gCuDe_RSgOm1DLLofc_BOP5BfweCLnSy_6X4smm3NfF_YtbUgj_W8yP3fbFjJTVwfS1-0KsRQBjw4UHfT4RDVEnWYOdTIBQS-TjkKccNLmIPtAynq6_OPOdHdN-0Cn6Qk7F_XSzMaByo7lxc9AHoOb7c-h8UhQpvGE-CIF0xLSTtx2J7qIWLrIgo-yM0CUblubdXoqqXY0zVVq-S7HJ87ZseRONJAt-8qFr0P_awRELrsiuX1AwaznWHrlom9L8a8s93P57F4Iiv0Y4W96VZ0Kxje80T34A1mFWChMHUENm4fHWG6wS5DlZiWMOqDF4go1-4pM8SMxHlJnBfPx8Sw54EM4uZxugTqbsFVnuyaCrcgZI6Q4FvSt_6BaVd0yCUcuThIjUOKAMEpxFB2I-QYH2GfhsYbL_T5X10wu1Bbzmq3BcMwMWQNqSRVCDKT8zOH8L3oycsojJyB0jnFUEL0M5HOjM_K_Hjtt73cNdhWjn-icNOtF7at_cK-vElalIY-pfCkBN6M0_--6MnzyAyaqHMdjv7oI8-ZNLPTXjnQ5s35VxDQgwu1WTVOhQiRt8y0eaXP0EimNJsmz0EIbFMFvNuU11mTJugkDtrUDWNAa7eXfsdr1SmyNPqz75fxXBrNH3BMoIBE7gWlcawmCXrsuBow9gibkj5RsDTn61T081bq_a4w1fcAlOq6OQQ_ZS31V2ecsVYtBFJ052wk8Tn1_WtMYbHljWFxtayvPgCvXY6NY0QstGsgd6K4umdwQUrSZHBDXwrr6nfxuwgMFCxnwblqlEUJOF05AT2cdQOpLDodYVE7oTOs1J0bKQPCJxHXYoni8KfPVCb0ouk-NnhsA`
-    const demo_p = `XQAAAAKXDAAAAAAAAAAtiKxZCEM6Xo7_UU1sLI6CbXpMLf4dmQQ_APXnu-zKBCHhJIyxopIWNu081_Gly9-GKyh0Rxu1Sv4MBqh1nixvTD9AIJFKgVsgxQG8M_5tQTMnnQqVuQYJNex0VNLJkwcgBK5oH0ZIhZSns83HGEKQMykVjb4eAHAkbpyZtiykfoChZNVNx1-wAJmRczxUudh0puJfPeDDRB9ZoBMHxaed1CsKHNyBloOwPj18iRIuhtl4hfAwD_hkI8gCuDe_RSgOm1DLLofc_BOP5BfweCLnSy_6X4smm3NfF_YtbUgj_W8yP3fbFjJTVwfS1-0KsRQBjw4UHfT4RDVEnWYOdTIBQS-TjkKccNLmIPtAynq6_OPOdHdN-0Cn6Qk7F_XSzMaByo7lxc9AHoOb7c-h8UhQpvGE-CIF0xLSTtx2J7qIWLrIgo-yM0CUblubdXoqqXY0zVVq-S7HJ87ZseRONJAt-8qFr0P_awRELrsiuX1AwaznWHrlom9L8a8s93P57F4Iiv0Y4W96VZ0Kxje80T34A1mFWChMHUENm4fHWG6wS5DlZiWMOqDF4go1-4pM8SMxHlJnBfPx8Sw54EM4uZxugTqbsFVnuyaCrcgZI6Q4FvSt_6BaVd0yCUcuThIjUOKAMEpxFB2I-QYH2GfhsYbL_T5X10wu1Bbzmq3BcMwMWQNqSRVCDKT8zOH8L3oycsojJyB0jnFUEL0M5HOjM_K_Hjtt73cNdhWjn-icNOtF7at_cK-vElalIY-pfCkBN6M0_--6MnzyAyaqHMdjv7oI8-ZNLPTXjnQ5s35VxDQgwu1WTVOhQiRt8y0eaXP0EimNJsmz0EIbFMFvNuU11mTJugkDtrUDWNAa7eXfsdr1SmyNPqz75fxXBrNH3BMoIBE7gWlcawmCXrsuBow9gibkj5RsDTn61T081bq_a4w1fcAlOq6OQQ_ZS31V2ecsVYtBFJ052wk8Tn1_WtMYbHljWFxtayvPgCvXY6NY0QstGsgd6K4umdwQUrSZHBDXwrr6nfxuwgMFCxnwblqlEUJOF05AT2cdQOpLDodYVE7oTOs1J0bKQPCKMyLXC4fCmBnR1BD05eUEOZ4A`
+    const demo_p = `XQAAAAKWEAAAAAAAAAAtiKxZCEM6XjkWf4yJpenLxExDT6EdtNGciynV7oP8eIoYRkEafy16fKXfP1VSt0uc6sZzfvWF3rW_Xd1OS4cYVdSWXMQgICSxsXAUBI0jZmGJ7Rc14TxBdP-jh9TW5AfSE_dnmQ5mu6gxGLntr0-6BRgOQcmtkGXHeRw1RAHuEJwRubhLxkKqS5V1Kg7zyk2WoDWmmct2w2svfUkEiZWa9EXa1FMnIweaVLdNobMxNYIMDgkv6eFpVLZdhSOsSV6yDjJre2ZES-UjkyJYX4ywwA7Yf9WEDRUE8BJvaadH6z3Tf2G5vyt5PdcZ18XF6nGH0GVirm-PjJI8LhaM-h80B97g3ZjSUxSQ6VkOjVW39e8WBt_jZjFOOwdtVu6VMd8snQCAluX5NuiSnkjlXNFoHgrjuIONII9mJ0UbB75_OPvE6Yt0PrHhAkaKl1qfR9-QHozQwaqZ49e9tfQKbZaWIFZEwKVa6Gbam8z68ryuhtkkMgOh5JluPijljYKV2G9cUaUAkQ7PYo3P7BMbW5frEkE5o15AS98NYEY-JvFdVMvlvgDOYjqGIfMvOSDV4vcuK5NQFhWnFk0z0VSz1dYdN-ZrlbK9BCpTZVJxcRnnwPq6FpFlsOW6FEvGOWerFd3MKrFUOirU4ulWmcAaY5LbFW2Ff0qRzngmu90kYxsmG_8uG1qNgFuqmWXWeMNSNfGvQxxSwROdAHvl0SRLWXUwDBRhZS5M8pruU5AVs5otlUF-DHkruHO9mGARWfboAaCuABMVDvZsNKuJlIZRyFv27SbX1L9_v78nH75r_btR7SHyek2YYkcMAM7v9wBKkDVZkq-CZ9FWLJ3dI7AyPYWCgCdX78F6xFtqxvFlyGLPue1QuZRM4DEqBW5jE3xhaZLlz4Er_wiyrZT15jRQuZVY7v64jpgzyCGGfCIf_Xzs5gguius4cQcI6NF2EIbafjCubIxW-BM8Vsr1jIwR5eJX4PDlykqdPVhBC5W3kGaxJJle6h1UFQAahHuhfrzz0DuXEo5-CkkYRJ0_E-LWOXyOk14NJbLdB-u2hkR6Dk_FAU9cSG9G3WJNwT43IIoPCOTLWuPG_bBkzChumVre69cTaYSTKOKKgNKNDqRLRXCL8Pt-2ncTznZjeXfsXZAot3hT6eT8AA%253D%253D`
     lib.project = parse(Date.now(), demo_p)
 
-    // const sources = [
-    //   lib.cool_bass_source,
-    //   lib.demo_source_kick,
-    //   lib.demo_source_hihat,
-    //   lib.demo_source_eyo,
-    //   lib.demo_source_radio_signals,
-    // ]
+    return
+    const sources = [
+      lib.cool_bass_source,
+      lib.demo_source_kick,
+      lib.demo_source_hihat,
+      lib.demo_source_eyo,
+      lib.demo_source_radio_signals,
+    ]
 
-    // let count = 4
-    // const length = 2
-    // lib.project = Project({
-    //   id: 0,
-    //   timestamp: 0,
-    //   title: '',
-    //   creator: '',
-    //   remix_of: 0,
-    //   bpm: 0,
-    //   pitch: 0,
-    //   sources,
-    //   tracks: Array.from(sources, (_, y) => ({
-    //     notes: [],
-    //     boxes: Array.from({ length: count }, (_, x) => ({
-    //       source_id: y,
-    //       time: 1024 + (x * length),
-    //       length,
-    //       pitch: 0,
-    //       params: []
-    //     })),
-    //   })),
-    //   comments: []
-    // })
+    let count = 4
+    const length = 2
+    lib.project = Project({
+      id: 0,
+      timestamp: 0,
+      title: '',
+      creator: '',
+      remix_of: 0,
+      bpm: 144,
+      pitch: 0,
+      tracks: Array.from(sources, (source, y) => ({
+        sources: [source],
+        notes: [],
+        boxes: Array.from({ length: count }, (_, x) => ({
+          source_id: getSourceId(source),
+          time: 1024 + (x * length),
+          length,
+          pitch: 0,
+          params: []
+        })),
+      })),
+      comments: []
+    })
   }
 
   project?: Project

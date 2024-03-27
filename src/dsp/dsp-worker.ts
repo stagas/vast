@@ -54,6 +54,9 @@ const worker = {
     const info = this
 
     try {
+      // ensure an audio in the stack
+      code = code.trim() || '[zero]'
+
       const tokens = [...tokenize({ code })]
 
       sound.reset()

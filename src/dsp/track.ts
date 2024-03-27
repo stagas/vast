@@ -5,7 +5,7 @@ import { Point, Rect } from 'std'
 import { Lru, hueshift, luminate, saturate } from 'utils'
 import { BUFFER_SIZE } from '../../as/assembly/dsp/constants.ts'
 import { AstNode } from '../lang/interpreter.ts'
-import { Token } from '../lang/tokenize.ts'
+import { Token, tokenize } from '../lang/tokenize.ts'
 import { screen } from '../screen.tsx'
 import { services } from '../services.ts'
 import { Source } from '../source.ts'
@@ -16,15 +16,16 @@ import { createNote } from '../util/notes.ts'
 import { hexToInt, intToHex, toHex } from '../util/rgb.ts'
 import { DspService } from './dsp-service.ts'
 import { BarBox, PlayerTrack } from './player-shared.ts'
-import type { BoxData, TrackData } from './project.ts'
+import type { BoxData, Project, ProjectData, TrackData } from './project.ts'
 
 const DEBUG = true
 
-const palette = [
+export const palette = [
   0xff5555,
   0x1188ff,
   0xbb55b0,
   0x44aa99,
+  0xaaaa22,
 ]
 
 export interface TrackBox {
@@ -122,6 +123,12 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
   const info = $({
     y,
     sound$: $.unwrap(() => dsp.ready.then(() => dsp.service.createSound())),
+    get sources(): $<Source<Token>>[] {
+      const { sources } = $.of(trackData)
+      return sources.map(s => $(new Source<Token>(tokenize), {
+        code: $(s).$.code!
+      }))
+    },
     get sy() {
       const { y } = this
       const { pr } = screen.info
@@ -161,7 +168,6 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
     },
     tokensAstNode: new Map<Token, AstNode>(),
     boxes: [] as TrackBox[],
-    sources: null as Set<Source<Token>> | null,
     error: null as Error | null,
     floats: null as Floats | null,
     notes: trackData.notes.map(note => createNote(
@@ -307,32 +313,32 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
       if (toRender.size) {
         const [first, ...rest] = toRender
         toRender = new Set(rest)
-        renderSource(first)
+        renderSource(first).catch(console.warn)
       }
     }
   }
 
-  function equalSets(a: Set<any>, b?: Set<any> | null) {
-    if (a.size !== b?.size) return false
-    for (const item of a) {
-      if (!b.has(item)) return false
-    }
-    for (const item of b) {
-      if (!a.has(item)) return false
-    }
-    return true
-  }
+  // function equalSets(a: Set<any>, b?: Set<any> | null) {
+  //   if (a.size !== b?.size) return false
+  //   for (const item of a) {
+  //     if (!b.has(item)) return false
+  //   }
+  //   for (const item of b) {
+  //     if (!a.has(item)) return false
+  //   }
+  //   return true
+  // }
 
-  $.fx(function update_sources() {
-    const sources = new Set<Source<Token>>()
-    for (const { info: { source } } of info.boxes) {
-      sources.add(source)
-    }
-    $()
-    if (!equalSets(sources, info.sources)) {
-      info.sources = sources
-    }
-  })
+  // $.fx(function update_sources() {
+  //   const sources = new Set<Source<Token>>()
+  //   for (const { info: { source } } of info.boxes) {
+  //     sources.add(source)
+  //   }
+  //   $()
+  //   if (!equalSets(sources, info.sources)) {
+  //     info.sources = sources
+  //   }
+  // })
 
   $.fx(function update_audio_buffer() {
     const { sources } = $.of(info)
@@ -361,7 +367,7 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
           const { epoch } = source
           $()
           const { voicesCount, notesJson } = info
-          renderSource(source)
+          renderSource(source).catch(console.warn)
         })
       }
 
@@ -396,6 +402,12 @@ export function Track(dsp: DspService, trackData: TrackData, y: number) {
     bufferSourcesPlaying.forEach(buf => buf.stop())
   }
 
-  const track = { info, data: trackData, pt, addBox, removeBox, play, stop }
+
+  function destroy() {
+    stop()
+    $.dispose()
+  }
+
+  const track = { info, data: trackData, pt, addBox, removeBox, play, stop, destroy }
   return track
 }
