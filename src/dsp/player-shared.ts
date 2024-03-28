@@ -5,6 +5,7 @@ export const enum PlayerMode {
   Reset,
   Stop,
   Play,
+  Pause,
 }
 
 export const Out = Struct({

@@ -66,6 +66,7 @@ export function Navbar(props: { sequencer: Sequencer }) {
   navbar.style.left = '0px'
   $.fx(() => {
     const { mode } = state
+    const { isPlaying } = services.audio.player.info
     $()
     navbar.replaceChildren(...[
       // <div class={`lg:min-w-[348px] mt-[1px]`}>
@@ -79,33 +80,45 @@ export function Navbar(props: { sequencer: Sequencer }) {
         e.preventDefault()
       }}>
         <Btn onpointerdown={e => {
-          if (!(e.buttons & MouseButtons.Left)) return
           // play
-          services.audio.player.start()
-        }}>{/* play button */}
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-[27px] w-5" preserveAspectRatio="xMidYMid slice" viewBox="0 0 24 24">
-            <path fill="none" stroke={() => screen.info.colors.primary} stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M7 17.259V6.741a1 1 0 0 1 1.504-.864l9.015 5.26a1 1 0 0 1 0 1.727l-9.015 5.259A1 1 0 0 1 7 17.259" />
-          </svg>
-        </Btn>
-        <Btn onpointerdown={e => {
           if (!(e.buttons & MouseButtons.Left)) return
+          // TODO: alt pressed? restart
+          if (!isPlaying) {
+            services.audio.player.play()
+          }
+          else {
+            props.sequencer.grid.intentMatrix
+            services.audio.player.pause()
+          }
+        }}>
+          {isPlaying
+            ?
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-[27px] w-5" preserveAspectRatio="xMidYMid slice" viewBox="-2 -1 34 35">
+              <path fill={() => screen.info.colors.secondary} d="M12 8v16H8V8zm0-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m12 2v16h-4V8zm0-2h-4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2" />
+            </svg>
+            :
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-[27px] w-5" preserveAspectRatio="xMidYMid slice" viewBox="0 0 24 24">
+              <path fill="none" stroke={() => screen.info.colors.primary} stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M7 17.259V6.741a1 1 0 0 1 1.504-.864l9.015 5.26a1 1 0 0 1 0 1.727l-9.015 5.259A1 1 0 0 1 7 17.259" />
+            </svg>
+          }
+        </Btn>
+
+        <Btn onpointerdown={e => {
           // stop
+          if (!(e.buttons & MouseButtons.Left)) return
           services.audio.player.stop()
           lib.project?.info.tracks.forEach(t => t.stop())
-        }}>{/* stop button */}
+          props.sequencer.grid.info.redraw++
+        }}>
           <svg xmlns="http://www.w3.org/2000/svg" class="h-[22.5px] w-5" preserveAspectRatio="xMidYMid slice" viewBox="0 0 24 24">
             <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" d="M5 8.2v7.6c0 1.12 0 1.68.218 2.107c.192.377.497.683.874.875c.427.218.987.218 2.105.218h7.607c1.118 0 1.676 0 2.104-.218c.376-.192.682-.498.874-.875c.218-.427.218-.986.218-2.104V8.197c0-1.118 0-1.678-.218-2.105a2 2 0 0 0-.874-.874C17.48 5 16.92 5 15.8 5H8.2c-1.12 0-1.68 0-2.108.218a1.999 1.999 0 0 0-.874.874C5 6.52 5 7.08 5 8.2" />
           </svg>
         </Btn>
+
         <Btn onpointerdown={$.fn(e => {
-          if (!(e.buttons & MouseButtons.Left)) return
           // add track
-          const p = lib.project!
-          p.info.data.tracks = [...p.info.data.tracks, $({
-            sources: [{ code: '' }],
-            boxes: [],
-            notes: [],
-          })]
+          if (!(e.buttons & MouseButtons.Left)) return
+          lib.project?.addNewTrack()
         })} title="+ add new track">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-[24px] w-5" preserveAspectRatio="xMidYMid slice" viewBox="0 0 16 16">
             <path fill={() => screen.info.colors.secondary} fill-rule="evenodd" d="M8 1.75a.75.75 0 0 1 .75.75v4.75h4.75a.75.75 0 0 1 0 1.5H8.75v4.75a.75.75 0 0 1-1.5 0V8.75H2.5a.75.75 0 0 1 0-1.5h4.75V2.5A.75.75 0 0 1 8 1.75" clip-rule="evenodd" />

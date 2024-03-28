@@ -155,46 +155,46 @@ export function draw(
           }
         }
 
-        // if (isFocused) {
-        //   // draw shadows
+        if (isFocused) {
+          // draw shadows
 
-        //   let i: i32 = 0
-        //   while (note$ = unchecked(notesPtrs[i++])) {
-        //     note = changetype<Note>(note$)
+          let i: i32 = 0
+          while (note$ = unchecked(notesPtrs[i++])) {
+            note = changetype<Note>(note$)
 
-        //     const n = note.n
-        //     const time = note.time
-        //     const length = note.length
-        //     const vel = note.vel
+            const n = note.n
+            const time = note.time
+            const length = note.length
+            const vel = note.vel
 
-        //     const alpha: f32 = isFocused
-        //       ? hoveringNote$ === note$
-        //         ? 1
-        //         : .45 + (.55 * vel)
-        //       : .2 + (.8 * vel)
+            const alpha: f32 = isFocused
+              ? hoveringNote$ === note$
+                ? 1
+                : .45 + (.55 * vel)
+              : .2 + (.8 * vel)
 
-        //     const color: f32 = 0
+            const color: f32 = 0
 
-        //     const nx = (time * SCALE_X) * ma
-        //     if (nx >= w) continue
+            const nx = (time * SCALE_X) * ma
+            if (nx >= w) continue
 
-        //     let nh = h / scale_N
-        //     const ny = h - nh * (n + 1 - min) // y
-        //     let nw = (length * SCALE_X) * ma
-        //     if (nx + nw > w) {
-        //       nw = w - nx
-        //     }
-        //     nh -= nh > 3 ? 1.0 : nh > 1.5 ? .5 : 0
-        //     nh += f32(.008 * md)
-        //     sketch.drawBox(
-        //       x + f32(nx),
-        //       y + f32(ny),
-        //       f32(nw - x_gap),
-        //       f32(nh),
-        //       color, notes.alpha * alpha
-        //     )
-        //   }
-        // }
+            let nh = h / (scale_N + 1)
+            const ny = h - nh * ((n + 1) - min) // y
+            let nw = (length * SCALE_X) * ma
+            if (nx + nw > w) {
+              nw = w - nx
+            }
+            nh -= nh > 3 ? 1.0 : nh > 1.5 ? .5 : 0
+            nh += f32(.008 * md)
+            sketch.drawBox(
+              x + f32(nx),
+              y + f32(ny) + 1.0,
+              f32(nw - x_gap),
+              f32(nh),
+              color, notes.alpha * alpha
+            )
+          }
+        }
 
         let i: i32 = 0
         while (note$ = unchecked(notesPtrs[i++])) {

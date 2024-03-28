@@ -4,12 +4,11 @@ import { getMemoryView } from 'utils'
 import { BUFFER_SIZE, MAX_TRACKS } from '../../as/assembly/dsp/constants.ts'
 import { MAX_BARS } from '../../as/assembly/seq/constants.ts'
 import { Out as OutType } from '../../as/assembly/seq/player-shared.ts'
+import { lib } from '../lib.ts'
 import { Clock } from './dsp-shared.ts'
 import { Out, PlayerMode } from './player-shared.ts'
 import type { PlayerProcessorOptions } from './player-worklet.ts'
 import playerWorkletUrl from './player-worklet.ts?url'
-import { Project } from './project.ts'
-import { lib } from '../lib.ts'
 
 export class PlayerNode extends AudioWorkletNode {
   constructor(
@@ -36,26 +35,23 @@ export class PlayerNode extends AudioWorkletNode {
   get isPlaying() {
     return this.mode[0] === PlayerMode.Play
   }
-  start() {
+  get isPaused() {
+    return this.mode[0] === PlayerMode.Pause
+  }
+  reset() {
+    this.mode[0] = PlayerMode.Reset
+  }
+  stop() {
+    this.mode[0] = PlayerMode.Stop
+  }
+  play() {
     if (this.context.state === 'suspended') {
       (this.context as any).resume()
     }
     this.mode[0] = PlayerMode.Play
   }
-  stop() {
-    if (this.isPlaying) {
-      this.mode[0] = PlayerMode.Stop
-    }
-    else {
-      // this.dsp.resetClock()
-    }
-  }
-  reset() {
-    this.mode[0] = PlayerMode.Reset
-  }
-  toggle() {
-    if (this.isPlaying) this.stop()
-    else this.start()
+  pause() {
+    this.mode[0] = PlayerMode.Pause
   }
 }
 
@@ -99,6 +95,7 @@ export function Player(ctx: AudioContext) {
 
   const info = $({
     isPlaying: false,
+    isPaused: false,
     didPlay: false,
     node: $.unwrap(() =>
       ctx.audioWorklet.addModule(playerWorkletUrl)
@@ -147,17 +144,41 @@ export function Player(ctx: AudioContext) {
     swapBars()
   })
 
-  function start() {
-    info.node?.start()
-    info.isPlaying = info.node?.isPlaying ?? false
-  }
-
-  function stop() {
-    info.node?.stop()
+  function updateInfo() {
     requestAnimationFrame(() => {
       info.isPlaying = info.node?.isPlaying ?? false
+      info.isPaused = info.node?.isPaused ?? false
     })
   }
 
-  return { info, clock, barsData, bars, out: { view: out, L, R }, start, stop }
+  function stop() {
+    if (info.node?.isPlaying) {
+      info.node?.stop()
+    }
+    else {
+      wasm.resetClock(clock$)
+    }
+    updateInfo()
+  }
+
+  function play() {
+    info.node?.play()
+    updateInfo()
+  }
+
+  function pause() {
+    info.node?.pause()
+    updateInfo()
+  }
+
+  return {
+    info,
+    clock,
+    barsData,
+    bars,
+    out: { view: out, L, R },
+    stop,
+    play,
+    pause,
+  }
 }

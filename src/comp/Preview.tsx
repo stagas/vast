@@ -21,6 +21,7 @@ export type Preview = ReturnType<typeof Preview>
 
 export function Preview(grid: Grid) {
   DEBUG && console.log('[preview] create')
+
   using $ = Signal()
 
   const view = $(new Rect(
@@ -71,14 +72,17 @@ export function Preview(grid: Grid) {
   webgl.add($, sketch)
 
   const viewMatrix = $(new LerpMatrix)
+
   const shapes = Shapes(view, viewMatrix)
   sketch.scene.add(shapes)
+
   const rect = $({
     x: 0,
     y: 0,
     w: 1,
     h: 1,
   })
+
   $.fx(() => {
     const { pr } = screen.info
     const { previewWidth, codeWidth, codeHeight } = layout.info
@@ -89,6 +93,7 @@ export function Preview(grid: Grid) {
     $.flush()
     shapes.info.needUpdate = true
   })
+
   $.fx(() => {
     const { w, h } = webglView
     const { trackBox } = $.of(info)

@@ -113,6 +113,17 @@ async function createPlayerController(player: PlayerProcessor) {
       wasm.playerProcess(player$, begin, end, out$)
       writeOutput()
     },
+    [PlayerMode.Pause]() {
+      next()
+
+      wasm.playerProcess(player$, begin, end, out$)
+      writeOutput()
+
+      // last bar will be null, so play will do fade ins
+      wasm.clearLastBar(player$)
+
+      setMode(PlayerMode.Idle)
+    },
   }
 
   const controller: { player$: number, process: AudioProcess } = {

@@ -93,13 +93,6 @@ export function Grid(surface: Surface) {
 
   let pianoroll: ReturnType<typeof Pianoroll> | undefined
 
-  $.fx(() => {
-    const { project } = $.of(lib)
-    const { tracks } = project.info
-    $()
-    info.boxes = Boxes(tracks)
-  })
-
   const OFFSET_X = 1
   function getInitialMatrixValues() {
     const boxes = info.boxes
@@ -127,6 +120,22 @@ export function Grid(surface: Surface) {
     }
     queueMicrotask(() => offInitialScale())
   })
+
+  function fitHeight() {
+    const { d } = getInitialMatrixValues()
+    intentMatrix.d = d
+  }
+
+  $.fx(() => {
+    const { project } = $.of(lib)
+    const { tracks } = project.info
+    $()
+    brushes.clear()
+    info.boxes = Boxes(tracks)
+    fitHeight()
+    return info.boxes.$.dispose
+  })
+
 
   //
   // interaction
@@ -1099,7 +1108,7 @@ export function Grid(surface: Surface) {
     $.fx(() => {
       const { isFocused } = trackBox.info
       $()
-      notesShape.view.isFocused = Number(Boolean(isFocused))
+      // notesShape.view.isFocused = Number(Boolean(isFocused))
       if (isFocused) {
         return $.fx(() => {
           const { hoveringNote } = gridInfo
@@ -1135,19 +1144,19 @@ export function Grid(surface: Surface) {
     redraw(overlay)
   })
 
-  $.fx(() => {
-    const { boxes } = $.of(info)
-    const {
-      info: { timeNow: x },
-      player: { info: { isPlaying, didPlay } }
-    } = services.audio
-    $()
-    if (!didPlay) return
-    if (info.isHandling) return
-    const m = intentMatrix
-    const HALF = view.w / 2 - HEADS_WIDTH / 2
-    intentMatrix.e = -boxes.info.left * m.a + HALF
-  })
+  // $.fx(() => {
+  //   const { boxes } = $.of(info)
+  //   const {
+  //     info: { timeNow: x },
+  //     player: { info: { isPlaying, didPlay } }
+  //   } = services.audio
+  //   $()
+  //   if (!didPlay) return
+  //   if (info.isHandling) return
+  //   const m = intentMatrix
+  //   const HALF = view.w / 2 - HEADS_WIDTH / 2
+  //   intentMatrix.e = -boxes.info.left * m.a + HALF
+  // })
 
   $.fx(() => {
     const { boxes } = $.of(info)
@@ -1269,6 +1278,7 @@ export function Grid(surface: Surface) {
     handleZoom,
     handleWheelScaleX,
     updateHoveringBox,
+    fitHeight,
   }
 
   return grid

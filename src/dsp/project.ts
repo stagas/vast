@@ -159,7 +159,19 @@ export function Project(data: ProjectData, isSaved: boolean = true) {
     }
   })
 
-  const project = { info }
+  function addNewTrack() {
+    info.data.tracks = [
+      ...info.data.tracks,
+      $({
+        sources: [{ code: '' }],
+        boxes: [],
+        notes: [],
+      })
+    ]
+    $.flush()
+  }
+
+  const project = { info, addNewTrack }
 
   return project
 }
